@@ -13,6 +13,9 @@
         <div class="container">
             <h1 class="logo"><img src="/static/ocs-logo.png" alt="OCS Logo" class="logo-img"> Obion County Schools</h1>
             <nav>
+                {% if request.url.path != '/' %}
+                <a href="/" class="nav-link"><i class="fa fa-home"></i> Home</a>
+                {% endif %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-ticket"></i> Tickets <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
@@ -26,6 +29,15 @@
                             <a href="/tickets/maintenance/open">Open Tickets</a>
                             <a href="/tickets/maintenance/all">All Tickets</a>
                         </div>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Inventory <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/inventory/add">Add Inventory</a>
+                        <a href="/inventory/remove">Remove Inventory</a>
+                        <a href="/inventory/edit">Edit Inventory</a>
+                        <a href="/inventory/view">View Inventory</a>
                     </div>
                 </div>
                 <div class="dropdown">
