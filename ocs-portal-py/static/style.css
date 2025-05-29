@@ -1,0 +1,191 @@
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(120deg, #e0e7ff 0%, #f7f7f7 100%);
+    min-height: 100vh;
+    color: #222;
+}
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5em;
+}
+.navbar {
+    background: #1e293b;
+    color: #fff;
+    padding: 1.2em 0 1em 0;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.08);
+}
+.logo {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin: 0 0 0.5em 0;
+    display: inline-block;
+}
+.logo img, .logo-img {
+    height: 2.5em;
+    vertical-align: middle;
+    margin-right: 0.5em;
+    display: inline-block;
+}
+nav {
+    display: flex;
+    gap: 1.5em;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.nav-link {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1.1em;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+.nav-link:hover {
+    color: #60a5fa;
+}
+main.container {
+    background: #fff;
+    border-radius: 1.2em;
+    box-shadow: 0 4px 24px rgba(30,41,59,0.07);
+    margin-top: 2em;
+    margin-bottom: 2em;
+    padding: 2.5em 2em 2em 2em;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    background: #f8fafc;
+    border-radius: 0.5em;
+    overflow: hidden;
+    margin-bottom: 2em;
+}
+th, td {
+    border: 1px solid #e5e7eb;
+    padding: 0.75em 1em;
+    text-align: left;
+}
+th {
+    background: #e0e7ff;
+    font-weight: 700;
+}
+tr:nth-child(even) {
+    background: #f1f5f9;
+}
+form {
+    margin: 1.5em 0;
+}
+input, select, textarea {
+    padding: 0.6em 1em;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.4em;
+    font-size: 1em;
+    margin-bottom: 1em;
+    width: 100%;
+    box-sizing: border-box;
+}
+button {
+    background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+    color: #fff;
+    border: none;
+    border-radius: 0.4em;
+    padding: 0.7em 1.5em;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.08);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+button:hover {
+    background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
+    box-shadow: 0 4px 16px rgba(30,41,59,0.12);
+}
+.footer {
+    background: #1e293b;
+    color: #cbd5e1;
+    text-align: center;
+    padding: 1.2em 0 1em 0;
+    font-size: 1em;
+    border-top-left-radius: 1em;
+    border-top-right-radius: 1em;
+    box-shadow: 0 -2px 8px rgba(30,41,59,0.08);
+}
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background: #fff;
+    min-width: 220px;
+    box-shadow: 0 8px 24px rgba(30,41,59,0.13);
+    z-index: 1;
+    border-radius: 0.7em;
+    padding: 0.7em 0.5em;
+    margin-top: 0.5em;
+}
+.dropdown.open .dropdown-content {
+    display: block;
+}
+
+/* Remove all hover/focus rules for dropdowns */
+
+/* Prevent click from being required to open submenu */
+.dropdown > .nav-link {
+    outline: none;
+}
+.dropdown-content a {
+    color: #222;
+    padding: 0.5em 1em;
+    text-decoration: none;
+    display: block;
+    border-radius: 0.4em;
+    font-size: 1em;
+    transition: background 0.2s, color 0.2s;
+    cursor: pointer;
+}
+.dropdown-content a:hover {
+    background: #e0e7ff;
+    color: #2563eb;
+}
+.dropdown-section {
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0.5em 0 0.2em 0.5em;
+    font-size: 0.98em;
+}
+.dropdown-section a {
+    font-weight: 400;
+    margin-left: 0.5em;
+}
+@media (max-width: 600px) {
+    .container, main.container {
+        padding: 0.5em;
+    }
+    .logo {
+        font-size: 1.3rem;
+    }
+    nav {
+        gap: 0.7em;
+    }
+    th, td {
+        padding: 0.5em 0.3em;
+    }
+}
+@media (max-width: 900px) {
+    nav {
+        flex-direction: column;
+        gap: 0.5em;
+    }
+    .dropdown-content {
+        left: 0;
+        right: auto;
+        min-width: 180px;
+    }
+}

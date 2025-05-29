@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OCS Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container">
+            <h1 class="logo"><img src="/static/ocs-logo.png" alt="OCS Logo" class="logo-img"> Obion County Schools</h1>
+            <nav>
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-ticket"></i> Tickets <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <div class="dropdown-section">Tech Tickets
+                            <a href="/tickets/tech/new">New Ticket</a>
+                            <a href="/tickets/tech/open">Open Tickets</a>
+                            <a href="/tickets/tech/all">All Tickets</a>
+                        </div>
+                        <div class="dropdown-section">Maintenance Tickets
+                            <a href="/tickets/maintenance/new">New Ticket</a>
+                            <a href="/tickets/maintenance/open">Open Tickets</a>
+                            <a href="/tickets/maintenance/all">All Tickets</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-user-gear"></i> Users <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/users/list">User List</a>
+                        <a href="/users/add">Add User</a>
+                        <a href="/users/roles">Manage Roles</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+        <div class="container">
+            <span>© 2025 Obion County Schools &mdash; Technology & Maintenance Portal</span>
+        </div>
+    </footer>
+    <script>
+    // Toggle .open class on dropdowns for click-to-open submenu
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.dropdown > .nav-link').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Close other open dropdowns
+                document.querySelectorAll('.dropdown.open').forEach(function(dd) {
+                    if (dd !== link.parentElement) dd.classList.remove('open');
+                });
+                // Toggle this dropdown
+                link.parentElement.classList.toggle('open');
+            });
+        });
+        // Optional: close dropdown if clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown.open').forEach(function(dd) {
+                    dd.classList.remove('open');
+                });
+            }
+        });
+    });
+    </script>
+</body>
+</html>

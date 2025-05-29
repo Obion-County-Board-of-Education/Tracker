@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+psycopg2-binary
+SQLAlchemy
+ocs-shared-models @ file:///ocs-shared-models
+python-dotenv
