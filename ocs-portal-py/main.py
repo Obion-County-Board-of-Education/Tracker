@@ -28,3 +28,27 @@ def add_inventory_form(request: Request):
 def add_inventory_submit(request: Request):
     # TODO: Process form data and save to database
     return templates.TemplateResponse("inventory_success.html", {"request": request})
+
+@app.get("/inventory/remove")
+def remove_inventory_form(request: Request):
+    return templates.TemplateResponse("remove_inventory.html", {"request": request, "item_found": False, "searched": False})
+
+@app.post("/inventory/remove")
+def remove_inventory_search(request: Request):
+    # TODO: Search logic for inventory item based on form fields
+    # For now, simulate not found
+    return templates.TemplateResponse("remove_inventory.html", {"request": request, "item_found": False, "searched": True})
+
+@app.post("/inventory/remove/confirm")
+def remove_inventory_confirm(request: Request):
+    # TODO: Remove item from inventory
+    return templates.TemplateResponse("inventory_success.html", {"request": request})
+
+@app.get("/inventory/view")
+def view_inventory(request: Request):
+    # Placeholder inventory data for demonstration
+    inventory = [
+        {"tag": "1001", "type": "Computer", "brand": "Dell", "model": "OptiPlex 3080", "serial": "SN12345", "po_number": "PO123", "price": "$800", "purchase_date": "2024-08-01", "school": "Black Oak", "room": "101"},
+        {"tag": "1002", "type": "Printer", "brand": "HP", "model": "LaserJet Pro", "serial": "SN67890", "po_number": "PO124", "price": "$200", "purchase_date": "2024-09-15", "school": "Hillcrest", "room": "202"},
+    ]
+    return templates.TemplateResponse("view_inventory.html", {"request": request, "inventory": inventory})
