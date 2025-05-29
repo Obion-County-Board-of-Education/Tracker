@@ -13,6 +13,9 @@
         <div class="container">
             <h1 class="logo"><img src="/static/ocs-logo.png" alt="OCS Logo" class="logo-img"> Obion County Schools</h1>
             <nav>
+                {% if request.url.path != '/' %}
+                <a href="/" class="nav-link"><i class="fa fa-home"></i> Home</a>
+                {% endif %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-ticket"></i> Tickets <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
