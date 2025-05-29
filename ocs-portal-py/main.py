@@ -27,5 +27,4 @@ def add_inventory_form(request: Request):
 @app.post("/inventory/add")
 def add_inventory_submit(request: Request):
     # TODO: Process form data and save to database
-    # For now, just redirect to home or show a success message
-    return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse("inventory_success.html", {"request": request})
