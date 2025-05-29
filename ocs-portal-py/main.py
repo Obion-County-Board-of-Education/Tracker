@@ -28,3 +28,7 @@ def add_inventory_form(request: Request):
 def add_inventory_submit(request: Request):
     # TODO: Process form data and save to database
     return templates.TemplateResponse("inventory_success.html", {"request": request})
+
+@app.get("/tickets/success")
+def ticket_success(request: Request):
+    return templates.TemplateResponse("ticket_success.html", {"request": request})
