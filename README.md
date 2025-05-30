@@ -46,7 +46,7 @@
 ## 📋 Current Task Allocation
 
 - <b>ocs-tickets-api/</b> ............................................. jhowell-ocs
-- <b>ocs-inventory-api/</b> ........................................... CrypticSYS
+- <b>ocs-inventory-api/</b> ......................................... CrypticSYS
 - <b>ocs-requisition-api/</b>
 - <b>ocs-manage/</b>
 - <b>ocs-portal-py/</b>
