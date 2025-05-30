@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Add User</h2>
+    <form method="post" action="/users/add">
+        <label for="name">Name<span style="color:red">*</span></label>
+        <input type="text" id="name" name="name" required>
+        <label for="email">Email<span style="color:red">*</span></label>
+        <input type="email" id="email" name="email" required>
+        <label for="role">Role<span style="color:red">*</span></label>
+        <select id="role" name="role" required>
+            <option value="Admin">Admin</option>
+            <option value="Technician">Technician</option>
+            <option value="User">User</option>
+        </select>
+        <button type="submit">Add User</button>
+    </form>
+</div>
+{% endblock %}
