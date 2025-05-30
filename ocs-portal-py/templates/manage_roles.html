@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Manage User Permissions</h2>
+    <table style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr>
+                <th>Role</th>
+                <th>Permissions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for role in roles %}
+            <tr>
+                <td>{{ role.name }}</td>
+                <td>{{ role.permissions | join(', ') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <!-- You can add forms/buttons here to edit permissions if needed -->
+</div>
+{% endblock %}
