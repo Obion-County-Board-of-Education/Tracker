@@ -77,3 +77,26 @@ def manage_roles(request: Request):
         {"id": 3, "name": "User", "permissions": ["submit_ticket"]},
     ]
     return templates.TemplateResponse("manage_roles.html", {"request": request, "roles": roles})
+
+@app.get("/inventory/view")
+def view_inventory(request: Request):
+    # TODO: Replace with real data from the database
+    inventory = [
+        {"tag": "1001", "type": "Computer", "brand": "Dell", "model": "OptiPlex 3080", "serial": "SN12345", "school": "Black Oak", "room": "101"},
+        {"tag": "1002", "type": "Printer", "brand": "HP", "model": "LaserJet Pro", "serial": "SN67890", "school": "Hillcrest", "room": "202"},
+    ]
+    return templates.TemplateResponse("view_inventory.html", {"request": request, "inventory": inventory})
+
+@app.get("/inventory/remove")
+def remove_inventory_form(request: Request):
+    return templates.TemplateResponse("remove_inventory.html", {"request": request, "item_found": False, "searched": False})
+
+@app.post("/inventory/remove")
+def remove_inventory_search(request: Request):
+    # TODO: Implement search logic
+    return templates.TemplateResponse("remove_inventory.html", {"request": request, "item_found": False, "searched": True})
+
+@app.post("/inventory/remove/confirm")
+def remove_inventory_confirm(request: Request):
+    # TODO: Implement removal logic
+    return templates.TemplateResponse("inventory_success.html", {"request": request})
