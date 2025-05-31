@@ -6,6 +6,7 @@ body {
   font-family: 'Roboto', Arial, sans-serif;
   background: linear-gradient(120deg, #e0e7ff 0%, #f7f7f7 100%);
   color: #222;
+  min-height: 100vh;
 }
 .container {
   max-width: 1400px;
@@ -26,38 +27,19 @@ main.container {
   margin-top: 2em;
   margin-bottom: 2em;
   padding: 2.5em 2em 2em 2em;
+  flex: 1 0 auto;
 }
-.footer {
+.footer, .footer-fixed {
   background: #1e293b;
   color: #cbd5e1;
   text-align: center;
-  padding: 0.3em 0;
-  font-size: 1em;
+  padding: 0.15em 0;
+  font-size: 0.85em;
   border-top-left-radius: 1em;
   border-top-right-radius: 1em;
   box-shadow: 0 -2px 8px rgba(30,41,59,0.08);
 }
-.footer .container {
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-}
-.footer-fixed {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 100;
-  background: #1e293b;
-  color: #cbd5e1;
-  text-align: center;
-  padding: 0.3em 0;
-  font-size: 1em;
-  border-top-left-radius: 1em;
-  border-top-right-radius: 1em;
-  box-shadow: 0 -2px 8px rgba(30,41,59,0.08);
-}
-.footer-fixed .container {
+.footer .container, .footer-fixed .container {
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -144,6 +126,7 @@ tr:nth-child(even) {
 }
 form {
     margin: 1.5em 0;
+    width: 95%;
 }
 input, select, textarea {
     padding: 0.6em 1em;
@@ -174,8 +157,8 @@ button:hover {
     background: #1e293b;
     color: #cbd5e1;
     text-align: center;
-    padding: 0.3em 0;
-    font-size: 1em;
+    padding: 0.15em 0;
+    font-size: 0.85em;
     border-top-left-radius: 1em;
     border-top-right-radius: 1em;
     box-shadow: 0 -2px 8px rgba(30,41,59,0.08);
