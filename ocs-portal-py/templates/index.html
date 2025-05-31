@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Welcome to the OCS Portal</h2>
-<p>Use the navigation above to manage buildings, rooms, and users.</p>
+<form method="post" action="/set-message" style="max-width: 100%; width: 100%; margin: 2em 0 0 0;">
+  <label for="message"><h2>Portal Message</h2></label>
+  <textarea id="message" name="message" rows="4" style="width:100%;font-size:1.4em;padding:1em;border-radius:0.5em;border:1px solid #cbd5e1;resize:vertical;min-width: 100%;box-sizing: border-box;">{{ message|default('Use the navigation above to manage buildings, rooms, and users.') }}</textarea>
+  <div style="margin-top:1em;text-align:right;">
+    <button type="submit">Update Message</button>
+  </div>
+</form>
 {% endblock %}
