@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Users</h2>
+    <form action="/users/add" method="get" style="display:inline;">
+        <button type="submit" class="button" style="margin-bottom:1em;">Add User</button>
+    </form>
+    <table style="max-width: 1300px; border-collapse:collapse;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.name }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role }}</td>
+                <td>
+                    <form action="/users/edit/{{ user.id }}" method="get" style="display:inline;">
+                        <button type="submit" class="button">Edit</button>
+                    </form>
+                    <form method="post" action="/users/delete/{{ user.id }}" style="display:inline;">
+                        <button type="submit" class="button" onclick="return confirm('Delete this user?');">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <form action="/users/roles" method="get" style="margin-top:1em;display:inline;">
+        <button type="submit" class="button">Manage User Permissions</button>
+    </form>
+</div>
+{% endblock %}

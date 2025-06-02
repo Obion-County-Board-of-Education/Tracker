@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-    <h2>New Maintenance Ticket</h2>
-    <form method="post" action="/tickets/maintenance/new">
+    <h2>New Ticket</h2>
+    <form method="post" action="/tickets/tech/new">
         <label for="title">Title<span style="color:red">*</span></label>
         <input type="text" id="title" name="title" placeholder="Enter a short summary" required>
+
         <div style="display:flex; gap:1em;">
             <div style="flex:1;">
                 <label for="school">School<span style="color:red">*</span></label>
@@ -21,19 +22,22 @@
                 </select>
             </div>
         </div>
+
         <label for="tag">Tag #<span style="color:red">*</span></label>
         <input type="text" id="tag" name="tag" placeholder="Tag Number" required>
+
         <label for="description">Issue Description<span style="color:red">*</span></label>
         <textarea id="description" name="description" placeholder="Describe the issue or request in detail" required rows="14" style="min-height:280px;"></textarea>
-        <label for="issue_type">Type of Request<span style="color:red">*</span></label>
+
+        <label for="issue_type">Type of Issue<span style="color:red">*</span></label>
         <select id="issue_type" name="issue_type" required>
             <option value="">Select type</option>
-            <option value="plumbing">Plumbing</option>
-            <option value="electrical">Electrical</option>
-            <option value="hvac">HVAC</option>
-            <option value="grounds">Grounds</option>
+            <option value="hardware">Hardware</option>
+            <option value="software">Software</option>
+            <option value="network">Network</option>
             <option value="other">Other</option>
         </select>
+
         <button type="submit">Submit Ticket</button>
     </form>
 </div>

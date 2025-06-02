@@ -57,11 +57,12 @@
                     </div>
                 </div>
                 <div class="dropdown">
-                    <a href="#" class="nav-link"><i class="fa-solid fa-user-gear"></i> Users <i class="fa fa-caret-down"></i></a>
+                    <a href="#" class="nav-link"><i class="fa-solid fa-user-gear"></i> Admin <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
-                        <a href="/users/list">User List</a>
+                        <a href="/users/list">Users</a>
                         <a href="/users/add">Add User</a>
                         <a href="/users/roles">Manage Roles</a>
+                        <!-- You can add more admin options here -->
                     </div>
                 </div>
             </nav>
@@ -70,11 +71,6 @@
     <main class="container">
         {% block content %}{% endblock %}
     </main>
-    <footer class="footer">
-        <div class="container">
-            <span>© 2025 Obion County Schools &mdash; Technology & Maintenance Portal</span>
-        </div>
-    </footer>
     <script>
     // Toggle .open class on dropdowns for click-to-open submenu
     document.addEventListener('DOMContentLoaded', function() {
