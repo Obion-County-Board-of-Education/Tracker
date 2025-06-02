@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="content-header">
-    <h1><i class="fa-solid fa-building"></i> Add New Building</h1>
+    <h1><i class="fa-solid fa-building"></i> Edit Building</h1>
     <a href="/buildings/list" class="btn btn-secondary">
         <i class="fa fa-arrow-left"></i> Back to Buildings
     </a>
 </div>
 
 <div class="form-container">
-    <form method="post" action="/buildings/add" class="building-form">
+    <form method="post" action="/buildings/edit/{{ building.id }}" class="building-form">
         <div class="form-group">
             <label for="name">Building Name:</label>
-            <input type="text" id="name" name="name" required 
-                   placeholder="Enter building name (e.g., Main Building, Elementary School)">
+            <input type="text" id="name" name="name" value="{{ building.name }}" required 
+                   placeholder="Enter building name">
         </div>
         
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">
-                <i class="fa fa-save"></i> Add Building
+                <i class="fa fa-save"></i> Update Building
             </button>
             <a href="/buildings/list" class="btn btn-outline">
                 <i class="fa fa-times"></i> Cancel

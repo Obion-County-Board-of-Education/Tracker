@@ -1,6 +1,10 @@
 FROM python:3.11-slim
 WORKDIR /app
-COPY requirements.txt ./
+# Copy shared models first
+COPY ocs_shared_models/ ./ocs_shared_models/
+# Copy service requirements and install
+COPY ocs-requisition-api/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
+# Copy service code
+COPY ocs-requisition-api/ ./
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

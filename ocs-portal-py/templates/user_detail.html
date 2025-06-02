@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <h1><i class="fa-solid fa-user"></i> User Details</h1>
+    <div class="header-actions">
+        <a href="/users/edit/{{ user.id }}" class="btn btn-primary">
+            <i class="fa fa-edit"></i> Edit User
+        </a>
+        <a href="/users/list" class="btn btn-secondary">
+            <i class="fa fa-arrow-left"></i> Back to Users
+        </a>
+    </div>
+</div>
+
+{% if user %}
+<div class="user-detail-container">
+    <!-- User Profile Card -->
+    <div class="user-profile-card">
+        <div class="user-header">
+            <div class="user-avatar">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="user-basic-info">
+                <h2>{{ user.name }}</h2>
+                <p class="username">@{{ user.username }}</p>
+                <p class="email"><i class="fa fa-envelope"></i> {{ user.email }}</p>
+                <span class="role-badge role-{{ user.role.lower() }}">
+                    <i class="fa fa-shield-alt"></i> {{ user.role }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Statistics -->
+    <div class="user-stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fa fa-building"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ user.building_count }}</h3>
+                <p>Building(s) Assigned</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fa fa-door-open"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ user.room_count }}</h3>
+                <p>Room(s) Assigned</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fa fa-calendar"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Active</h3>
+                <p>Account Status</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assigned Buildings -->
+    <div class="detail-section">
+        <div class="section-header">
+            <h3><i class="fa fa-building"></i> Assigned Buildings</h3>
+        </div>
+        <div class="section-content">
+            {% if user.buildings %}
+                <div class="buildings-list">
+                    {% for building in user.buildings %}
+                    <div class="building-item">
+                        <div class="building-info">
+                            <h4>{{ building.name }}</h4>
+                            <p>Building ID: #{{ building.id }}</p>
+                        </div>
+                        <div class="building-actions">
+                            <a href="/buildings/{{ building.id }}/rooms" class="btn btn-sm btn-outline">
+                                <i class="fa fa-door-open"></i> View Rooms
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa fa-building fa-2x"></i>
+                    <p>No buildings assigned to this user.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Assigned Rooms -->
+    <div class="detail-section">
+        <div class="section-header">
+            <h3><i class="fa fa-door-open"></i> Assigned Rooms</h3>
+        </div>
+        <div class="section-content">
+            {% if user.rooms %}
+                <div class="rooms-list">
+                    {% for room in user.rooms %}
+                    <div class="room-item">
+                        <div class="room-info">
+                            <h4>Room {{ room.name }}</h4>
+                            <p>{{ room.building_name }}</p>
+                        </div>
+                        <div class="room-badge">
+                            <i class="fa fa-door-open"></i>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fa fa-door-open fa-2x"></i>
+                    <p>No specific rooms assigned to this user.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-section">
+        <div class="action-buttons">
+            <a href="/users/edit/{{ user.id }}" class="btn btn-primary">
+                <i class="fa fa-edit"></i> Edit User Information
+            </a>
+            <button type="button" class="btn btn-outline" onclick="showDeleteConfirm()">
+                <i class="fa fa-trash"></i> Delete User
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3><i class="fa fa-exclamation-triangle"></i> Confirm Deletion</h3>
+        <p>Are you sure you want to delete user <strong>{{ user.name }}</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+        <div class="modal-actions">
+            <form method="post" action="/users/delete/{{ user.id }}" style="display: inline;">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fa fa-trash"></i> Yes, Delete User
+                </button>
+            </form>
+            <button type="button" class="btn btn-outline" onclick="hideDeleteConfirm()">
+                <i class="fa fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="error-state">
+    <i class="fa fa-exclamation-circle fa-3x"></i>
+    <h3>User Not Found</h3>
+    <p>The requested user could not be found in the system.</p>
+    <a href="/users/list" class="btn btn-primary">
+        <i class="fa fa-arrow-left"></i> Back to Users
+    </a>
+</div>
+{% endif %}
+
+<style>
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.content-header h1 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 2rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.user-detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.user-profile-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.user-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.user-avatar {
+    background: rgba(255, 255, 255, 0.2);
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.user-basic-info h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+}
+
+.username {
+    margin: 0 0 0.5rem 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+    font-family: monospace;
+}
+
+.email {
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0.9;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.user-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-icon {
+    background: #f8f9fa;
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    color: #007bff;
+}
+
+.stat-content h3 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: #2c3e50;
+}
+
+.stat-content p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.detail-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.section-header {
+    background: #f8f9fa;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.section-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-content {
+    padding: 1.5rem;
+}
+
+.buildings-list, .rooms-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.building-item, .room-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #007bff;
+}
+
+.building-info h4, .room-info h4 {
+    margin: 0 0 0.25rem 0;
+    color: #2c3e50;
+}
+
+.building-info p, .room-info p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.room-badge {
+    background: #007bff;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    color: #dee2e6;
+    margin-bottom: 1rem;
+}
+
+.error-state {
+    text-align: center;
+    padding: 3rem;
+    color: #dc3545;
+}
+
+.error-state i {
+    margin-bottom: 1rem;
+}
+
+.error-state h3 {
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.modal-content h3 {
+    margin: 0 0 1rem 0;
+    color: #dc3545;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.warning-text {
+    color: #856404;
+    font-style: italic;
+    margin-bottom: 1.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: #007bff;
+    border: 2px solid #007bff;
+}
+
+.btn-outline:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .header-actions {
+        justify-content: center;
+    }
+    
+    .user-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .user-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .building-item, .room-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function showDeleteConfirm() {
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function hideDeleteConfirm() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target === modal) {
+        hideDeleteConfirm();
+    }
+});
+</script>
+{% endblock %}
