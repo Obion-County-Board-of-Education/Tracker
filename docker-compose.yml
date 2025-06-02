@@ -46,7 +46,9 @@ services:
     #   - ./ocs-requisition-api:/app
 
   ocs-portal-py:
-    build: ./ocs-portal-py
+    build:
+      context: .
+      dockerfile: ocs-portal-py/Dockerfile
     ports:
       - "8003:8000"
     environment:

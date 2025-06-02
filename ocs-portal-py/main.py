@@ -1,8 +1,8 @@
+from ocs_shared_models.models import User, Building
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-import os
 
 app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
