@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from ocs_shared_models import User, Building, Room
+from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket
 from database import get_db, init_database
 
 # Initialize database on startup
@@ -18,12 +18,128 @@ def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/tickets/tech/new")
-def new_tech_ticket(request: Request):
-    return templates.TemplateResponse("new_tech_ticket.html", {"request": request})
+def new_tech_ticket(request: Request, db: Session = Depends(get_db)):
+    """Display new technology ticket form with real building data"""
+    try:
+        buildings = db.query(Building).order_by(Building.name).all()
+    except Exception as e:
+        print(f"Database error: {e}")
+        buildings = []
+    
+    return templates.TemplateResponse("new_tech_ticket.html", {
+        "request": request, 
+        "buildings": buildings
+    })
+
+@app.post("/tickets/tech/new")
+def new_tech_ticket_submit(
+    request: Request,
+    title: str = Form(...),
+    issue_type: str = Form(...),
+    building: int = Form(...),
+    room: int = Form(...),
+    tag: str = Form(...),
+    description: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Process technology ticket submission"""
+    try:
+        # Get building and room names for storage
+        building_obj = db.query(Building).filter(Building.id == building).first()
+        room_obj = db.query(Room).filter(Room.id == room).first()
+        
+        new_ticket = TechTicket(
+            title=title,
+            description=description,
+            status='new',
+            school=building_obj.name if building_obj else 'Unknown',
+            room=room_obj.name if room_obj else 'Unknown',
+            tag=tag,
+            issue_type=issue_type,
+            created_by='System User'  # Will be replaced with actual user when authentication is implemented
+        )
+        db.add(new_ticket)
+        db.commit()
+        
+        print(f"Tech ticket created: {title}")
+    except Exception as e:
+        print(f"Error creating tech ticket: {e}")
+        db.rollback()
+    
+    return RedirectResponse("/tickets/success", status_code=303)
 
 @app.get("/tickets/maintenance/new")
-def new_maintenance_ticket(request: Request):
-    return templates.TemplateResponse("new_maintenance_ticket.html", {"request": request})
+def new_maintenance_ticket(request: Request, db: Session = Depends(get_db)):
+    """Display new maintenance ticket form with real building data"""
+    try:
+        buildings = db.query(Building).order_by(Building.name).all()
+    except Exception as e:
+        print(f"Database error: {e}")
+        buildings = []
+    
+    return templates.TemplateResponse("new_maintenance_ticket.html", {
+        "request": request,
+        "buildings": buildings
+    })
+
+@app.post("/tickets/maintenance/new")
+def new_maintenance_ticket_submit(
+    request: Request,
+    title: str = Form(...),
+    issue_type: str = Form(...),
+    building: int = Form(...),
+    room: int = Form(...),
+    specific_location: str = Form(""),
+    description: str = Form(...),
+    priority: str = Form(...),
+    access_info: str = Form(""),
+    preferred_time: str = Form(""),
+    submitted_by: str = Form(...),
+    contact_email: str = Form(...),
+    phone: str = Form(""),
+    department: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Process maintenance ticket submission"""
+    try:
+        # Get building and room names for storage
+        building_obj = db.query(Building).filter(Building.id == building).first()
+        room_obj = db.query(Room).filter(Room.id == room).first()
+        
+        # Combine room and specific location for better context
+        location_details = room_obj.name if room_obj else 'Unknown'
+        if specific_location:
+            location_details += f" - {specific_location}"
+        
+        new_ticket = MaintenanceTicket(
+            title=title,
+            description=description,
+            status='new',
+            school=building_obj.name if building_obj else 'Unknown',
+            room=location_details,
+            tag=f"{priority}-{issue_type}",  # Using tag field for priority/type combination
+            issue_type=issue_type,
+            created_by=submitted_by
+        )
+        db.add(new_ticket)
+        db.commit()
+        
+        print(f"Maintenance ticket created: {title} by {submitted_by}")
+    except Exception as e:
+        print(f"Error creating maintenance ticket: {e}")
+        db.rollback()
+    
+    return RedirectResponse("/tickets/success", status_code=303)
+
+@app.get("/api/buildings/{building_id}/rooms")
+def get_building_rooms(building_id: int, db: Session = Depends(get_db)):
+    """API endpoint to get rooms for a specific building"""
+    try:
+        rooms = db.query(Room).filter(Room.building_id == building_id).order_by(Room.name).all()
+        return {"rooms": [{"id": room.id, "name": room.name} for room in rooms]}
+    except Exception as e:
+        print(f"Database error: {e}")
+        return {"rooms": []}
 
 @app.get("/inventory/add")
 def add_inventory_form(request: Request):
@@ -37,6 +153,182 @@ def add_inventory_submit(request: Request):
 @app.get("/tickets/success")
 def ticket_success(request: Request):
     return templates.TemplateResponse("ticket_success.html", {"request": request})
+
+@app.get("/tickets/tech/closed")
+def tech_tickets_closed(request: Request, db: Session = Depends(get_db)):
+    """Display closed technology tickets"""
+    try:
+        tickets = db.query(TechTicket).filter(
+            TechTicket.status.in_(['resolved', 'closed'])
+        ).order_by(TechTicket.created_at.desc()).all()
+        buildings = db.query(Building).order_by(Building.name).all()
+    except Exception as e:
+        print(f"Database error: {e}")
+        tickets = []
+        buildings = []
+    
+    return templates.TemplateResponse("tech_tickets_list.html", {
+        "request": request,
+        "tickets": tickets,
+        "buildings": buildings,
+        "page_title": "Closed Technology Tickets",
+        "status_filter": "closed"
+    })
+
+@app.get("/tickets/tech/open")
+def tech_tickets_open(request: Request, db: Session = Depends(get_db)):
+    """Display open technology tickets"""
+    try:
+        tickets = db.query(TechTicket).filter(
+            TechTicket.status.in_(['new', 'assigned', 'in_progress'])
+        ).order_by(TechTicket.created_at.desc()).all()
+        buildings = db.query(Building).order_by(Building.name).all()
+    except Exception as e:
+        print(f"Database error: {e}")
+        tickets = []
+        buildings = []
+    
+    return templates.TemplateResponse("tech_tickets_list.html", {
+        "request": request,
+        "tickets": tickets,
+        "buildings": buildings,
+        "page_title": "Open Technology Tickets",
+        "status_filter": "open"
+    })
+
+@app.get("/tickets/maintenance/closed")
+def maintenance_tickets_closed(request: Request, db: Session = Depends(get_db)):
+    """Display closed maintenance tickets"""
+    try:
+        tickets = db.query(MaintenanceTicket).filter(
+            MaintenanceTicket.status.in_(['resolved', 'closed'])
+        ).order_by(MaintenanceTicket.created_at.desc()).all()
+        buildings = db.query(Building).order_by(Building.name).all()
+    except Exception as e:
+        print(f"Database error: {e}")
+        tickets = []
+        buildings = []
+    
+    return templates.TemplateResponse("maintenance_tickets_list.html", {
+        "request": request,
+        "tickets": tickets,
+        "buildings": buildings,
+        "page_title": "Closed Maintenance Requests",
+        "status_filter": "closed"
+    })
+
+@app.get("/tickets/maintenance/open")
+def maintenance_tickets_open(request: Request, db: Session = Depends(get_db)):
+    """Display open maintenance tickets"""
+    try:
+        tickets = db.query(MaintenanceTicket).filter(
+            MaintenanceTicket.status.in_(['new', 'assigned', 'in_progress'])
+        ).order_by(MaintenanceTicket.created_at.desc()).all()
+        buildings = db.query(Building).order_by(Building.name).all()
+    except Exception as e:
+        print(f"Database error: {e}")
+        tickets = []
+        buildings = []
+    
+    return templates.TemplateResponse("maintenance_tickets_list.html", {
+        "request": request,
+        "tickets": tickets,
+        "buildings": buildings,
+        "page_title": "Open Maintenance Requests", 
+        "status_filter": "open"
+    })
+
+@app.get("/tickets/tech/{ticket_id}")
+def view_tech_ticket(request: Request, ticket_id: int, db: Session = Depends(get_db)):
+    """View individual technology ticket details"""
+    try:
+        ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
+        if not ticket:
+            # Redirect to tickets list if not found
+            return RedirectResponse("/tickets/tech/all", status_code=303)
+        
+        ticket_data = {
+            "id": ticket.id,
+            "title": ticket.title,
+            "description": ticket.description,
+            "status": ticket.status,
+            "issue_type": ticket.issue_type,
+            "school": ticket.school,
+            "room": ticket.room,
+            "tag": ticket.tag,
+            "created_by": ticket.created_by,
+            "created_at": ticket.created_at.strftime("%B %d, %Y at %I:%M %p") if ticket.created_at else "Unknown",
+            "updated_at": ticket.updated_at.strftime("%B %d, %Y at %I:%M %p") if ticket.updated_at else "Unknown"
+        }
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return RedirectResponse("/tickets/tech/all", status_code=303)
+    
+    return templates.TemplateResponse("tech_ticket_detail.html", {
+        "request": request,
+        "ticket": ticket_data
+    })
+
+@app.get("/tickets/maintenance/{ticket_id}")
+def view_maintenance_ticket(request: Request, ticket_id: int, db: Session = Depends(get_db)):
+    """View individual maintenance ticket details"""
+    try:
+        ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
+        if not ticket:
+            # Redirect to tickets list if not found
+            return RedirectResponse("/tickets/maintenance/all", status_code=303)
+        
+        ticket_data = {
+            "id": ticket.id,
+            "title": ticket.title,
+            "description": ticket.description,
+            "status": ticket.status,
+            "issue_type": ticket.issue_type,
+            "school": ticket.school,
+            "room": ticket.room,
+            "tag": ticket.tag,
+            "created_by": ticket.created_by,
+            "created_at": ticket.created_at.strftime("%B %d, %Y at %I:%M %p") if ticket.created_at else "Unknown",
+            "updated_at": ticket.updated_at.strftime("%B %d, %Y at %I:%M %p") if ticket.updated_at else "Unknown"
+        }
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return RedirectResponse("/tickets/maintenance/all", status_code=303)
+    
+    return templates.TemplateResponse("maintenance_ticket_detail.html", {
+        "request": request,
+        "ticket": ticket_data
+    })
+
+@app.post("/tickets/tech/{ticket_id}/update")
+def update_tech_ticket_status(request: Request, ticket_id: int, status: str = Form(...), db: Session = Depends(get_db)):
+    """Update technology ticket status"""
+    try:
+        ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
+        if ticket:
+            ticket.status = status
+            db.commit()
+    except Exception as e:
+        print(f"Error updating tech ticket: {e}")
+        db.rollback()
+    
+    return RedirectResponse(f"/tickets/tech/{ticket_id}", status_code=303)
+
+@app.post("/tickets/maintenance/{ticket_id}/update")
+def update_maintenance_ticket_status(request: Request, ticket_id: int, status: str = Form(...), db: Session = Depends(get_db)):
+    """Update maintenance ticket status"""
+    try:
+        ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
+        if ticket:
+            ticket.status = status
+            db.commit()
+    except Exception as e:
+        print(f"Error updating maintenance ticket: {e}")
+        db.rollback()
+    
+    return RedirectResponse(f"/tickets/maintenance/{ticket_id}", status_code=303)
 
 @app.get("/users/list")
 def users_list(request: Request, db: Session = Depends(get_db)):
