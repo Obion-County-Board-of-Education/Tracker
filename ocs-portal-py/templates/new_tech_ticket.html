@@ -433,20 +433,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('techTicketForm');
     if (form) {
         form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (validateForm()) {
-                // Show loading state
-                const submitBtn = document.getElementById('submitBtn');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Submitting...';
-                submitBtn.disabled = true;
-                
-                // Submit form (for now just redirect to success page)
-                setTimeout(() => {
-                    window.location.href = '/tickets/success';
-                }, 1500);
+            if (!validateForm()) {
+                e.preventDefault();
+                return;
             }
+            
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Submitting...';
+            submitBtn.disabled = true;
+            
+            // Allow the form to submit normally to the server
         });
     }
     
