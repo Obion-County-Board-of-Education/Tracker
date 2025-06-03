@@ -156,7 +156,6 @@ def new_maintenance_ticket_submit(
     room: int = Form(...),
     specific_location: str = Form(""),
     description: str = Form(...),
-    priority: str = Form(...),
     access_info: str = Form(""),
     preferred_time: str = Form(""),
     submitted_by: str = Form(...),
@@ -182,7 +181,7 @@ def new_maintenance_ticket_submit(
             status='new',
             school=building_obj.name if building_obj else 'Unknown',
             room=location_details,
-            tag=f"{priority}-{issue_type}",  # Using tag field for priority/type combination
+            tag=issue_type,  # Using tag field for issue type only
             issue_type=issue_type,
             created_by=submitted_by
         )

@@ -63,15 +63,7 @@
                                 {{ ticket.created_at.strftime('%b %d, %Y at %I:%M %p') }}
                             </span>
                         </div>
-                    </div>
-                    <div class="ticket-badges">
-                        <span class="priority-badge priority-{{ ticket.tag.split('-')[0] if ticket.tag and '-' in ticket.tag else 'medium' }}">
-                            {% set priority = ticket.tag.split('-')[0] if ticket.tag and '-' in ticket.tag else 'medium' %}
-                            {% if priority == 'urgent' %}🔴 Urgent
-                            {% elif priority == 'high' %}🟠 High
-                            {% elif priority == 'low' %}🟢 Low
-                            {% else %}🟡 Medium{% endif %}
-                        </span>
+                    </div>                    <div class="ticket-badges">
                         <span class="status-badge status-{{ ticket.status }}">
                             {% if ticket.status == 'new' %}🆕 New
                             {% elif ticket.status == 'assigned' %}👤 Assigned
@@ -104,8 +96,7 @@
                         <div class="detail-item">
                             <i class="fa fa-user"></i>
                             <span>Requested by: {{ ticket.created_by or 'Anonymous' }}</span>
-                        </div>
-                        <div class="detail-item">
+                        </div>                        <div class="detail-item">
                             <i class="fa fa-clock"></i>
                             <span>Age: 
                                 {% set days = (moment().utcnow() - ticket.created_at).days if ticket.created_at else 0 %}
@@ -114,12 +105,7 @@
                                 {% else %}{{ days }} days{% endif %}
                             </span>
                         </div>
-                        {% if ticket.tag and '-' in ticket.tag %}
-                        <div class="detail-item">
-                            <i class="fa fa-tag"></i>
-                            <span>Reference: {{ ticket.tag.split('-')[1] if ticket.tag.split('-')|length > 1 else ticket.tag }}</span>
-                        </div>
-                        {% endif %}
+                    </div>
                     </div>
                 </div>
                 
@@ -319,7 +305,7 @@
 .ticket-title {
     margin: 0 0 0.5rem 0;
     color: #2c3e50;
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: 600;
 }
 
@@ -328,7 +314,7 @@
     gap: 1rem;
     flex-wrap: wrap;
     align-items: center;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #6c757d;
 }
 
@@ -343,37 +329,12 @@
     flex-wrap: wrap;
 }
 
-.priority-badge,
 .status-badge {
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 600;
     white-space: nowrap;
-}
-
-.priority-badge.priority-urgent {
-    background: #fee;
-    color: #dc3545;
-    border: 1px solid #f5c6cb;
-}
-
-.priority-badge.priority-high {
-    background: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeaa7;
-}
-
-.priority-badge.priority-medium {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-}
-
-.priority-badge.priority-low {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
 }
 
 .status-badge.status-new {
@@ -414,6 +375,7 @@
     margin: 0 0 1rem 0;
     color: #495057;
     line-height: 1.5;
+    font-size: 1rem;
 }
 
 .ticket-details {
@@ -426,7 +388,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: #6c757d;
 }
 
@@ -484,14 +446,15 @@
 }
 
 .btn-outline {
-    background-color: transparent;
-    color: #6c757d;
-    border: 2px solid #e9ecef;
+    background-color: #6c757d;
+    color: white;
+    border: 2px solid #6c757d;
 }
 
 .btn-outline:hover {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
+    background-color: #5a6268;
+    border-color: #545b62;
+    color: white;
 }
 
 .empty-state {
@@ -602,8 +565,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function viewTicket(ticketId) {
-    // TODO: Implement ticket detail view
-    alert(`View maintenance request #${ticketId} - This will open a detailed view`);
+    // Navigate to the maintenance ticket detail page
+    window.location.href = `/tickets/maintenance/${ticketId}`;
 }
 
 function editTicket(ticketId) {
@@ -612,9 +575,20 @@ function editTicket(ticketId) {
 }
 
 function updateStatus(ticketId, newStatus) {
-    // TODO: Implement status update
     if (confirm(`Update maintenance request #${ticketId} status to "${newStatus}"?`)) {
-        alert(`Status would be updated to: ${newStatus}`);
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/tickets/maintenance/${ticketId}/update`;
+        
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        statusInput.value = newStatus;
+        
+        form.appendChild(statusInput);
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 </script>
