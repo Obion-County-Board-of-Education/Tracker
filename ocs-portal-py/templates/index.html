@@ -1,7 +1,267 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="font-size: 1.5em;">
-  <h2 style="font-size: 2em; font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif; font-weight: 700; letter-spacing: 1px; color: #2c3e50;">Welcome to the OCS Portal</h2>
-  <p>You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to "Tickets->Open Tickets" to check these.</p>
+<div class="homepage-container">
+    <div class="header-section">
+        <h2 class="welcome-title">Welcome to the OCS Portal</h2>
+        <div class="message-controls">
+            <button id="editMessageBtn" class="btn btn-outline btn-sm">
+                <i class="fa fa-edit"></i> Edit Message
+            </button>
+        </div>
+    </div>
+    
+    <div class="message-section">
+        <!-- Display Mode -->
+        <div id="messageDisplay" class="message-display">
+            <div class="message-content">
+                {{ homepage_message.content }}
+            </div>
+            {% if homepage_message.updated_at %}
+            <div class="message-meta">
+                Last updated: {{ homepage_message.updated_at.strftime('%B %d, %Y at %I:%M %p') }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Edit Mode -->
+        <div id="messageEdit" class="message-edit" style="display: none;">
+            <form method="post" action="/update-homepage-message" class="edit-form">
+                <div class="form-group">
+                    <label for="message_content" class="form-label">Homepage Message:</label>
+                    <textarea id="message_content" name="message_content" class="form-textarea" 
+                              rows="6" required maxlength="2000">{{ homepage_message.content }}</textarea>
+                    <div class="char-count">
+                        <span id="charCount">{{ homepage_message.content|length }}</span>/2000 characters
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa fa-save"></i> Save Message
+                    </button>
+                    <button type="button" id="cancelEditBtn" class="btn btn-outline">
+                        <i class="fa fa-times"></i> Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<style>
+.homepage-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.welcome-title {
+    font-size: 2.5em;
+    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.message-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.message-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.message-display {
+    padding: 2rem;
+}
+
+.message-content {
+    font-size: 1.2em;
+    line-height: 1.6;
+    color: #495057;
+    margin-bottom: 1rem;
+    white-space: pre-wrap;
+}
+
+.message-meta {
+    font-size: 0.9em;
+    color: #6c757d;
+    font-style: italic;
+    text-align: right;
+    border-top: 1px solid #e9ecef;
+    padding-top: 1rem;
+}
+
+.message-edit {
+    padding: 2rem;
+    background: #f8f9fa;
+}
+
+.edit-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 150px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.char-count {
+    text-align: right;
+    font-size: 0.9em;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: #6c757d;
+    border: 2px solid #e9ecef;
+}
+
+.btn-outline:hover {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #495057;
+}
+
+@media (max-width: 768px) {
+    .homepage-container {
+        padding: 1rem;
+    }
+    
+    .header-section {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .welcome-title {
+        font-size: 2em;
+    }
+    
+    .message-display,
+    .message-edit {
+        padding: 1.5rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editBtn = document.getElementById('editMessageBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    const messageDisplay = document.getElementById('messageDisplay');
+    const messageEdit = document.getElementById('messageEdit');
+    const textarea = document.getElementById('message_content');
+    const charCount = document.getElementById('charCount');
+    
+    // Show edit mode
+    editBtn.addEventListener('click', function() {
+        messageDisplay.style.display = 'none';
+        messageEdit.style.display = 'block';
+        textarea.focus();
+    });
+    
+    // Cancel edit mode
+    cancelBtn.addEventListener('click', function() {
+        messageEdit.style.display = 'none';
+        messageDisplay.style.display = 'block';
+        // Reset textarea to original content
+        textarea.value = {{ homepage_message.content|tojson }};
+        updateCharCount();
+    });
+    
+    // Update character count
+    function updateCharCount() {
+        const count = textarea.value.length;
+        charCount.textContent = count;
+        
+        if (count > 1800) {
+            charCount.style.color = '#dc3545';
+        } else if (count > 1500) {
+            charCount.style.color = '#ffc107';
+        } else {
+            charCount.style.color = '#6c757d';
+        }
+    }
+    
+    // Character count updates
+    textarea.addEventListener('input', updateCharCount);
+    
+    // Initial character count
+    updateCharCount();
+});
+</script>
 {% endblock %}

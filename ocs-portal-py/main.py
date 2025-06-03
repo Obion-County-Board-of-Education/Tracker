@@ -3,7 +3,8 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket
+from datetime import datetime
+from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket, SystemMessage
 from database import get_db, init_database
 
 # Initialize database on startup
@@ -14,8 +15,72 @@ templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
-def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+def home(request: Request, db: Session = Depends(get_db)):
+    """Home page with editable system message"""
+    try:
+        # Get the homepage message from database
+        homepage_message = db.query(SystemMessage).filter(
+            SystemMessage.message_type == 'homepage'
+        ).first()
+        
+        # If no message exists, create a default one
+        if not homepage_message:
+            default_message = "You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to \"Tickets->Open Tickets\" to check these."
+            homepage_message = SystemMessage(
+                message_type='homepage',
+                content=default_message,
+                created_by='System'
+            )
+            db.add(homepage_message)
+            db.commit()
+            db.refresh(homepage_message)
+    
+    except Exception as e:
+        print(f"Database error loading homepage message: {e}")
+        # Fallback message if database fails
+        homepage_message = type('obj', (object,), {
+            'content': 'You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to "Tickets->Open Tickets" to check these.',
+            'updated_at': None
+        })()
+    
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "homepage_message": homepage_message
+    })
+
+@app.post("/update-homepage-message")
+def update_homepage_message(
+    request: Request,
+    message_content: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Update the homepage message"""
+    try:
+        # Get existing homepage message
+        homepage_message = db.query(SystemMessage).filter(
+            SystemMessage.message_type == 'homepage'
+        ).first()
+        
+        if homepage_message:
+            homepage_message.content = message_content
+            homepage_message.updated_at = datetime.utcnow()
+        else:
+            # Create new message if it doesn't exist
+            homepage_message = SystemMessage(
+                message_type='homepage',
+                content=message_content,
+                created_by='System Admin'
+            )
+            db.add(homepage_message)
+        
+        db.commit()
+        print(f"Homepage message updated successfully")
+        
+    except Exception as e:
+        print(f"Error updating homepage message: {e}")
+        db.rollback()
+    
+    return RedirectResponse("/", status_code=303)
 
 @app.get("/tickets/tech/new")
 def new_tech_ticket(request: Request, db: Session = Depends(get_db)):
