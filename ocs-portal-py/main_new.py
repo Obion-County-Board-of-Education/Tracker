@@ -144,23 +144,6 @@ async def tech_tickets_open(request: Request):
     try:
         tickets = await tickets_service.get_tech_tickets("open")
         buildings = await tickets_service.get_buildings()
-        
-        # Format dates for template display
-        for ticket in tickets:
-            if ticket.get("created_at"):
-                try:
-                    created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
-                    ticket["created_at"] = created_at
-                except:
-                    ticket["created_at"] = None
-                    
-            if ticket.get("updated_at"):
-                try:
-                    updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
-                    ticket["updated_at"] = updated_at
-                except:
-                    ticket["updated_at"] = None
-        
     except Exception as e:
         print(f"Error fetching tickets: {e}")
         tickets = []
@@ -180,23 +163,6 @@ async def tech_tickets_closed(request: Request):
     try:
         tickets = await tickets_service.get_tech_tickets("closed")
         buildings = await tickets_service.get_buildings()
-        
-        # Format dates for template display
-        for ticket in tickets:
-            if ticket.get("created_at"):
-                try:
-                    created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
-                    ticket["created_at"] = created_at
-                except:
-                    ticket["created_at"] = None
-                    
-            if ticket.get("updated_at"):
-                try:
-                    updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
-                    ticket["updated_at"] = updated_at
-                except:
-                    ticket["updated_at"] = None
-        
     except Exception as e:
         print(f"Error fetching tickets: {e}")
         tickets = []

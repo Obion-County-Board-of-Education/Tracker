@@ -1,7 +1,7 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from ocs_shared_models import Base
+from ocs_shared_models import Base, SystemMessage, User, Building, Room
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://ocs_user:ocs_pass@db:5432/ocs_portal")
 engine = create_engine(DATABASE_URL)
@@ -15,7 +15,12 @@ def get_db():
     finally:
         db.close()
 
-# Create tables for all shared models in the portal database
+# Create tables only for portal-specific models and shared reference data
 def init_database():
-    """Initialize database tables"""
-    Base.metadata.create_all(bind=engine)
+    """Initialize database tables - only portal-specific and reference data"""
+    # Only create tables for portal-specific models and shared reference data
+    # Tickets are handled by the Tickets API service
+    SystemMessage.metadata.create_all(bind=engine)
+    User.metadata.create_all(bind=engine)
+    Building.metadata.create_all(bind=engine)
+    Room.metadata.create_all(bind=engine)

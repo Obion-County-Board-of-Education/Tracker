@@ -2,4 +2,6 @@ fastapi
 uvicorn
 jinja2
 python-multipart
+httpx
+pydantic
 -e ./ocs_shared_models

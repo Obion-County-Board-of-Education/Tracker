@@ -102,18 +102,6 @@
                     <button class="btn btn-outline btn-sm" onclick="viewTicket({{ ticket.id }})">
                         <i class="fa fa-eye"></i> View
                     </button>
-                    <button class="btn btn-primary btn-sm" onclick="editTicket({{ ticket.id }})">
-                        <i class="fa fa-edit"></i> Edit
-                    </button>
-                    {% if ticket.status in ['new', 'assigned'] %}
-                    <button class="btn btn-success btn-sm" onclick="updateStatus({{ ticket.id }}, 'in_progress')">
-                        <i class="fa fa-play"></i> Start Work
-                    </button>
-                    {% elif ticket.status == 'in_progress' %}
-                    <button class="btn btn-success btn-sm" onclick="updateStatus({{ ticket.id }}, 'resolved')">
-                        <i class="fa fa-check"></i> Mark Resolved
-                    </button>
-                    {% endif %}
                 </div>
             </div>
             {% endfor %}
