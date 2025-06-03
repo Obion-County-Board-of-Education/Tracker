@@ -3,11 +3,6 @@
 <div class="homepage-container">
     <div class="header-section">
         <h2 class="welcome-title">Welcome to the OCS Portal</h2>
-        <div class="message-controls">
-            <button id="editMessageBtn" class="btn btn-outline btn-sm">
-                <i class="fa fa-edit"></i> Edit Message
-            </button>
-        </div>
     </div>
     
     <div class="message-section">
@@ -16,11 +11,18 @@
             <div class="message-content">
                 {{ homepage_message.content }}
             </div>
-            {% if homepage_message.updated_at %}
-            <div class="message-meta">
-                Last updated: {{ homepage_message.updated_at.strftime('%B %d, %Y at %I:%M %p') }}
+            <div class="message-footer">
+                {% if homepage_message.updated_at %}
+                <div class="message-meta">
+                    Last updated: {{ homepage_message.updated_at.strftime('%B %d, %Y at %I:%M %p') }}
+                </div>
+                {% endif %}
+                <div class="message-controls">
+                    <button id="editMessageBtn" class="btn btn-outline btn-sm">
+                        <i class="fa fa-edit"></i> Edit Message
+                    </button>
+                </div>
             </div>
-            {% endif %}
         </div>
         
         <!-- Edit Mode -->
@@ -105,9 +107,15 @@
     font-size: 0.9em;
     color: #6c757d;
     font-style: italic;
-    text-align: right;
+}
+
+.message-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     border-top: 1px solid #e9ecef;
     padding-top: 1rem;
+    margin-top: 1rem;
 }
 
 .message-edit {
@@ -187,7 +195,7 @@
 
 .btn-outline {
     background-color: transparent;
-    color: #6c757d;
+    color: white;
     border: 2px solid #e9ecef;
 }
 
