@@ -121,8 +121,7 @@ class TicketsService:
                 data = {"status": status}
                 response = await client.put(f"{self.base_url}/api/tickets/maintenance/{ticket_id}/status", data=data)
                 response.raise_for_status()
-                return True
-        except Exception as e:
+                return True        except Exception as e:
             print(f"Error updating maintenance ticket status: {e}")
             return False
 
@@ -148,8 +147,7 @@ class TicketsService:
             ]
             
             db.close()
-            return buildings_data
-        except Exception as e:
+            return buildings_data        except Exception as e:
             print(f"Error fetching buildings from database: {e}")
             return []
 

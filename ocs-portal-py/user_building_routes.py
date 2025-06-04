@@ -7,7 +7,7 @@ from fastapi import Request, Depends, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from models import User, Building, Room
+from ocs_shared_models import User, Building, Room
 from database import get_db
 
 # Initialize templates
@@ -177,7 +177,7 @@ def setup_user_building_routes(app):
             db.rollback()
         
         return RedirectResponse(f"/buildings/{building_id}/rooms", status_code=303)
-
+    
     @app.post("/buildings/{building_id}/rooms/delete/{room_id}")
     def delete_room(request: Request, building_id: int, room_id: int, db: Session = Depends(get_db)):
         """Delete room from building"""
@@ -191,5 +191,40 @@ def setup_user_building_routes(app):
             db.rollback()
         
         return RedirectResponse(f"/buildings/{building_id}/rooms", status_code=303)
+    
+    # API endpoints for buildings
+    @app.get("/api/buildings")
+    def get_buildings_api(db: Session = Depends(get_db)):
+        """API endpoint to get all buildings"""
+        try:
+            buildings = db.query(Building).order_by(Building.name).all()
+            buildings_data = [
+                {
+                    "id": building.id,
+                    "name": building.name
+                }
+                for building in buildings
+            ]
+            return {"buildings": buildings_data}
+        except Exception as e:
+            print(f"Error fetching buildings: {e}")
+            return {"buildings": []}
+
+    @app.get("/api/buildings/{building_id}/rooms")
+    def get_building_rooms_api(building_id: int, db: Session = Depends(get_db)):
+        """API endpoint to get rooms for a specific building"""
+        try:
+            rooms = db.query(Room).filter(Room.building_id == building_id).order_by(Room.name).all()
+            rooms_data = [
+                {
+                    "id": room.id,
+                    "name": room.name
+                }
+                for room in rooms
+            ]
+            return {"rooms": rooms_data}
+        except Exception as e:
+            print(f"Error fetching building rooms: {e}")
+            return {"rooms": []}
 
     print("✅ User and building routes registered successfully")
