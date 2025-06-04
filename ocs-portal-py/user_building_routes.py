@@ -136,4 +136,60 @@ def setup_user_building_routes(app):
         
         return RedirectResponse("/buildings/list", status_code=303)
 
+    @app.get("/buildings/{building_id}/rooms")
+    def building_rooms(request: Request, building_id: int, db: Session = Depends(get_db)):
+        """List all rooms in a specific building"""
+        try:
+            building = db.query(Building).filter(Building.id == building_id).first()
+            if building:
+                rooms = db.query(Room).filter(Room.building_id == building_id).order_by(Room.name).all()
+                rooms_data = [
+                    {
+                        "id": room.id,
+                        "name": room.name
+                    }
+                    for room in rooms
+                ]
+                building_data = {"id": building.id, "name": building.name}
+            else:
+                building_data = {"id": building_id, "name": "Building Not Found"}
+                rooms_data = []
+        except Exception as e:
+            print(f"Database error: {e}")
+            building_data = {"id": building_id, "name": "Sample Building"}
+            rooms_data = []
+        
+        return templates.TemplateResponse("building_rooms.html", {
+            "request": request, 
+            "building": building_data, 
+            "rooms": rooms_data
+        })
+
+    @app.post("/buildings/{building_id}/rooms/add")
+    def add_room_submit(request: Request, building_id: int, room_name: str = Form(...), db: Session = Depends(get_db)):
+        """Add new room to building"""
+        try:
+            new_room = Room(name=room_name, building_id=building_id)
+            db.add(new_room)
+            db.commit()
+        except Exception as e:
+            print(f"Error adding room: {e}")
+            db.rollback()
+        
+        return RedirectResponse(f"/buildings/{building_id}/rooms", status_code=303)
+
+    @app.post("/buildings/{building_id}/rooms/delete/{room_id}")
+    def delete_room(request: Request, building_id: int, room_id: int, db: Session = Depends(get_db)):
+        """Delete room from building"""
+        try:
+            room = db.query(Room).filter(Room.id == room_id, Room.building_id == building_id).first()
+            if room:
+                db.delete(room)
+                db.commit()
+        except Exception as e:
+            print(f"Error deleting room: {e}")
+            db.rollback()
+        
+        return RedirectResponse(f"/buildings/{building_id}/rooms", status_code=303)
+
     print("✅ User and building routes registered successfully")
