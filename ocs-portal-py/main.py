@@ -414,24 +414,6 @@ async def update_maintenance_ticket_status(ticket_id: int, status: str = Form(..
     
     return RedirectResponse(f"/tickets/maintenance/{ticket_id}", status_code=303)
 
-# Building/Room API for dynamic form population
-@app.get("/api/buildings/{building_id}/rooms")
-def get_building_rooms(building_id: int, db: Session = Depends(get_db)):
-    """API endpoint to get rooms for a specific building"""
-    try:
-        rooms = db.query(Room).filter(Room.building_id == building_id).order_by(Room.name).all()
-        rooms_data = [
-            {
-                "id": room.id,
-                "name": room.name
-            }
-            for room in rooms
-        ]
-        return {"rooms": rooms_data}
-    except Exception as e:
-        print(f"Error fetching building rooms: {e}")
-        return {"rooms": []}
-
 # Keep other non-ticket routes (inventory, users, etc.)
 @app.get("/inventory/add")
 def add_inventory_form(request: Request):
