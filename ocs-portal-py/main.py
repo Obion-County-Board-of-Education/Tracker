@@ -15,6 +15,15 @@ app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Import and setup user/building routes from separate module
+try:
+    from user_building_routes import setup_user_building_routes
+    setup_user_building_routes(app)
+    print("✅ User and building routes imported successfully")
+except Exception as e:
+    print(f"❌ Error importing user/building routes: {e}")
+
+# Homepage route
 @app.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
     """Home page with editable system message"""
@@ -428,3 +437,7 @@ def add_inventory_submit(request: Request):
 @app.get("/tickets/success")
 def ticket_success(request: Request):
     return templates.TemplateResponse("ticket_success.html", {"request": request})
+
+# Note: User and Building management routes are now handled by the user_building_routes module
+# imported at the top of this file. This resolves the route registration issues that were 
+# preventing these routes from being properly registered in FastAPI.

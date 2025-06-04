@@ -116,19 +116,7 @@
             <div class="detail-section">
                 <h3><i class="fa fa-cogs"></i> Actions</h3>
                 <div class="action-buttons">
-                    {% if ticket.status in ['new', 'assigned'] %}
-                    <button class="btn btn-success" onclick="updateStatus({{ ticket.id }}, 'in_progress')">
-                        <i class="fa fa-play"></i> Start Work
-                    </button>
-                    {% elif ticket.status == 'in_progress' %}
-                    <button class="btn btn-success" onclick="updateStatus({{ ticket.id }}, 'resolved')">
-                        <i class="fa fa-check"></i> Mark Resolved
-                    </button>
-                    {% endif %}
                     {% if ticket.status != 'closed' %}
-                    <button class="btn btn-warning" onclick="updateStatus({{ ticket.id }}, 'assigned')">
-                        <i class="fa fa-user"></i> Assign
-                    </button>
                     <button class="btn btn-danger" onclick="updateStatus({{ ticket.id }}, 'closed')">
                         <i class="fa fa-times"></i> Close Request
                     </button>
@@ -173,7 +161,7 @@
 }
 
 .ticket-detail-container {
-    max-width: 1000px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 
@@ -314,6 +302,7 @@
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .btn {
