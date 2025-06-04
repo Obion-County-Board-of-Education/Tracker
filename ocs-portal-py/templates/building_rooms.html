@@ -30,8 +30,7 @@
                 <div class="room-card">
                     <div class="room-header">
                         <h4>Room {{ room.name }}</h4>
-                        <form method="post" action="/buildings/{{ building.id }}/rooms/delete/{{ room.id }}" style="display: inline;" 
-                              onsubmit="return confirm('Are you sure you want to delete room {{ room.name }}?')">
+                        <form method="post" action="/buildings/{{ building.id }}/rooms/delete/{{ room.id }}" style="display: inline;">
                             <button type="submit" class="btn btn-sm btn-danger" title="Delete Room">
                                 <i class="fa fa-trash"></i>
                             </button>
