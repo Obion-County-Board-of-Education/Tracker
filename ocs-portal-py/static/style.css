@@ -212,6 +212,24 @@ button:hover {
     font-weight: 400;
     margin-left: 0.5em;
 }
+
+/* Add hover and click styles for sidebar submenu items */
+.sidebar-section ul li a {
+  transition: background 0.15s, color 0.15s;
+  border-radius: 0.3em;
+  padding: 0.2em 0.5em;
+  display: block;
+}
+.sidebar-section ul li a:hover,
+.sidebar-section ul li a:focus {
+  background: #2563eb;
+  color: #fff !important;
+}
+.sidebar-section ul li a:active {
+  background: #1e293b;
+  color: #fff !important;
+}
+
 @media (max-width: 600px) {
     .container, main.container {
         padding: 0.5em;
