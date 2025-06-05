@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}System Logs - OCS Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-file-alt me-2"></i>System Logs</h2>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="refreshLogs()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="clearLogs()">
+                        <i class="fas fa-trash me-1"></i>Clear Logs
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Filter Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Log Filters</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="serviceFilter" class="form-label">Service</label>
+                            <select class="form-select" id="serviceFilter" onchange="filterLogs()">
+                                <option value="">All Services</option>
+                                <option value="portal">Portal</option>
+                                <option value="tickets">Tickets</option>
+                                <option value="inventory">Inventory</option>
+                                <option value="requisition">Requisition</option>
+                                <option value="manage">Management</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="levelFilter" class="form-label">Log Level</label>
+                            <select class="form-select" id="levelFilter" onchange="filterLogs()">
+                                <option value="">All Levels</option>
+                                <option value="DEBUG">Debug</option>
+                                <option value="INFO">Info</option>
+                                <option value="WARNING">Warning</option>
+                                <option value="ERROR">Error</option>
+                                <option value="CRITICAL">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateFilter" class="form-label">Date Range</label>
+                            <select class="form-select" id="dateFilter" onchange="filterLogs()">
+                                <option value="today">Today</option>
+                                <option value="week">Last 7 Days</option>
+                                <option value="month">Last 30 Days</option>
+                                <option value="all">All Time</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="searchFilter" class="form-label">Search</label>
+                            <input type="text" class="form-control" id="searchFilter" placeholder="Search logs..." onkeyup="filterLogs()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Info Logs</h6>
+                            <h4 id="infoCount">{{ log_stats.info_count if log_stats else '0' }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-info-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Warnings</h6>
+                            <h4 id="warningCount">{{ log_stats.warning_count if log_stats else '0' }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Errors</h6>
+                            <h4 id="errorCount">{{ log_stats.error_count if log_stats else '0' }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-times-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Logs</h6>
+                            <h4 id="totalCount">{{ log_stats.total_count if log_stats else '0' }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-list fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Display -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>System Logs</h5>
+                    <small class="text-muted">Last updated: <span id="lastUpdated">{{ current_time.strftime('%Y-%m-%d %H:%M:%S') if current_time else 'Never' }}</span></small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0" id="logsTable">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th style="width: 140px;">Timestamp</th>
+                                    <th style="width: 80px;">Level</th>
+                                    <th style="width: 100px;">Service</th>
+                                    <th style="width: 120px;">Module</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                                {% if logs %}
+                                    {% for log in logs %}
+                                    <tr class="log-row" data-level="{{ log.level }}" data-service="{{ log.service }}">
+                                        <td class="text-nowrap small">{{ log.timestamp.strftime('%m/%d %H:%M:%S') }}</td>
+                                        <td>
+                                            {% if log.level == 'ERROR' %}
+                                                <span class="badge bg-danger">{{ log.level }}</span>
+                                            {% elif log.level == 'WARNING' %}
+                                                <span class="badge bg-warning text-dark">{{ log.level }}</span>
+                                            {% elif log.level == 'INFO' %}
+                                                <span class="badge bg-info">{{ log.level }}</span>
+                                            {% elif log.level == 'DEBUG' %}
+                                                <span class="badge bg-secondary">{{ log.level }}</span>
+                                            {% else %}
+                                                <span class="badge bg-dark">{{ log.level }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><span class="badge bg-primary">{{ log.service }}</span></td>
+                                        <td class="small">{{ log.module }}</td>
+                                        <td class="font-monospace small">{{ log.message }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle me-2"></i>No logs available
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clear Logs Confirmation Modal -->
+<div class="modal fade" id="clearLogsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Clear Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to clear all system logs? This action cannot be undone.</p>
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> This will permanently delete all log entries from the system.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmClearLogs()">Clear All Logs</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshLogs() {
+    window.location.reload();
+}
+
+function filterLogs() {
+    const serviceFilter = document.getElementById('serviceFilter').value.toLowerCase();
+    const levelFilter = document.getElementById('levelFilter').value;
+    const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
+    const rows = document.querySelectorAll('#logsTableBody .log-row');
+    
+    rows.forEach(row => {
+        const service = row.dataset.service.toLowerCase();
+        const level = row.dataset.level;
+        const message = row.querySelector('td:last-child').textContent.toLowerCase();
+        
+        let show = true;
+        
+        if (serviceFilter && !service.includes(serviceFilter)) {
+            show = false;
+        }
+        
+        if (levelFilter && level !== levelFilter) {
+            show = false;
+        }
+        
+        if (searchFilter && !message.includes(searchFilter)) {
+            show = false;
+        }
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+function clearLogs() {
+    const modal = new bootstrap.Modal(document.getElementById('clearLogsModal'));
+    modal.show();
+}
+
+function confirmClearLogs() {
+    fetch('/manage/logs/clear', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Failed to clear logs: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error clearing logs');
+    });
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('clearLogsModal'));
+    modal.hide();
+}
+
+// Auto-refresh logs every 30 seconds
+setInterval(function() {
+    const lastUpdated = new Date().toLocaleString();
+    document.getElementById('lastUpdated').textContent = lastUpdated;
+}, 30000);
+</script>
+{% endblock %}

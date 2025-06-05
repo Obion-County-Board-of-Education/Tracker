@@ -56,5 +56,16 @@ services:
     depends_on:
       - db
 
+  ocs-manage-api:
+    build:
+      context: .
+      dockerfile: ocs-manage/Dockerfile
+    ports:
+      - "8004:8000"
+    environment:
+      - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_manage
+    depends_on:
+      - db
+
 volumes:
   pgdata:

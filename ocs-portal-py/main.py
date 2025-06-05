@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request, Form, Depends, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
+from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -7,6 +7,7 @@ from datetime import datetime
 from ocs_shared_models import User, Building, Room, SystemMessage
 from database import get_db, init_database
 from services import tickets_service
+from management_service import management_service
 
 # Initialize database on startup
 init_database()
@@ -416,6 +417,170 @@ def add_inventory_submit(request: Request):
 def ticket_success(request: Request):
     return templates.TemplateResponse("ticket_success.html", {"request": request})
 
-# Note: User and Building management routes are now handled by the user_building_routes module
-# imported at the top of this file. This resolves the route registration issues that were 
-# preventing these routes from being properly registered in FastAPI.
+# Management Routes - communicate with ocs-manage API
+@app.get("/manage/settings")
+async def manage_settings(request: Request):
+    """Display system settings and configuration"""
+    try:
+        # Get system statistics from manage API
+        stats = await management_service.get_system_stats()
+        health = await management_service.health_check()
+        
+        if not stats:
+            stats = {
+                "users": 0,
+                "buildings": 0,
+                "rooms": 0,
+                "timestamp": "Service unavailable"
+            }
+            
+    except Exception as e:
+        print(f"Error fetching management data: {e}")
+        stats = {
+            "users": 0,
+            "buildings": 0,
+            "rooms": 0,
+            "timestamp": "Error loading data"
+        }
+        health = False
+    
+    return templates.TemplateResponse("manage_settings.html", {
+        "request": request,
+        "stats": stats,
+        "service_health": health
+    })
+
+@app.get("/manage/logs")
+async def manage_logs(request: Request):
+    """Display system logs"""
+    try:
+        # Get system logs from manage API
+        logs = await management_service.get_system_logs(limit=50)
+        log_stats = await management_service.get_log_stats()
+        health = await management_service.health_check()
+        
+    except Exception as e:
+        print(f"Error fetching system logs: {e}")
+        logs = []
+        log_stats = None
+        health = False
+    
+    return templates.TemplateResponse("manage_logs.html", {
+        "request": request,
+        "logs": logs,
+        "log_stats": log_stats,
+        "service_health": health,
+        "current_time": datetime.now()
+    })
+
+@app.post("/manage/logs/clear")
+async def clear_logs(request: Request):
+    """Clear all system logs"""
+    try:
+        success = await management_service.clear_logs()
+        return {"success": success, "message": "Logs cleared successfully" if success else "Failed to clear logs"}
+    except Exception as e:
+        print(f"Error clearing logs: {e}")
+        return {"success": False, "message": str(e)}
+
+@app.get("/manage/other")
+async def manage_other(request: Request):
+    """Display other management options"""
+    try:
+        # Get system info from manage API
+        stats = await management_service.get_system_stats()
+        service_status = await management_service.get_service_status()
+        system_stats = await management_service.get_system_performance()
+        system_info = await management_service.get_system_info()
+        health = await management_service.health_check()
+        
+    except Exception as e:
+        print(f"Error fetching management data: {e}")
+        stats = None
+        service_status = None
+        system_stats = None
+        system_info = None
+        health = False
+    
+    return templates.TemplateResponse("manage_other.html", {
+        "request": request,
+        "stats": stats,
+        "service_status": service_status,
+        "system_stats": system_stats,
+        "system_info": system_info,
+        "service_health": health
+    })
+
+# Additional management API endpoints
+@app.post("/manage/maintenance/run")
+async def run_maintenance(request: Request):
+    """Run system maintenance tasks"""
+    try:
+        success = await management_service.run_maintenance()
+        return {"success": success, "message": "Maintenance completed successfully" if success else "Maintenance failed"}
+    except Exception as e:
+        print(f"Error running maintenance: {e}")
+        return {"success": False, "message": str(e)}
+
+@app.post("/manage/search/rebuild")
+async def rebuild_search_index(request: Request):
+    """Rebuild search index"""
+    try:
+        success = await management_service.rebuild_search_index()
+        return {"success": success, "message": "Search index rebuilt successfully" if success else "Search index rebuild failed"}
+    except Exception as e:
+        print(f"Error rebuilding search index: {e}")
+        return {"success": False, "message": str(e)}
+
+@app.post("/manage/database/optimize")
+async def optimize_databases(request: Request):
+    """Optimize all databases"""
+    try:
+        success = await management_service.optimize_databases()
+        return {"success": success, "message": "Database optimization completed successfully" if success else "Database optimization failed"}
+    except Exception as e:
+        print(f"Error optimizing databases: {e}")
+        return {"success": False, "message": str(e)}
+
+@app.get("/manage/test/{service_name}")
+async def test_service(service_name: str, request: Request):
+    """Test a specific service"""
+    try:
+        result = await management_service.test_service(service_name)
+        return result
+    except Exception as e:
+        print(f"Error testing service {service_name}: {e}")
+        return {"success": False, "message": str(e)}
+
+@app.post("/manage/data/export")
+async def export_data(request: Request):
+    """Export all system data"""
+    try:
+        data = await management_service.export_data()
+        return Response(content=data, media_type="application/zip", 
+                       headers={"Content-Disposition": "attachment; filename=ocs_data_export.zip"})
+    except Exception as e:
+        print(f"Error exporting data: {e}")
+        return {"success": False, "message": str(e)}
+
+@app.post("/manage/data/import")
+async def import_data(request: Request, file: UploadFile = File(...)):
+    """Import data from uploaded file"""
+    try:
+        file_data = await file.read()
+        success = await management_service.import_data(file_data)
+        return {"success": success, "message": "Data imported successfully" if success else "Data import failed"}
+    except Exception as e:
+        print(f"Error importing data: {e}")
+        return {"success": False, "message": str(e)}
+
+@app.post("/manage/reports/generate")
+async def generate_reports(request: Request):
+    """Generate system reports"""
+    try:
+        data = await management_service.generate_reports()
+        return Response(content=data, media_type="application/pdf", 
+                       headers={"Content-Disposition": "attachment; filename=ocs_system_reports.pdf"})
+    except Exception as e:
+        print(f"Error generating reports: {e}")
+        return {"success": False, "message": str(e)}
