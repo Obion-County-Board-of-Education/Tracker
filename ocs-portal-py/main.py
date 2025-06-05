@@ -287,14 +287,7 @@ async def new_maintenance_ticket_submit(
     issue_type: str = Form(...),
     building: int = Form(...),
     room: int = Form(...),
-    specific_location: str = Form(""),
-    description: str = Form(...),
-    access_info: str = Form(""),
-    preferred_time: str = Form(""),
-    submitted_by: str = Form(...),
-    contact_email: str = Form(...),
-    phone: str = Form(""),
-    department: str = Form("")
+    description: str = Form(...)
 ):
     """Process maintenance ticket submission via Tickets API"""
     try:
@@ -304,24 +297,20 @@ async def new_maintenance_ticket_submit(
         
         rooms = await tickets_service.get_building_rooms(building)
         room_obj = next((r for r in rooms if r["id"] == room), None)
-        
-        # Combine room and specific location for better context
+          # Combine room and specific location for better context
         location_details = room_obj["name"] if room_obj else "Unknown"
-        if specific_location:
-            location_details += f" - {specific_location}"
         
         ticket_data = {
             "title": title,
-            "description": description,
-            "issue_type": issue_type,
+            "description": description,            "issue_type": issue_type,
             "building_name": building_obj["name"] if building_obj else "Unknown",
             "room_name": location_details,
-            "created_by": submitted_by
+            "created_by": "System User"  # Default user until authentication is implemented
         }
         
         result = await tickets_service.create_maintenance_ticket(ticket_data)
         if result:
-            print(f"Maintenance ticket created: {title} by {submitted_by}")
+            print(f"Maintenance ticket created: {title}")
         else:
             print(f"Failed to create maintenance ticket: {title}")
             
