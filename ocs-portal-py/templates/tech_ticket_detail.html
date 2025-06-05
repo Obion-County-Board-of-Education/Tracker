@@ -28,11 +28,11 @@
                         {% elif ticket.status == 'resolved' %}✅ Resolved
                         {% elif ticket.status == 'closed' %}🔒 Closed
                         {% else %}📝 {{ ticket.status.title() }}{% endif %}
-                    </span>
-                    <span class="ticket-type">
+                    </span>                    <span class="ticket-type">
                         {% if ticket.issue_type == 'hardware' %}🖥️ Hardware
                         {% elif ticket.issue_type == 'software' %}💻 Software
                         {% elif ticket.issue_type == 'network' %}🌐 Network
+                        {% elif ticket.issue_type == 'networking' %}🌐 Networking
                         {% elif ticket.issue_type == 'account' %}👤 Account
                         {% elif ticket.issue_type == 'email' %}📧 Email
                         {% else %}❓ Other{% endif %}
@@ -61,11 +61,11 @@
                         </span>
                     </div>
                     <div class="detail-item">
-                        <label>Issue Type:</label>
-                        <span>
+                        <label>Issue Type:</label>                        <span>
                             {% if ticket.issue_type == 'hardware' %}🖥️ Hardware
                             {% elif ticket.issue_type == 'software' %}💻 Software
                             {% elif ticket.issue_type == 'network' %}🌐 Network
+                            {% elif ticket.issue_type == 'networking' %}🌐 Networking
                             {% elif ticket.issue_type == 'account' %}👤 Account
                             {% elif ticket.issue_type == 'email' %}📧 Email
                             {% else %}❓ Other{% endif %}

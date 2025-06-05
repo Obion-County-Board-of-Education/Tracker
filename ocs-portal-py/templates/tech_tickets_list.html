@@ -53,11 +53,11 @@
                     <div class="ticket-info">
                         <h3 class="ticket-title">{{ ticket.title }}</h3>
                         <div class="ticket-meta">
-                            <span class="ticket-id">#{{ ticket.id }}</span>
-                            <span class="ticket-type">
+                            <span class="ticket-id">#{{ ticket.id }}</span>                            <span class="ticket-type">
                                 {% if ticket.issue_type == 'hardware' %}🖥️ Hardware
                                 {% elif ticket.issue_type == 'software' %}💻 Software
                                 {% elif ticket.issue_type == 'network' %}🌐 Network
+                                {% elif ticket.issue_type == 'networking' %}🌐 Networking
                                 {% elif ticket.issue_type == 'account' %}👤 Account
                                 {% elif ticket.issue_type == 'email' %}📧 Email
                                 {% else %}❓ Other{% endif %}
