@@ -183,11 +183,9 @@
                     <div class="help-text">Helps us understand the impact and urgency</div>
                 </div>
             </div>
-        </div>
-
-        <!-- Submit Section -->
+        </div>        <!-- Submit Section -->
         <div class="form-actions">
-            <button type="button" class="btn btn-outline" onclick="history.back()">
+            <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
                 <i class="fa fa-arrow-left"></i> Cancel
             </button>
             <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -356,25 +354,39 @@
     white-space: nowrap;
 }
 
-.btn-primary {
-    background-color: #28a745;
+.form-actions button.btn.btn-primary {
+    background: #28a745;
     color: white;
+    border: none;
 }
 
-.btn-primary:hover {
-    background-color: #218838;
+.form-actions button.btn.btn-primary:hover {
+    background: #218838;
     transform: translateY(-1px);
 }
 
 .btn-outline {
     background-color: transparent;
-    color: #ffffff;
-    border: 2px solid #e9ecef;
+    color: #28a745;
+    border: 2px solid #28a745;
 }
 
 .btn-outline:hover {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.form-actions button.btn.btn-outline-secondary {
+    background: #28a745;
+    color: white;
+    border: 2px solid #28a745;
+}
+
+.form-actions button.btn.btn-outline-secondary:hover {
+    background: #218838;
+    color: white;
+    border-color: #218838;
 }
 
 .error-message {
@@ -547,13 +559,32 @@ document.addEventListener('DOMContentLoaded', function() {
         
         errorMsg.textContent = message;
     }
-    
-    function clearError(formGroup) {
+      function clearError(formGroup) {
         formGroup.classList.remove('error');
         const errorMsg = formGroup.querySelector('.error-message');
         if (errorMsg) {
             errorMsg.style.display = 'none';
         }
+    }    // Handle hover effects for green buttons
+    const cancelBtn = document.querySelector('.form-actions button.btn-outline-secondary');
+    const submitBtn = document.querySelector('.form-actions button.btn-primary');
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('mouseenter', function() {
+            this.style.background = '#218838';
+        });
+        cancelBtn.addEventListener('mouseleave', function() {
+            this.style.background = '#28a745';
+        });
+    }
+    
+    if (submitBtn) {
+        submitBtn.addEventListener('mouseenter', function() {
+            this.style.background = '#218838';
+        });
+        submitBtn.addEventListener('mouseleave', function() {
+            this.style.background = '#28a745';
+        });
     }
 });
 </script>
