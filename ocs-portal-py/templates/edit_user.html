@@ -1,19 +1,300 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<div class="container">
-    <h2>Edit User</h2>
-    <form method="post" action="/users/edit/{{ user.id }}">
-        <label for="name">Name<span style="color:red">*</span></label>
-        <input type="text" id="name" name="name" value="{{ user.name }}" required>
-        <label for="email">Email<span style="color:red">*</span></label>
-        <input type="email" id="email" name="email" value="{{ user.email }}" required>
-        <label for="role">Role<span style="color:red">*</span></label>
-        <select id="role" name="role" required>
-            <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
-            <option value="Technician" {% if user.role == 'Technician' %}selected{% endif %}>Technician</option>
-            <option value="User" {% if user.role == 'User' %}selected{% endif %}>User</option>
-        </select>
-        <button type="submit">Save Changes</button>
+<div class="content-header">
+    <h1><i class="fa-solid fa-user-edit"></i> Edit User</h1>
+    <a href="/users/list" class="btn btn-secondary">
+        <i class="fa fa-arrow-left"></i> Back to Users
+    </a>
+</div>
+
+<div class="form-container">
+    <div class="user-preview">
+        <div class="user-avatar">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="user-info">
+            <h3>{{ user.name }}</h3>
+            <p>User ID: #{{ user.id }}</p>
+        </div>
+    </div>
+
+    <form method="post" action="/users/edit/{{ user.id }}" class="user-form">
+        <div class="form-section">
+            <h3><i class="fa fa-user"></i> Basic Information</h3>
+            
+            <div class="form-group">
+                <label for="name">Full Name:</label>
+                <input type="text" id="name" name="name" value="{{ user.name }}" required 
+                       placeholder="Enter the user's full name">
+                <small class="form-help">This will be displayed throughout the system</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email Address:</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" required 
+                       placeholder="user@obionschools.com">
+                <small class="form-help">Used for notifications and password recovery</small>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3><i class="fa fa-shield-alt"></i> Access & Permissions</h3>
+            
+            <div class="form-group">
+                <label for="role">User Role:</label>
+                <select id="role" name="role" required>
+                    <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin - Full system access</option>
+                    <option value="Technician" {% if user.role == 'Technician' %}selected{% endif %}>Technician - Tech support and tickets</option>
+                    <option value="User" {% if user.role == 'User' %}selected{% endif %}>User - Basic access for staff</option>
+                </select>
+                <small class="form-help">Determines what the user can access in the system</small>
+            </div>
+            
+            <div class="current-role-badge">
+                <span class="role-badge role-{{ user.role.lower() }}">
+                    <i class="fa fa-shield-alt"></i> Current Role: {{ user.role }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                <i class="fa fa-save"></i> Save Changes
+            </button>
+            <a href="/users/list" class="btn btn-outline">
+                <i class="fa fa-times"></i> Cancel
+            </a>
+        </div>
     </form>
 </div>
+
+<style>
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.content-header h1 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 2rem;
+}
+
+.form-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.user-preview {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0;
+}
+
+.user-preview .user-avatar {
+    background: rgba(255, 255, 255, 0.2);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.user-preview .user-info h3 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.user-preview .user-info p {
+    margin: 0.25rem 0 0 0;
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+.user-form {
+    background: white;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.form-section {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+}
+
+.form-section h3 {
+    margin: 0 0 1.5rem 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e9ecef;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-help {
+    display: block;
+    margin-top: 0.25rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+.current-role-badge {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-admin {
+    background: #dc3545;
+    color: white;
+}
+
+.role-technician {
+    background: #28a745;
+    color: white;
+}
+
+.role-user {
+    background: #17a2b8;
+    color: white;
+}
+
+.form-actions {
+    padding: 1.5rem;
+    background: #f8f9fa;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: #6c757d;
+    border: 2px solid #6c757d;
+}
+
+.btn-outline:hover {
+    background-color: #6c757d;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .user-preview {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        justify-content: center;
+    }
+}
+</style>
 {% endblock %}

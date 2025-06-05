@@ -76,3 +76,12 @@ class MaintenanceTicket(Base):
     created_by = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SystemMessage(Base):
+    __tablename__ = 'system_messages'
+    id = Column(Integer, primary_key=True, index=True)
+    message_type = Column(String, nullable=False)  # 'homepage', 'announcement', etc.
+    content = Column(String, nullable=False)
+    created_by = Column(String, default='System Admin')
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

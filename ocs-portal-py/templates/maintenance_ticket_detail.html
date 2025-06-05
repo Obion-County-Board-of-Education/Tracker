@@ -1,0 +1,420 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="content-header">
+    <div class="header-content">
+        <h1><i class="fa-solid fa-tools"></i> Maintenance Request #{{ ticket.id }}</h1>
+        <p class="header-subtitle">View and manage maintenance request details</p>
+    </div>
+    <div class="header-actions">
+        <a href="/tickets/maintenance/open" class="btn btn-outline">
+            <i class="fa fa-arrow-left"></i> Back to Requests
+        </a>
+        <button class="btn btn-primary" onclick="editTicket({{ ticket.id }})">
+            <i class="fa fa-edit"></i> Edit Request
+        </button>
+    </div>
+</div>
+
+<div class="ticket-detail-container">
+    <div class="ticket-detail-card">
+        <div class="ticket-header">
+            <div class="ticket-info">
+                <h2 class="ticket-title">{{ ticket.title }}</h2>
+                <div class="ticket-meta">
+                    <span class="status-badge status-{{ ticket.status }}">
+                        {% if ticket.status == 'new' %}🆕 New
+                        {% elif ticket.status == 'assigned' %}👤 Assigned
+                        {% elif ticket.status == 'in_progress' %}🔧 In Progress
+                        {% elif ticket.status == 'resolved' %}✅ Resolved
+                        {% elif ticket.status == 'closed' %}📁 Closed
+                        {% else %}🆕 New{% endif %}
+                    </span>
+                    <span class="ticket-type">
+                        {% if ticket.issue_type == 'plumbing' %}🚰 Plumbing
+                        {% elif ticket.issue_type == 'electrical' %}⚡ Electrical
+                        {% elif ticket.issue_type == 'hvac' %}🌡️ HVAC
+                        {% elif ticket.issue_type == 'grounds' %}🌿 Grounds
+                        {% elif ticket.issue_type == 'cleaning' %}🧹 Cleaning
+                        {% elif ticket.issue_type == 'security' %}🔒 Security
+                        {% elif ticket.issue_type == 'furniture' %}🪑 Furniture
+                        {% elif ticket.issue_type == 'painting' %}🎨 Painting
+                        {% else %}❓ Other{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="ticket-content">
+            <div class="detail-section">
+                <h3><i class="fa fa-info-circle"></i> Request Information</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Request ID:</label>
+                        <span>#{{ ticket.id }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Status:</label>
+                        <span class="status-badge status-{{ ticket.status }}">
+                            {% if ticket.status == 'new' %}🆕 New
+                            {% elif ticket.status == 'assigned' %}👤 Assigned
+                            {% elif ticket.status == 'in_progress' %}🔧 In Progress
+                            {% elif ticket.status == 'resolved' %}✅ Resolved
+                            {% elif ticket.status == 'closed' %}📁 Closed
+                            {% else %}🆕 New{% endif %}
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Request Type:</label>
+                        <span>
+                            {% if ticket.issue_type == 'plumbing' %}🚰 Plumbing
+                            {% elif ticket.issue_type == 'electrical' %}⚡ Electrical
+                            {% elif ticket.issue_type == 'hvac' %}🌡️ HVAC
+                            {% elif ticket.issue_type == 'grounds' %}🌿 Grounds
+                            {% elif ticket.issue_type == 'cleaning' %}🧹 Cleaning
+                            {% elif ticket.issue_type == 'security' %}🔒 Security
+                            {% elif ticket.issue_type == 'furniture' %}🪑 Furniture
+                            {% elif ticket.issue_type == 'painting' %}🎨 Painting
+                            {% else %}❓ Other{% endif %}
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Requested By:</label>
+                        <span>{{ ticket.created_by }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Created:</label>
+                        <span>{{ ticket.created_at }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Last Updated:</label>
+                        <span>{{ ticket.updated_at }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h3><i class="fa fa-map-marker-alt"></i> Location Information</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Building:</label>
+                        <span>{{ ticket.school }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Room/Area:</label>
+                        <span>{{ ticket.room }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h3><i class="fa fa-clipboard-list"></i> Request Description</h3>
+                <div class="description-content">
+                    <p>{{ ticket.description }}</p>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h3><i class="fa fa-cogs"></i> Actions</h3>
+                <div class="action-buttons">
+                    {% if ticket.status != 'closed' %}
+                    <button class="btn btn-danger" onclick="updateStatus({{ ticket.id }}, 'closed')">
+                        <i class="fa fa-times"></i> Close Request
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-content h1 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-subtitle {
+    margin: 0;
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.ticket-detail-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.ticket-detail-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.ticket-header {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.ticket-title {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.ticket-meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.status-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-badge.status-new {
+    background: #e7f3ff;
+    color: #004085;
+    border: 1px solid #b3d7ff;
+}
+
+.status-badge.status-assigned {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.status-badge.status-in_progress {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.status-badge.status-resolved {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-badge.status-closed {
+    background: #e2e3e5;
+    color: #383d41;
+    border: 1px solid #d6d8db;
+}
+
+.ticket-type {
+    padding: 0.5rem 1rem;
+    background: #28a745;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.ticket-content {
+    padding: 2rem;
+}
+
+.detail-section {
+    margin-bottom: 2rem;
+}
+
+.detail-section:last-child {
+    margin-bottom: 0;
+}
+
+.detail-section h3 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detail-item label {
+    font-weight: 600;
+    color: #495057;
+    min-width: 120px;
+}
+
+.detail-item span {
+    color: #6c757d;
+}
+
+.description-content {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+}
+
+.description-content p {
+    margin: 0;
+    line-height: 1.6;
+    color: #495057;
+    white-space: pre-wrap;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+}
+
+.btn-success {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #138496;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-outline {
+    background-color: #6c757d;
+    color: white;
+    border: 2px solid #6c757d;
+}
+
+.btn-outline:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .action-buttons {
+        justify-content: center;
+    }
+    
+    .ticket-header {
+        padding: 1.5rem;
+    }
+    
+    .ticket-content {
+        padding: 1.5rem;
+    }
+}
+</style>
+
+<script>
+function editTicket(ticketId) {
+    // TODO: Implement ticket editing
+    alert(`Edit maintenance request #${ticketId} - This will redirect to the edit form`);
+}
+
+function updateStatus(ticketId, newStatus) {
+    if (confirm(`Update maintenance request #${ticketId} status to "${newStatus}"?`)) {
+        // Create a form and submit it
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/tickets/maintenance/${ticketId}/update`;
+        
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'status';
+        statusInput.value = newStatus;
+        
+        form.appendChild(statusInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

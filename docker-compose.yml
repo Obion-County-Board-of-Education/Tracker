@@ -13,48 +13,48 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   ocs-tickets-api:
-    build: ./ocs-tickets-api
+    build:
+      context: .
+      dockerfile: ocs-tickets-api/Dockerfile
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_tickets
     depends_on:
       - db
-    # volumes:
-    #   - ./ocs-tickets-api:/app
 
   ocs-inventory-api:
-    build: ./ocs-inventory-api
+    build:
+      context: .
+      dockerfile: ocs-inventory-api/Dockerfile
     ports:
       - "8001:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_inventory
     depends_on:
       - db
-    # volumes:
-    #   - ./ocs-inventory-api:/app
 
   ocs-requisition-api:
-    build: ./ocs-requisition-api
+    build:
+      context: .
+      dockerfile: ocs-requisition-api/Dockerfile
     ports:
       - "8002:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_requisition
     depends_on:
       - db
-    # volumes:
-    #   - ./ocs-requisition-api:/app
 
   ocs-portal-py:
-    build: ./ocs-portal-py
+    build:
+      context: .
+      dockerfile: ocs-portal-py/Dockerfile
     ports:
       - "8003:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_portal
     depends_on:
       - db
-    # volumes:
-    #   - ./ocs-portal-py:/app
 
 volumes:
   pgdata:

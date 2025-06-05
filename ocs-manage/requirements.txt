@@ -2,5 +2,5 @@ fastapi
 uvicorn
 psycopg2-binary
 SQLAlchemy
-ocs-shared-models @ file:///ocs-shared-models
+ocs_shared_models @ file:///ocs_shared_models
 python-dotenv

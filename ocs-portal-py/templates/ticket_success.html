@@ -1,10 +1,387 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="success-container">
-    <h2>Ticket Submitted Successfully!</h2>
-    <p>Your ticket has been received. The Technology or Maintenance Department will be in touch with you soon.</p>
-    <div style="margin-top:2em;">
-        <a href="/tickets/tech/new" class="button">Create Another Ticket</a>
+<div class="success-page">
+    <div class="success-container">
+        <div class="success-icon">
+            <i class="fa-solid fa-check-circle"></i>
+        </div>
+        
+        <div class="success-content">
+            <h1>Ticket Submitted Successfully!</h1>
+            <p class="success-message">
+                Your request has been received and assigned a ticket number. Our team will review your submission 
+                and get back to you within <strong>24-48 hours</strong> during business days.
+            </p>
+            
+            <div class="ticket-info">
+                <div class="info-box">
+                    <h3><i class="fa fa-clock"></i> What happens next?</h3>                    <ul>
+                        <li><strong>Immediate:</strong> Your ticket is logged in our system</li>
+                        <li><strong>Within 4 hours:</strong> Initial review and assignment</li>
+                        <li><strong>Within 24-48 hours:</strong> Technician assignment and contact</li>
+                        <li><strong>Resolution:</strong> Work completed based on availability</li>
+                    </ul>
+                </div>
+                
+                <div class="info-box">
+                    <h3><i class="fa fa-envelope"></i> Stay informed</h3>
+                    <ul>
+                        <li>You'll receive email updates on your ticket status</li>
+                        <li>Check "Open Tickets" to track progress</li>
+                        <li>Contact us if it's urgent or status changes</li>
+                        <li>Rate your experience when the work is complete</li>
+                    </ul>
+                </div>
+            </div>
+              <div class="emergency-notice">
+                <div class="notice-item urgent">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    <strong>Emergency Issues:</strong> If this is a safety emergency or critical system failure, 
+                    please call the main office immediately at <strong>(555) 123-4567</strong>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/" class="btn btn-outline">
+                <i class="fa fa-home"></i> Return to Dashboard
+            </a>
+            <a href="/tickets/tech/new" class="btn btn-secondary">
+                <i class="fa fa-laptop"></i> New Tech Ticket
+            </a>
+            <a href="/tickets/maintenance/new" class="btn btn-primary">
+                <i class="fa fa-tools"></i> New Maintenance Request
+            </a>
+        </div>
+        
+        <div class="additional-info">
+            <h3>Need help with something else?</h3>
+            <div class="quick-links">
+                <a href="/tickets/tech/open" class="quick-link">
+                    <i class="fa fa-list"></i>
+                    <span>View My Open Tickets</span>
+                </a>
+                <a href="/tickets/tech/all" class="quick-link">
+                    <i class="fa fa-history"></i>
+                    <span>Ticket History</span>
+                </a>
+                <a href="/help" class="quick-link">
+                    <i class="fa fa-question-circle"></i>
+                    <span>Help & FAQ</span>
+                </a>
+                <a href="/contact" class="quick-link">
+                    <i class="fa fa-phone"></i>
+                    <span>Contact Support</span>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+.success-page {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.success-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 3rem;
+    text-align: center;
+}
+
+.success-icon {
+    margin-bottom: 2rem;
+}
+
+.success-icon i {
+    font-size: 5rem;
+    color: #28a745;
+    animation: checkmarkBounce 0.6s ease-out;
+}
+
+@keyframes checkmarkBounce {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.success-content h1 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.success-message {
+    font-size: 1.1rem;
+    color: #495057;
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ticket-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    text-align: left;
+}
+
+.info-box {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.info-box h3 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-box ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: #495057;
+}
+
+.info-box li {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.notice-item {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 1rem;
+    color: #856404;
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.notice-item.urgent {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.notice-item i {
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: #6c757d;
+    border: 2px solid #e9ecef;
+}
+
+.btn-outline:hover {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.additional-info {
+    border-top: 2px solid #e9ecef;
+    padding-top: 2rem;
+}
+
+.additional-info h3 {
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+.quick-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.quick-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #495057;
+    transition: all 0.2s;
+    border: 1px solid #e9ecef;
+}
+
+.quick-link:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+    color: #2c3e50;
+}
+
+.quick-link i {
+    font-size: 1.2rem;
+    color: #007bff;
+    width: 20px;
+    text-align: center;
+}
+
+.quick-link span {
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .success-container {
+        padding: 2rem 1.5rem;
+    }
+    
+    .success-content h1 {
+        font-size: 1.8rem;
+    }
+    
+    .ticket-info {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .quick-links {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .success-page {
+        margin: 1rem auto;
+        padding: 0 0.5rem;
+    }
+    
+    .success-container {
+        padding: 1.5rem 1rem;
+    }
+    
+    .success-icon i {
+        font-size: 3.5rem;
+    }
+    
+    .success-content h1 {
+        font-size: 1.5rem;
+    }
+    
+    .info-box {
+        padding: 1rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-redirect after 30 seconds if user doesn't interact
+    let redirectTimer;
+    let redirectCountdown = 30;
+    
+    function startRedirectTimer() {
+        redirectTimer = setTimeout(() => {
+            if (confirm('Would you like to return to the dashboard? (You\'ll be redirected automatically in 5 seconds)')) {
+                window.location.href = '/';
+            } else {
+                // Restart timer if user cancels
+                startRedirectTimer();
+            }
+        }, redirectCountdown * 1000);
+    }
+    
+    // Clear timer if user interacts with the page
+    function clearRedirectTimer() {
+        if (redirectTimer) {
+            clearTimeout(redirectTimer);
+            redirectTimer = null;
+        }
+    }
+    
+    // Start the timer
+    startRedirectTimer();
+    
+    // Clear timer on any user interaction
+    document.addEventListener('click', clearRedirectTimer);
+    document.addEventListener('keydown', clearRedirectTimer);
+    document.addEventListener('scroll', clearRedirectTimer);
+    
+    // Add some celebration animation
+    setTimeout(() => {
+        const icon = document.querySelector('.success-icon i');
+        if (icon) {
+            icon.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                icon.style.transform = 'scale(1)';
+            }, 200);
+        }
+    }, 600);
+});
+</script>
 {% endblock %}

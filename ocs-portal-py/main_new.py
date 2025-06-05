@@ -15,15 +15,6 @@ app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Import and setup user/building routes from separate module
-try:
-    from user_building_routes import setup_user_building_routes
-    setup_user_building_routes(app)
-    print("✅ User and building routes imported successfully")
-except Exception as e:
-    print(f"❌ Error importing user/building routes: {e}")
-
-# Homepage route
 @app.get("/")
 def home(request: Request, db: Session = Depends(get_db)):
     """Home page with editable system message"""
@@ -153,23 +144,6 @@ async def tech_tickets_open(request: Request):
     try:
         tickets = await tickets_service.get_tech_tickets("open")
         buildings = await tickets_service.get_buildings()
-        
-        # Format dates for template display
-        for ticket in tickets:
-            if ticket.get("created_at"):
-                try:
-                    created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
-                    ticket["created_at"] = created_at
-                except:
-                    ticket["created_at"] = None
-                    
-            if ticket.get("updated_at"):
-                try:
-                    updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
-                    ticket["updated_at"] = updated_at
-                except:
-                    ticket["updated_at"] = None
-        
     except Exception as e:
         print(f"Error fetching tickets: {e}")
         tickets = []
@@ -189,23 +163,6 @@ async def tech_tickets_closed(request: Request):
     try:
         tickets = await tickets_service.get_tech_tickets("closed")
         buildings = await tickets_service.get_buildings()
-        
-        # Format dates for template display
-        for ticket in tickets:
-            if ticket.get("created_at"):
-                try:
-                    created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
-                    ticket["created_at"] = created_at
-                except:
-                    ticket["created_at"] = None
-                    
-            if ticket.get("updated_at"):
-                try:
-                    updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
-                    ticket["updated_at"] = updated_at
-                except:
-                    ticket["updated_at"] = None
-        
     except Exception as e:
         print(f"Error fetching tickets: {e}")
         tickets = []
@@ -414,6 +371,17 @@ async def update_maintenance_ticket_status(ticket_id: int, status: str = Form(..
     
     return RedirectResponse(f"/tickets/maintenance/{ticket_id}", status_code=303)
 
+# Building/Room API for dynamic form population
+@app.get("/api/buildings/{building_id}/rooms")
+async def get_building_rooms(building_id: int):
+    """API endpoint to get rooms for a specific building"""
+    try:
+        rooms = await tickets_service.get_building_rooms(building_id)
+        return {"rooms": rooms}
+    except Exception as e:
+        print(f"Error fetching building rooms: {e}")
+        return {"rooms": []}
+
 # Keep other non-ticket routes (inventory, users, etc.)
 @app.get("/inventory/add")
 def add_inventory_form(request: Request):
@@ -426,7 +394,3 @@ def add_inventory_submit(request: Request):
 @app.get("/tickets/success")
 def ticket_success(request: Request):
     return templates.TemplateResponse("ticket_success.html", {"request": request})
-
-# Note: User and Building management routes are now handled by the user_building_routes module
-# imported at the top of this file. This resolves the route registration issues that were 
-# preventing these routes from being properly registered in FastAPI.
