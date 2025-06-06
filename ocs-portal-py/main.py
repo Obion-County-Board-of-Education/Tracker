@@ -312,9 +312,13 @@ async def new_maintenance_ticket(request: Request):
         print(f"Error fetching buildings: {e}")
         buildings = []
     
+    # Get menu context
+    menu_context = await get_menu_context()
+    
     return templates.TemplateResponse("new_maintenance_ticket.html", {
         "request": request,
-        "buildings": buildings
+        "buildings": buildings,
+        **menu_context
     })
 
 @app.post("/tickets/maintenance/new")
@@ -367,12 +371,16 @@ async def maintenance_tickets_open(request: Request):
         tickets = []
         buildings = []
     
+    # Get menu context
+    menu_context = await get_menu_context()
+    
     return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
         "page_title": "Open Maintenance Requests", 
-        "status_filter": "open"
+        "status_filter": "open",
+        **menu_context
     })
 
 @app.get("/tickets/maintenance/closed")

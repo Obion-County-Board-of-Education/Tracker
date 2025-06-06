@@ -72,6 +72,17 @@ class TicketsService:
             print(f"Error updating tech ticket status: {e}")
             return False
 
+    async def update_tech_ticket(self, ticket_id: int, ticket_data: Dict[str, Any]) -> bool:
+        """Update technology ticket with comprehensive data"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.put(f"{self.base_url}/api/tickets/tech/{ticket_id}", json=ticket_data)
+                response.raise_for_status()
+                return True
+        except Exception as e:
+            print(f"Error updating tech ticket: {e}")
+            return False
+
     async def get_maintenance_tickets(self, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get maintenance tickets"""
         try:
@@ -126,11 +137,22 @@ class TicketsService:
             print(f"Error updating maintenance ticket status: {e}")
             return False
 
+    async def update_maintenance_ticket(self, ticket_id: int, ticket_data: Dict[str, Any]) -> bool:
+        """Update maintenance ticket with comprehensive data"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.put(f"{self.base_url}/api/tickets/maintenance/{ticket_id}", json=ticket_data)
+                response.raise_for_status()
+                return True
+        except Exception as e:
+            print(f"Error updating maintenance ticket: {e}")
+            return False
+
     async def get_buildings(self) -> List[Dict[str, Any]]:
         """Get all buildings from the database"""
         try:
             from database import get_db
-            from models import Building
+            from ocs_shared_models.models import Building
             
             # Get database session
             db = next(get_db())
@@ -157,7 +179,7 @@ class TicketsService:
         """Get rooms for a specific building from the database"""
         try:
             from database import get_db
-            from models import Room
+            from ocs_shared_models.models import Room
             
             # Get database session
             db = next(get_db())

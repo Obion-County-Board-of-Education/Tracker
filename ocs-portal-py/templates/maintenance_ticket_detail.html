@@ -4,14 +4,10 @@
     <div class="header-content">
         <h1><i class="fa-solid fa-tools"></i> Maintenance Request #{{ ticket.id }}</h1>
         <p class="header-subtitle">View and manage maintenance request details</p>
-    </div>
-    <div class="header-actions">
+    </div>    <div class="header-actions">
         <a href="/tickets/maintenance/open" class="btn btn-outline">
             <i class="fa fa-arrow-left"></i> Back to Requests
         </a>
-        <button class="btn btn-primary" onclick="editTicket({{ ticket.id }})">
-            <i class="fa fa-edit"></i> Edit Request
-        </button>
     </div>
 </div>
 
@@ -111,11 +107,12 @@
                 <div class="description-content">
                     <p>{{ ticket.description }}</p>
                 </div>
-            </div>
-
-            <div class="detail-section">
+            </div>            <div class="detail-section">
                 <h3><i class="fa fa-cogs"></i> Actions</h3>
                 <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="editTicket({{ ticket.id }})">
+                        <i class="fa fa-edit"></i> Update Request
+                    </button>
                     {% if ticket.status != 'closed' %}
                     <button class="btn btn-danger" onclick="updateStatus({{ ticket.id }}, 'closed')">
                         <i class="fa fa-times"></i> Close Request
@@ -396,7 +393,7 @@
 <script>
 function editTicket(ticketId) {
     // TODO: Implement ticket editing
-    alert(`Edit maintenance request #${ticketId} - This will redirect to the edit form`);
+    alert(`Update maintenance request #${ticketId} - This will open the update form`);
 }
 
 function updateStatus(ticketId, newStatus) {
