@@ -244,12 +244,14 @@ async def tech_tickets_closed(request: Request):
         tickets = []
         buildings = []
     
+    menu_context = await get_menu_context()
     return templates.TemplateResponse("tech_tickets_list.html", {
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
         "page_title": "Closed Technology Tickets",
-        "status_filter": "closed"
+        "status_filter": "closed",
+        **menu_context
     })
 
 @app.get("/tickets/tech/{ticket_id}")
@@ -279,9 +281,11 @@ async def view_tech_ticket(request: Request, ticket_id: int):
         print(f"Error fetching ticket: {e}")
         return RedirectResponse("/tickets/tech/open", status_code=303)
     
+    menu_context = await get_menu_context()
     return templates.TemplateResponse("tech_ticket_detail.html", {
         "request": request,
-        "ticket": ticket
+        "ticket": ticket,
+        **menu_context
     })
 
 @app.post("/tickets/tech/{ticket_id}/update")
@@ -382,12 +386,14 @@ async def maintenance_tickets_closed(request: Request):
         tickets = []
         buildings = []
     
+    menu_context = await get_menu_context()
     return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
         "page_title": "Closed Maintenance Requests",
-        "status_filter": "closed"
+        "status_filter": "closed",
+        **menu_context
     })
 
 @app.get("/tickets/maintenance/{ticket_id}")
@@ -417,9 +423,11 @@ async def view_maintenance_ticket(request: Request, ticket_id: int):
         print(f"Error fetching ticket: {e}")
         return RedirectResponse("/tickets/maintenance/open", status_code=303)
     
+    menu_context = await get_menu_context()
     return templates.TemplateResponse("maintenance_ticket_detail.html", {
         "request": request,
-        "ticket": ticket
+        "ticket": ticket,
+        **menu_context
     })
 
 @app.post("/tickets/maintenance/{ticket_id}/update")
@@ -438,16 +446,28 @@ async def update_maintenance_ticket_status(ticket_id: int, status: str = Form(..
 
 # Keep other non-ticket routes (inventory, users, etc.)
 @app.get("/inventory/add")
-def add_inventory_form(request: Request):
-    return templates.TemplateResponse("add_inventory.html", {"request": request})
+async def add_inventory_form(request: Request):
+    menu_context = await get_menu_context()
+    return templates.TemplateResponse("add_inventory.html", {
+        "request": request,
+        **menu_context
+    })
 
 @app.post("/inventory/add")
-def add_inventory_submit(request: Request):
-    return templates.TemplateResponse("inventory_success.html", {"request": request})
+async def add_inventory_submit(request: Request):
+    menu_context = await get_menu_context()
+    return templates.TemplateResponse("inventory_success.html", {
+        "request": request,
+        **menu_context
+    })
 
 @app.get("/tickets/success")
-def ticket_success(request: Request):
-    return templates.TemplateResponse("ticket_success.html", {"request": request})
+async def ticket_success(request: Request):
+    menu_context = await get_menu_context()
+    return templates.TemplateResponse("ticket_success.html", {
+        "request": request,
+        **menu_context
+    })
 
 # Management Routes - communicate with ocs-manage API
 @app.get("/manage/settings")
@@ -472,14 +492,15 @@ async def manage_settings(request: Request):
             "users": 0,
             "buildings": 0,
             "rooms": 0,
-            "timestamp": "Error loading data"
-        }
+            "timestamp": "Error loading data"        }
         health = False
     
+    menu_context = await get_menu_context()
     return templates.TemplateResponse("manage_settings.html", {
         "request": request,
         "stats": stats,
-        "service_health": health
+        "service_health": health,
+        **menu_context
     })
 
 @app.get("/manage/logs")
@@ -497,12 +518,14 @@ async def manage_logs(request: Request):
         log_stats = None
         health = False
     
+    menu_context = await get_menu_context()
     return templates.TemplateResponse("manage_logs.html", {
         "request": request,
         "logs": logs,
         "log_stats": log_stats,
         "service_health": health,
-        "current_time": datetime.now()
+        "current_time": datetime.now(),
+        **menu_context
     })
 
 @app.post("/manage/logs/clear")
@@ -534,13 +557,15 @@ async def manage_other(request: Request):
         system_info = None
         health = False
     
+    menu_context = await get_menu_context()
     return templates.TemplateResponse("manage_other.html", {
         "request": request,
         "stats": stats,
         "service_status": service_status,
         "system_stats": system_stats,
         "system_info": system_info,
-        "service_health": health
+        "service_health": health,
+        **menu_context
     })
 
 # Additional management API endpoints
