@@ -21,6 +21,7 @@
 - <b>ocs-manage/</b> – FastAPI service for management tasks
 - <b>ocs-portal-py/</b> – FastAPI service for admin portal (Jinja2, static, templates)
 - <b>ocs_shared_models/</b> – Shared SQLAlchemy models for all services
+- <b>tests/</b> – Test scripts for various system features
 - <b>docker-compose.yml</b> – Orchestration for all services and a single PostgreSQL container
 
 ---

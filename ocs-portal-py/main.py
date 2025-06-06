@@ -8,6 +8,7 @@ from ocs_shared_models import User, Building, Room, SystemMessage
 from database import get_db, init_database
 from services import tickets_service
 from management_service import management_service
+from service_health import health_checker
 
 # Initialize database on startup
 init_database()
@@ -15,6 +16,28 @@ init_database()
 app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Context processor for menu visibility
+async def get_menu_context():
+    """Get menu visibility context for templates"""
+    try:
+        menu_visibility = await health_checker.get_menu_visibility()
+        return {"menu_visibility": menu_visibility}
+    except Exception as e:
+        print(f"Error getting menu context: {e}")
+        # Return all menus as visible if health check fails
+        return {"menu_visibility": {
+            "tickets": True,
+            "inventory": True,
+            "manage": True,
+            "requisitions": True,
+            "admin": True
+        }}
+
+async def render_template(template_name: str, context: dict):
+    """Helper function to render templates with menu context"""
+    menu_context = await get_menu_context()
+    return templates.TemplateResponse(template_name, {**context, **menu_context})
 
 # Import and setup user/building routes from separate module
 try:
@@ -26,7 +49,7 @@ except Exception as e:
 
 # Homepage route
 @app.get("/")
-def home(request: Request, db: Session = Depends(get_db)):
+async def home(request: Request, db: Session = Depends(get_db)):
     """Home page with editable system message"""
     try:
         # Get the homepage message from database
@@ -52,11 +75,13 @@ def home(request: Request, db: Session = Depends(get_db)):
         homepage_message = type('obj', (object,), {
             'content': 'You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to "Tickets->Open Tickets" to check these.',
             'updated_at': None
-        })()
+        })()    # Get menu visibility context
+    menu_context = await get_menu_context()
     
     return templates.TemplateResponse("index.html", {
         "request": request,
-        "homepage_message": homepage_message
+        "homepage_message": homepage_message,
+        **menu_context
     })
 
 @app.post("/update-homepage-message")
@@ -101,11 +126,14 @@ async def new_tech_ticket(request: Request):
         buildings = await tickets_service.get_buildings()
     except Exception as e:
         print(f"Error fetching buildings: {e}")
-        buildings = []
+        buildings = []    
+    # Get menu context
+    menu_context = await get_menu_context()
     
     return templates.TemplateResponse("new_tech_ticket.html", {
         "request": request, 
-        "buildings": buildings
+        "buildings": buildings,
+        **menu_context
     })
 
 @app.post("/tickets/tech/new")
@@ -170,18 +198,22 @@ async def tech_tickets_open(request: Request):
                     ticket["updated_at"] = updated_at
                 except:
                     ticket["updated_at"] = None
-        
+                    
     except Exception as e:
         print(f"Error fetching tickets: {e}")
         tickets = []
         buildings = []
+    
+    # Get menu context
+    menu_context = await get_menu_context()
     
     return templates.TemplateResponse("tech_tickets_list.html", {
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
         "page_title": "Open Technology Tickets",
-        "status_filter": "open"
+        "status_filter": "open",
+        **menu_context
     })
 
 @app.get("/tickets/tech/closed")
@@ -584,3 +616,24 @@ async def generate_reports(request: Request):
     except Exception as e:
         print(f"Error generating reports: {e}")
         return {"success": False, "message": str(e)}
+
+# Health check and service status endpoints
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for the portal"""
+    return {"status": "healthy", "service": "portal"}
+
+@app.get("/api/services/status")
+async def get_services_status():
+    """Get status of all microservices"""
+    try:
+        menu_visibility = await health_checker.get_menu_visibility()
+        service_status = await health_checker.get_service_health()
+        return {
+            "menu_visibility": menu_visibility,
+            "service_status": service_status,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        print(f"Error getting service status: {e}")
+        return {"error": str(e), "timestamp": datetime.utcnow().isoformat()}

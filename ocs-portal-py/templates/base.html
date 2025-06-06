@@ -11,11 +11,11 @@
 <body>
     <header class="navbar">
         <div class="container">
-            <h1 class="logo"><img src="/static/ocs-logo.png" alt="OCS Logo" class="logo-img"> Obion County Schools</h1>
-            <nav>
+            <h1 class="logo"><img src="/static/ocs-logo.png" alt="OCS Logo" class="logo-img"> Obion County Schools</h1>            <nav>
                 {% if request.url.path != '/' %}
                 <a href="/" class="nav-link"><i class="fa fa-home"></i> Home</a>
                 {% endif %}
+                {% if menu_visibility.tickets %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-ticket"></i> Tickets <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
@@ -29,6 +29,8 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
+                {% if menu_visibility.inventory %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Inventory <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
@@ -38,6 +40,8 @@
                         <a href="/inventory/view">View Inventory</a>
                     </div>
                 </div>
+                {% endif %}
+                {% if menu_visibility.manage %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-gears"></i> Manage <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
@@ -46,6 +50,8 @@
                         <a href="/manage/other">Other Management</a>
                     </div>
                 </div>
+                {% endif %}
+                {% if menu_visibility.requisitions %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Requisitions <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
@@ -54,6 +60,8 @@
                         <a href="/requisitions/all">All Requisitions</a>
                     </div>
                 </div>
+                {% endif %}
+                {% if menu_visibility.admin %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-user-gear"></i> Admin <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
@@ -62,6 +70,7 @@
                         <!-- You can add more admin options here -->
                     </div>
                 </div>
+                {% endif %}
             </nav>
         </div>
     </header>

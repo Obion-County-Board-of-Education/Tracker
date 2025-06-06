@@ -11,3 +11,8 @@ app = FastAPI(title="OCS Inventory API")
 @app.get("/")
 def root():
     return {"message": "OCS Inventory API is running."}
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for service monitoring"""
+    return {"status": "healthy", "service": "inventory-api"}
