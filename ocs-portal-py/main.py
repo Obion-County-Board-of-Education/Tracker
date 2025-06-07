@@ -252,11 +252,31 @@ async def tech_tickets_closed(request: Request):
     return templates.TemplateResponse("tech_tickets_list.html", {
         "request": request,
         "tickets": tickets,
-        "buildings": buildings,
-        "page_title": "Closed Technology Tickets",
+        "buildings": buildings,        "page_title": "Closed Technology Tickets",
         "status_filter": "closed",
         **menu_context
     })
+
+# CSV Export Routes - Must come before parameterized routes
+@app.get("/tickets/tech/export")
+async def export_tech_tickets(request: Request):
+    """Export tech tickets to CSV"""
+    try:
+        csv_content = await tickets_service.export_tech_tickets_csv()
+        
+        # Generate filename with current date
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        filename = f"tech_tickets_export_{current_date}.csv"
+        
+        return Response(
+            content=csv_content,
+            media_type='text/csv',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        print(f"❌ Error exporting tech tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/tech/open", status_code=303)
 
 @app.get("/tickets/tech/{ticket_id}")
 async def view_tech_ticket(request: Request, ticket_id: int):
@@ -497,11 +517,30 @@ async def maintenance_tickets_closed(request: Request):
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
-        "page_title": "Closed Maintenance Requests",
-        "status_filter": "closed",
+        "page_title": "Closed Maintenance Requests",        "status_filter": "closed",
         "current_datetime": datetime.now(),
         **menu_context
     })
+
+@app.get("/tickets/maintenance/export")
+async def export_maintenance_tickets(request: Request):
+    """Export maintenance tickets to CSV"""
+    try:
+        csv_content = await tickets_service.export_maintenance_tickets_csv()
+        
+        # Generate filename with current date
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        filename = f"maintenance_tickets_export_{current_date}.csv"
+        
+        return Response(
+            content=csv_content,
+            media_type='text/csv',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        print(f"❌ Error exporting maintenance tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/maintenance/open", status_code=303)
 
 @app.get("/tickets/maintenance/{ticket_id}")
 async def view_maintenance_ticket(request: Request, ticket_id: int):

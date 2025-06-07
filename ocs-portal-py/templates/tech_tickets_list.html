@@ -17,9 +17,11 @@
         <div class="filter-tabs">
             <a href="/tickets/tech/open" class="filter-tab {% if status_filter == 'open' %}active{% endif %}">
                 <i class="fa fa-clock"></i> Open Tickets
-            </a>
-            <a href="/tickets/tech/closed" class="filter-tab {% if status_filter == 'closed' %}active{% endif %}">
+            </a>            <a href="/tickets/tech/closed" class="filter-tab {% if status_filter == 'closed' %}active{% endif %}">
                 <i class="fa fa-check-circle"></i> Closed Tickets
+            </a>
+            <a href="/tickets/tech/export" class="btn btn-success btn-sm export-csv-btn" title="Export all tickets to CSV">
+                <i class="fa fa-download"></i> Export CSV
             </a>
             <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
                 <i class="fa fa-trash"></i> Clear All Tickets
@@ -219,14 +221,26 @@
     transition: all 0.2s;
 }
 
-.clear-all-btn:hover {
-    background: #c82333;
-    transform: translateY(-1px);
+.export-csv-btn {
+    margin-left: auto;
+    margin-right: 0.5rem;
+    align-self: center;
+    background: #28a745;
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-decoration: none;
 }
 
-.clear-all-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.export-csv-btn:hover {
+    background: #218838;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
 }
 
 .search-and-filters {

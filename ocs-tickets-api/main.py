@@ -1,11 +1,15 @@
 from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
+import csv
+import io
+import tempfile
+import os
 from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket, TicketUpdate
 from ocs_shared_models.timezone_utils import central_now
 from database import get_db, init_database
@@ -82,6 +86,104 @@ def get_tech_tickets(
         return tickets
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# CSV Export API - Must come before parameterized routes
+@app.get("/api/tickets/tech/export")
+def export_tech_tickets_csv(db: Session = Depends(get_db)):
+    """Export all technology tickets to CSV"""
+    try:
+        # Get all tech tickets
+        tickets = db.query(TechTicket).order_by(desc(TechTicket.created_at)).all()
+        
+        # Create temporary file
+        temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', encoding='utf-8')
+        
+        # Write CSV headers
+        writer = csv.writer(temp_file)
+        writer.writerow([
+            'ID', 'Title', 'Description', 'Issue Type', 'School', 'Room', 'Tag', 
+            'Status', 'Created By', 'Created At', 'Updated At'
+        ])
+        
+        # Write ticket data
+        for ticket in tickets:
+            writer.writerow([
+                ticket.id,
+                ticket.title,
+                ticket.description,
+                ticket.issue_type or '',
+                ticket.school or '',
+                ticket.room or '',
+                ticket.tag or '',
+                ticket.status,
+                ticket.created_by,
+                ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else '',
+                ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else ''
+            ])
+        
+        temp_file.close()
+        
+        # Generate filename with current date
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        filename = f"tech_tickets_export_{current_date}.csv"
+        
+        return FileResponse(
+            path=temp_file.name,
+            filename=filename,
+            media_type='text/csv',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error exporting tech tickets: {str(e)}")
+
+@app.get("/api/tickets/maintenance/export")
+def export_maintenance_tickets_csv(db: Session = Depends(get_db)):
+    """Export all maintenance tickets to CSV"""
+    try:
+        # Get all maintenance tickets
+        tickets = db.query(MaintenanceTicket).order_by(desc(MaintenanceTicket.created_at)).all()
+        
+        # Create temporary file
+        temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', encoding='utf-8')
+        
+        # Write CSV headers
+        writer = csv.writer(temp_file)
+        writer.writerow([
+            'ID', 'Title', 'Description', 'Issue Type', 'School', 'Room', 
+            'Status', 'Created By', 'Created At', 'Updated At'
+        ])
+        
+        # Write ticket data
+        for ticket in tickets:
+            writer.writerow([
+                ticket.id,
+                ticket.title,
+                ticket.description,
+                ticket.issue_type or '',
+                ticket.school or '',
+                ticket.room or '',
+                ticket.status,
+                ticket.created_by,
+                ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else '',
+                ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else ''
+            ])
+        
+        temp_file.close()
+        
+        # Generate filename with current date
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        filename = f"maintenance_tickets_export_{current_date}.csv"
+        
+        return FileResponse(
+            path=temp_file.name,
+            filename=filename,
+            media_type='text/csv',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error exporting maintenance tickets: {str(e)}")
 
 @app.get("/api/tickets/tech/{ticket_id}", response_model=TechTicketResponse)
 def get_tech_ticket(ticket_id: int, db: Session = Depends(get_db)):

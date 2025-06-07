@@ -267,6 +267,28 @@ class TicketsService:
             print(f"Error clearing maintenance tickets: {e}")
             return {"success": False, "message": f"Error clearing maintenance tickets: {str(e)}"}
 
+    async def export_tech_tickets_csv(self) -> bytes:
+        """Export tech tickets to CSV and return file content"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/tickets/tech/export")
+                response.raise_for_status()
+                return response.content
+        except Exception as e:
+            print(f"Error exporting tech tickets: {e}")
+            raise Exception(f"Error exporting tech tickets: {str(e)}")
+
+    async def export_maintenance_tickets_csv(self) -> bytes:
+        """Export maintenance tickets to CSV and return file content"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/tickets/maintenance/export")
+                response.raise_for_status()
+                return response.content
+        except Exception as e:
+            print(f"Error exporting maintenance tickets: {e}")
+            raise Exception(f"Error exporting maintenance tickets: {str(e)}")
+
 # Create service instances
 tickets_service = TicketsService()
 
