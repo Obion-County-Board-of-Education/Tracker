@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, text
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
@@ -316,3 +316,36 @@ def get_building_rooms(building_id: int, db: Session = Depends(get_db)):
         return {"rooms": [{"id": r.id, "name": r.name} for r in rooms]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+# Clear/Delete All Tickets API
+@app.delete("/api/tickets/tech/clear")
+def clear_all_tech_tickets(db: Session = Depends(get_db)):
+    """Clear all technology tickets from the database"""
+    try:
+        # Delete all ticket updates for tech tickets first (foreign key constraint)
+        db.execute(text("DELETE FROM ticket_updates WHERE ticket_type = 'tech'"))
+        
+        # Delete all tech tickets
+        deleted_count = db.query(TechTicket).delete()
+        
+        db.commit()
+        return {"message": f"Successfully cleared {deleted_count} technology tickets"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error clearing tech tickets: {str(e)}")
+
+@app.delete("/api/tickets/maintenance/clear")
+def clear_all_maintenance_tickets(db: Session = Depends(get_db)):
+    """Clear all maintenance tickets from the database"""
+    try:
+        # Delete all ticket updates for maintenance tickets first (foreign key constraint)
+        db.execute(text("DELETE FROM ticket_updates WHERE ticket_type = 'maintenance'"))
+        
+        # Delete all maintenance tickets
+        deleted_count = db.query(MaintenanceTicket).delete()
+        
+        db.commit()
+        return {"message": f"Successfully cleared {deleted_count} maintenance tickets"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error clearing maintenance tickets: {str(e)}")

@@ -574,6 +574,33 @@ async def update_maintenance_ticket_status(
         print(f"Error updating maintenance ticket: {e}")
     return RedirectResponse(f"/tickets/maintenance/{ticket_id}", status_code=303)
 
+# Clear Tickets Routes
+@app.post("/tickets/tech/clear")
+async def clear_tech_tickets(request: Request):
+    """Clear all technology tickets"""
+    try:
+        result = await tickets_service.clear_all_tech_tickets()
+        if result.get("success", True):
+            print(f"✅ Tech tickets cleared: {result.get('message', 'Success')}")
+        else:
+            print(f"❌ Failed to clear tech tickets: {result.get('message', 'Unknown error')}")
+    except Exception as e:
+        print(f"❌ Error clearing tech tickets: {e}")
+    return RedirectResponse("/tickets/tech/open", status_code=303)
+
+@app.post("/tickets/maintenance/clear")
+async def clear_maintenance_tickets(request: Request):
+    """Clear all maintenance tickets"""
+    try:
+        result = await tickets_service.clear_all_maintenance_tickets()
+        if result.get("success", True):
+            print(f"✅ Maintenance tickets cleared: {result.get('message', 'Success')}")
+        else:
+            print(f"❌ Failed to clear maintenance tickets: {result.get('message', 'Unknown error')}")
+    except Exception as e:
+        print(f"❌ Error clearing maintenance tickets: {e}")
+    return RedirectResponse("/tickets/maintenance/open", status_code=303)
+
 # Keep other non-ticket routes (inventory, users, etc.)
 @app.get("/inventory/add")
 async def add_inventory_form(request: Request):

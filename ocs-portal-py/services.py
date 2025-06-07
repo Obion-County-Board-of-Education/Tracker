@@ -245,6 +245,28 @@ class TicketsService:
             print(f"Error fetching latest update message: {e}")
             return None
 
+    async def clear_all_tech_tickets(self) -> Dict[str, Any]:
+        """Clear all technology tickets"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.delete(f"{self.base_url}/api/tickets/tech/clear")
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error clearing tech tickets: {e}")
+            return {"success": False, "message": f"Error clearing tech tickets: {str(e)}"}
+
+    async def clear_all_maintenance_tickets(self) -> Dict[str, Any]:
+        """Clear all maintenance tickets"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.delete(f"{self.base_url}/api/tickets/maintenance/clear")
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error clearing maintenance tickets: {e}")
+            return {"success": False, "message": f"Error clearing maintenance tickets: {str(e)}"}
+
 # Create service instances
 tickets_service = TicketsService()
 

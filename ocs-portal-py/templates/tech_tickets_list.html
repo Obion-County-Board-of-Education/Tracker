@@ -13,8 +13,7 @@
 </div>
 
 <div class="tickets-container">
-    <!-- Filter and Search Section -->
-    <div class="filters-section">
+    <!-- Filter and Search Section -->    <div class="filters-section">
         <div class="filter-tabs">
             <a href="/tickets/tech/open" class="filter-tab {% if status_filter == 'open' %}active{% endif %}">
                 <i class="fa fa-clock"></i> Open Tickets
@@ -22,6 +21,9 @@
             <a href="/tickets/tech/closed" class="filter-tab {% if status_filter == 'closed' %}active{% endif %}">
                 <i class="fa fa-check-circle"></i> Closed Tickets
             </a>
+            <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
+                <i class="fa fa-trash"></i> Clear All Tickets
+            </button>
         </div>
         
         <div class="search-and-filters">
@@ -201,6 +203,30 @@
     color: #007bff;
     border-bottom-color: #007bff;
     background: #f8f9fa;
+}
+
+.clear-all-btn {
+    margin-left: auto;
+    margin-right: 1rem;
+    align-self: center;
+    background: #dc3545;
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.clear-all-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+.clear-all-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .search-and-filters {
@@ -568,11 +594,31 @@ function updateStatus(ticketId, newStatus) {
         statusInput.type = 'hidden';
         statusInput.name = 'status';
         statusInput.value = newStatus;
-        
-        form.appendChild(statusInput);
+          form.appendChild(statusInput);
         document.body.appendChild(form);
         form.submit();
     }
+}
+
+// Clear all tickets function
+function clearAllTickets(ticketType) {
+    if (!confirm(`Are you sure you want to clear ALL ${ticketType} tickets? This action cannot be undone and will permanently delete all open and closed tickets from the database.`)) {
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target.closest('.clear-all-btn');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Clearing...';
+    button.disabled = true;
+    
+    // Submit the clear request
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/tickets/${ticketType}/clear`;
+    
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>
 {% endblock %}
