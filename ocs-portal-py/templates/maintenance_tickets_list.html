@@ -50,25 +50,28 @@
         {% if tickets %}
             {% for ticket in tickets %}
             <div class="ticket-card" data-building="{{ ticket.school }}" 
-                 data-type="{{ ticket.issue_type or 'other' }}" data-status="{{ ticket.status }}">
-                <div class="ticket-header">
+                 data-type="{{ ticket.issue_type or 'other' }}" data-status="{{ ticket.status }}">                <div class="ticket-header">
                     <div class="ticket-info">
-                        <h4 class="ticket-title">{{ ticket.title }}</h4>
+                        <h3 class="ticket-title">{{ ticket.title }}</h3>
                         <div class="ticket-meta">
                             <span class="ticket-id">#{{ ticket.id }}</span>
+                            <span class="ticket-type">
+                                {% if ticket.issue_type == 'plumbing' %}🚰 Plumbing
+                                {% elif ticket.issue_type == 'electrical' %}⚡ Electrical
+                                {% elif ticket.issue_type == 'hvac' %}🌡️ HVAC
+                                {% elif ticket.issue_type == 'grounds' %}🌿 Grounds
+                                {% elif ticket.issue_type == 'cleaning' %}🧹 Cleaning
+                                {% elif ticket.issue_type == 'security' %}🔒 Security
+                                {% elif ticket.issue_type == 'furniture' %}🪑 Furniture
+                                {% elif ticket.issue_type == 'painting' %}🎨 Painting
+                                {% else %}❓ Other{% endif %}
+                            </span>
                             <span class="ticket-location">
-                                <i class="fa fa-map-marker-alt"></i>
-                                {{ ticket.school }} - {{ ticket.room }}
-                            </span>                            <span class="ticket-date">
-                                <i class="fa fa-calendar"></i>
-                                {% if ticket.created_at %}
-                                    {{ ticket.created_at.strftime('%b %d, %Y at %I:%M %p') }}
-                                {% else %}
-                                    Unknown Date
-                                {% endif %}
+                                <i class="fa fa-map-marker-alt"></i> {{ ticket.school }} - {{ ticket.room }}
                             </span>
                         </div>
-                    </div>                    <div class="ticket-badges">
+                    </div>
+                    <div class="ticket-badges">
                         <span class="status-badge status-{{ ticket.status }}">
                             {% if ticket.status == 'new' %}🆕 New
                             {% elif ticket.status == 'assigned' %}👤 Assigned
@@ -78,8 +81,7 @@
                             {% else %}🆕 New{% endif %}
                         </span>
                     </div>
-                </div>
-                  <div class="ticket-content">
+                </div>                <div class="ticket-content">
                     {% if ticket.latest_update_message %}
                     <p class="ticket-description">
                         <span class="update-label">Latest Update:</span> 
@@ -92,31 +94,16 @@
                     <div class="ticket-details">
                         <div class="detail-item">
                             <i class="fa fa-tools"></i>
-                            <span>Type: 
-                                {% if ticket.issue_type == 'plumbing' %}🚰 Plumbing
-                                {% elif ticket.issue_type == 'electrical' %}⚡ Electrical
-                                {% elif ticket.issue_type == 'hvac' %}🌡️ HVAC
-                                {% elif ticket.issue_type == 'grounds' %}🌿 Grounds
-                                {% elif ticket.issue_type == 'cleaning' %}🧹 Cleaning
-                                {% elif ticket.issue_type == 'security' %}🔒 Security
-                                {% elif ticket.issue_type == 'furniture' %}🪑 Furniture
-                                {% elif ticket.issue_type == 'painting' %}🎨 Painting
-                                {% else %}❓ Other{% endif %}
-                            </span>
+                            <span>Request Type: {{ ticket.issue_type.title() if ticket.issue_type else 'N/A' }}</span>
                         </div>
                         <div class="detail-item">
                             <i class="fa fa-user"></i>
-                            <span>Requested by: {{ ticket.created_by or 'Anonymous' }}</span>
-                        </div>                        <div class="detail-item">
-                            <i class="fa fa-clock"></i>
-                            <span>Age: 
-                                {% set days = (current_datetime - ticket.created_at).days if ticket.created_at else 0 %}
-                                {% if days == 0 %}Today
-                                {% elif days == 1 %}1 day
-                                {% else %}{{ days }} days{% endif %}
-                            </span>
+                            <span>Created by: {{ ticket.created_by }}</span>
                         </div>
-                    </div>
+                        <div class="detail-item">
+                            <i class="fa fa-calendar"></i>
+                            <span>Created: {{ ticket.created_at.strftime('%B %d, %Y at %I:%M %p') if ticket.created_at else 'Unknown' }}</span>
+                        </div>
                     </div>
                 </div>
                 
@@ -153,7 +140,7 @@
 .content-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 2rem;
     padding-bottom: 1rem;
     border-bottom: 2px solid #e9ecef;
@@ -301,9 +288,6 @@
 .tickets-list {
     display: grid;
     gap: 1.5rem;
-    grid-template-columns: 1fr;
-    max-width: 100%;
-    width: 100%;
 }
 
 .ticket-card {
@@ -313,8 +297,6 @@
     border-left: 4px solid #28a745;
     overflow: hidden;
     transition: all 0.2s;
-    width: 100%;
-    box-sizing: border-box;
 }
 
 .ticket-card:hover {
@@ -335,8 +317,6 @@
     color: #2c3e50;
     font-size: 1.4rem;
     font-weight: 600;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
 }
 
 .ticket-meta {
@@ -400,23 +380,21 @@
     color: #495057;
     line-height: 1.5;
     font-size: 1rem;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
 }
 
 .update-label {
     font-weight: 600;
-    color: #007bff;
-    background: #e7f3ff;
+    color: #28a745;
+    background: #d4edda;
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-size: 0.9rem;
-    border: 1px solid #b3d7ff;
+    border: 1px solid #c3e6cb;
 }
 
 .ticket-details {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 0.75rem;
 }
 
