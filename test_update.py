@@ -5,20 +5,19 @@ Test script to verify tech ticket comprehensive update functionality
 import requests
 import json
 
-# Test the comprehensive update endpoint
 def test_ticket_update():
     # Test comprehensive update (status + message)
     print("Testing comprehensive ticket update (status + message)...")
     
     update_data = {
-        "status": "resolved",
-        "update_message": "Issue has been resolved after testing the new configuration",
+        "status": "closed",
+        "update_message": "Issue has been closed after testing the new configuration",
         "updated_by": "Test User"
     }
     
     try:
         response = requests.put(
-            "http://localhost:8001/api/tickets/tech/1",
+            "http://localhost:8000/api/tickets/tech/1",
             json=update_data,
             timeout=10
         )
@@ -36,7 +35,7 @@ def test_ticket_update():
     # Get ticket updates to verify
     print("\nChecking ticket update history...")
     try:
-        response = requests.get("http://localhost:8001/api/tickets/tech/1/updates", timeout=10)
+        response = requests.get("http://localhost:8000/api/tickets/tech/1/updates", timeout=10)
         if response.status_code == 200:
             updates = response.json()
             print(f"✅ Found {len(updates)} updates")

@@ -68,7 +68,7 @@
                             {% if ticket.status == 'new' %}🆕 New
                             {% elif ticket.status == 'assigned' %}👤 Assigned
                             {% elif ticket.status == 'in_progress' %}🔧 In Progress
-                            {% elif ticket.status == 'resolved' %}✅ Resolved
+                            {% elif ticket.status == 'closed' %}📁 Closed
                             {% elif ticket.status == 'closed' %}📁 Closed
                             {% else %}🆕 New{% endif %}
                         </span>
@@ -347,12 +347,6 @@
     background: #d1ecf1;
     color: #0c5460;
     border: 1px solid #bee5eb;
-}
-
-.status-badge.status-resolved {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
 }
 
 .status-badge.status-closed {

@@ -611,7 +611,7 @@ def tech_tickets_closed(request: Request, db: Session = Depends(get_db)):
     """Display closed technology tickets"""
     try:
         tickets = db.query(TechTicket).filter(
-            TechTicket.status.in_(['resolved', 'closed'])
+            TechTicket.status == 'closed'
         ).order_by(TechTicket.created_at.desc()).all()
         buildings = db.query(Building).order_by(Building.name).all()
     except Exception as e:
@@ -653,7 +653,7 @@ def maintenance_tickets_closed(request: Request, db: Session = Depends(get_db)):
     """Display closed maintenance tickets"""
     try:
         tickets = db.query(MaintenanceTicket).filter(
-            MaintenanceTicket.status.in_(['resolved', 'closed'])
+            MaintenanceTicket.status == 'closed'
         ).order_by(MaintenanceTicket.created_at.desc()).all()
         buildings = db.query(Building).order_by(Building.name).all()
     except Exception as e:

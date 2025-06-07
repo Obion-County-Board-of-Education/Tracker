@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from datetime import datetime
 from ocs_shared_models import User, Building, Room, SystemMessage
+from ocs_shared_models.timezone_utils import central_now, format_central_time
 from database import get_db, init_database
 from services import tickets_service
 from management_service import management_service
@@ -102,12 +103,11 @@ def update_homepage_message(
     try:
         # Get existing homepage message
         homepage_message = db.query(SystemMessage).filter(
-            SystemMessage.message_type == 'homepage'
-        ).first()
+            SystemMessage.message_type == 'homepage'        ).first()
         
         if homepage_message:
             homepage_message.content = message_content
-            homepage_message.updated_at = datetime.utcnow()
+            homepage_message.updated_at = central_now()
         else:
             # Create new message if it doesn't exist
             homepage_message = SystemMessage(
@@ -719,8 +719,8 @@ async def get_services_status():
         return {
             "menu_visibility": menu_visibility,
             "service_status": service_status,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": central_now().isoformat()
         }
     except Exception as e:
         print(f"Error getting service status: {e}")
-        return {"error": str(e), "timestamp": datetime.utcnow().isoformat()}
+        return {"error": str(e), "timestamp": central_now().isoformat()}

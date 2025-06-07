@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
 from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket, TicketUpdate
-from ocs_shared_models.timezone_utils import central_now
 from database import get_db, init_database
 
 # Initialize database on startup
@@ -126,7 +125,7 @@ def update_tech_ticket_status(
     
     try:
         ticket.status = status
-        ticket.updated_at = central_now()
+        ticket.updated_at = datetime.utcnow()
         db.commit()
         return {"message": f"Ticket {ticket_id} status updated to {status}"}
     except Exception as e:
@@ -150,7 +149,7 @@ def update_tech_ticket(
         
         # Update ticket status
         ticket.status = update_data.status
-        ticket.updated_at = central_now()
+        ticket.updated_at = datetime.utcnow()
         
         # Create update history entry
         ticket_update = TicketUpdate(
@@ -255,7 +254,7 @@ def update_maintenance_ticket_status(
     
     try:
         ticket.status = status
-        ticket.updated_at = central_now()
+        ticket.updated_at = datetime.utcnow()
         db.commit()
         return {"message": f"Ticket {ticket_id} status updated to {status}"}
     except Exception as e:
@@ -279,7 +278,7 @@ def update_maintenance_ticket(
         
         # Update ticket status
         ticket.status = update_data.status
-        ticket.updated_at = central_now()
+        ticket.updated_at = datetime.utcnow()
         
         # Create update history entry
         ticket_update = TicketUpdate(

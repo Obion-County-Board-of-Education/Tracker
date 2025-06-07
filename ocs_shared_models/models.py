@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 import enum
+from .timezone_utils import central_now
 
 Base = declarative_base()
 
@@ -26,8 +27,8 @@ class Building(Base):
     __tablename__ = 'buildings'
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
     rooms = relationship("Room", back_populates="building")
     users = relationship("User", secondary=user_buildings, back_populates="buildings")
 
@@ -60,8 +61,8 @@ class TechTicket(Base):
     tag = Column(String)
     issue_type = Column(String)
     created_by = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
 
 class MaintenanceTicket(Base):
     __tablename__ = 'maintenance_tickets'
@@ -74,8 +75,8 @@ class MaintenanceTicket(Base):
     tag = Column(String)
     issue_type = Column(String)
     created_by = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
 
 class TicketUpdate(Base):
     __tablename__ = 'ticket_updates'
@@ -86,7 +87,7 @@ class TicketUpdate(Base):
     status_to = Column(String)    # New status
     update_message = Column(String)  # Update description
     updated_by = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
 
 class SystemMessage(Base):
     __tablename__ = 'system_messages'
@@ -94,5 +95,5 @@ class SystemMessage(Base):
     message_type = Column(String, nullable=False)  # 'homepage', 'announcement', etc.
     content = Column(String, nullable=False)
     created_by = Column(String, default='System Admin')
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
