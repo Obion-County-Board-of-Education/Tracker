@@ -29,19 +29,15 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Context processor for menu visibility
 async def get_menu_context():
     """Get menu visibility context for templates"""
-    try:
-        menu_visibility = await health_checker.get_menu_visibility()
-        return {"menu_visibility": menu_visibility}
-    except Exception as e:
-        print(f"Error getting menu context: {e}")
-        # Return all menus as visible if health check fails
-        return {"menu_visibility": {
-            "tickets": True,
-            "inventory": True,
-            "manage": True,
-            "requisitions": True,
-            "admin": True
-        }}
+    # Temporarily bypass health checker to fix immediate template error
+    print("🔧 Using simplified menu context (health checker bypassed)")
+    return {"menu_visibility": {
+        "tickets": True,
+        "inventory": True,
+        "manage": True,
+        "requisitions": True,
+        "admin": True
+    }}
 
 async def render_template(template_name: str, context: dict):
     """Helper function to render templates with menu context"""
@@ -51,7 +47,7 @@ async def render_template(template_name: str, context: dict):
 # Import and setup user/building routes from separate module
 try:
     from user_building_routes import setup_user_building_routes
-    setup_user_building_routes(app)
+    setup_user_building_routes(app, get_menu_context, render_template)
     print("✅ User and building routes imported successfully")
 except Exception as e:
     print(f"❌ Error importing user/building routes: {e}")
