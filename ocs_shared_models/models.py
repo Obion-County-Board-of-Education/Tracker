@@ -77,6 +77,17 @@ class MaintenanceTicket(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class TicketUpdate(Base):
+    __tablename__ = 'ticket_updates'
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_type = Column(String, nullable=False)  # 'tech' or 'maintenance'
+    ticket_id = Column(Integer, nullable=False)
+    status_from = Column(String)  # Previous status
+    status_to = Column(String)    # New status
+    update_message = Column(String)  # Update description
+    updated_by = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class SystemMessage(Base):
     __tablename__ = 'system_messages'
     id = Column(Integer, primary_key=True, index=True)

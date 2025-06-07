@@ -74,9 +74,15 @@
                         </span>
                     </div>
                 </div>
-                
-                <div class="ticket-content">
+                  <div class="ticket-content">
+                    {% if ticket.latest_update_message %}
+                    <p class="ticket-description">
+                        <span class="update-label">Latest Update:</span> 
+                        {{ ticket.latest_update_message[:180] }}{% if ticket.latest_update_message|length > 180 %}...{% endif %}
+                    </p>
+                    {% else %}
                     <p class="ticket-description">{{ ticket.description[:200] }}{% if ticket.description|length > 200 %}...{% endif %}</p>
+                    {% endif %}
                     
                     <div class="ticket-details">
                         <div class="detail-item">
@@ -364,6 +370,16 @@
     color: #495057;
     line-height: 1.5;
     font-size: 1rem;
+}
+
+.update-label {
+    font-weight: 600;
+    color: #007bff;
+    background: #e7f3ff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    border: 1px solid #b3d7ff;
 }
 
 .ticket-details {

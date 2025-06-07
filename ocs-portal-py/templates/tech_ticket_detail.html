@@ -98,17 +98,59 @@
                         <span>{{ ticket.tag if ticket.tag else 'N/A' }}</span>
                     </div>
                 </div>
-            </div>
-
-            <div class="detail-section">
+            </div>            <div class="detail-section">
                 <h3><i class="fa fa-clipboard-list"></i> Issue Description</h3>
                 <div class="description-content">
                     <p>{{ ticket.description }}</p>
                 </div>
-            </div>            <div class="detail-section">
+            </div>
+
+            {% if updates %}
+            <div class="detail-section">
+                <h3><i class="fa fa-history"></i> Update History</h3>
+                <div class="updates-container">
+                    {% for update in updates %}
+                    <div class="update-item">
+                        <div class="update-header">
+                            <div class="update-meta">
+                                <span class="update-timestamp">{{ update.created_at }}</span>
+                                <span class="update-by">by {{ update.updated_by }}</span>
+                            </div>
+                            {% if update.status_from and update.status_to %}
+                            <div class="status-change">
+                                <span class="status-badge status-{{ update.status_from }}">
+                                    {% if update.status_from == 'new' %}🆕 New
+                                    {% elif update.status_from == 'assigned' %}👤 Assigned
+                                    {% elif update.status_from == 'in_progress' %}⚙️ In Progress
+                                    {% elif update.status_from == 'resolved' %}✅ Resolved
+                                    {% elif update.status_from == 'closed' %}🔒 Closed
+                                    {% else %}📝 {{ update.status_from.title() }}{% endif %}
+                                </span>
+                                <i class="fa fa-arrow-right status-arrow"></i>
+                                <span class="status-badge status-{{ update.status_to }}">
+                                    {% if update.status_to == 'new' %}🆕 New
+                                    {% elif update.status_to == 'assigned' %}👤 Assigned
+                                    {% elif update.status_to == 'in_progress' %}⚙️ In Progress
+                                    {% elif update.status_to == 'resolved' %}✅ Resolved
+                                    {% elif update.status_to == 'closed' %}🔒 Closed
+                                    {% else %}📝 {{ update.status_to.title() }}{% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if update.update_message %}
+                        <div class="update-message">
+                            <p>{{ update.update_message }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}<div class="detail-section">
                 <h3><i class="fa fa-cogs"></i> Actions</h3>
                 <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="editTicket({{ ticket.id }})">
+                    <button class="btn btn-primary" onclick="toggleUpdateForm()">
                         <i class="fa fa-edit"></i> Update Ticket
                     </button>
                     {% if ticket.status != 'closed' %}
@@ -116,6 +158,32 @@
                         <i class="fa fa-times"></i> Close Ticket
                     </button>
                     {% endif %}
+                </div>
+                <!-- Update Form (initially hidden) -->
+                <div id="updateForm" class="update-form" style="display: none;">
+                    <h4><i class="fa fa-edit"></i> Update Ticket</h4>
+                    <form method="POST" action="/tickets/tech/{{ ticket.id }}/update">
+                        <div class="form-group">
+                            <label for="status">Update Status:</label>                            <select name="status" id="status" class="form-control" required>
+                                <option value="">Select Status</option>
+                                <option value="new" {% if ticket.status == 'new' %}selected{% endif %}>🆕 New</option>
+                                <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>⚙️ In Progress</option>
+                                <option value="resolved" {% if ticket.status == 'resolved' %}selected{% endif %}>✅ Resolved</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="update_message">Update Message:</label>
+                            <textarea name="update_message" id="update_message" class="form-control" rows="4" placeholder="Enter details about this update (optional)..."></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa fa-save"></i> Save Update
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="toggleUpdateForm()">
+                                <i class="fa fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -363,6 +431,119 @@
     color: white;
 }
 
+.updates-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.update-item {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.update-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.update-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.update-timestamp {
+    font-weight: 600;
+    color: #495057;
+}
+
+.update-by {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.status-change {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-arrow {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.update-message {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.update-message p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.update-form {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.update-form h4 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.update-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.update-form label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.update-form .form-control {
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+.update-form .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.update-form .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.update-form .btn {
+    flex: 1;
+}
+
 @media (max-width: 768px) {
     .content-header {
         flex-direction: column;
@@ -389,23 +570,25 @@
 </style>
 
 <script>
-function editTicket(ticketId) {
-    // TODO: Implement ticket editing
-    alert(`Update ticket #${ticketId} - This will open the update form`);
+function toggleUpdateForm() {
+    const form = document.getElementById('updateForm');
+    if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+        setTimeout(() => { form.classList.add('form-visible'); }, 10);
+    } else {
+        form.classList.remove('form-visible');
+        setTimeout(() => { form.style.display = 'none'; }, 300);
+    }
 }
-
 function updateStatus(ticketId, newStatus) {
     if (confirm(`Update ticket #${ticketId} status to "${newStatus}"?`)) {
-        // Create a form and submit it
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = `/tickets/tech/${ticketId}/update`;
-        
         const statusInput = document.createElement('input');
         statusInput.type = 'hidden';
         statusInput.name = 'status';
         statusInput.value = newStatus;
-        
         form.appendChild(statusInput);
         document.body.appendChild(form);
         form.submit();

@@ -1,11 +1,8 @@
 """
 Service layer for making API calls to other OCS microservices
 """
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 import httpx
+import os
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 

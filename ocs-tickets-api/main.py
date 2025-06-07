@@ -6,7 +6,7 @@ from sqlalchemy import desc
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
-from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket
+from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket, TicketUpdate
 from database import get_db, init_database
 
 # Initialize database on startup
@@ -46,6 +46,11 @@ class TicketCreateRequest(BaseModel):
     room_name: str
     created_by: str
     tag: Optional[str] = None
+
+class TicketUpdateRequest(BaseModel):
+    status: str
+    update_message: str
+    updated_by: str
 
 @app.get("/")
 def root():
@@ -127,6 +132,63 @@ def update_tech_ticket_status(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")
 
+@app.put("/api/tickets/tech/{ticket_id}")
+def update_tech_ticket(
+    ticket_id: int, 
+    update_data: TicketUpdateRequest, 
+    db: Session = Depends(get_db)
+):
+    """Update technology ticket with status and message"""
+    ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    try:
+        # Store previous status for update history
+        previous_status = ticket.status
+        
+        # Update ticket status
+        ticket.status = update_data.status
+        ticket.updated_at = datetime.utcnow()
+        
+        # Create update history entry
+        ticket_update = TicketUpdate(
+            ticket_type='tech',
+            ticket_id=ticket_id,
+            status_from=previous_status,
+            status_to=update_data.status,
+            update_message=update_data.update_message,
+            updated_by=update_data.updated_by
+        )
+        
+        db.add(ticket_update)
+        db.commit()
+        return {"message": f"Ticket {ticket_id} updated successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")
+
+# Ticket Updates API
+@app.get("/api/tickets/{ticket_type}/{ticket_id}/updates")
+def get_ticket_updates(ticket_type: str, ticket_id: int, db: Session = Depends(get_db)):
+    """Get update history for a ticket"""
+    try:
+        updates = db.query(TicketUpdate).filter(
+            TicketUpdate.ticket_type == ticket_type,
+            TicketUpdate.ticket_id == ticket_id
+        ).order_by(TicketUpdate.created_at.desc()).all()
+        
+        return [{
+            "id": update.id,
+            "status_from": update.status_from,
+            "status_to": update.status_to,
+            "update_message": update.update_message,
+            "updated_by": update.updated_by,
+            "created_at": update.created_at.isoformat()
+        } for update in updates]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching updates: {str(e)}")
+
 # Maintenance Tickets API
 @app.get("/api/tickets/maintenance", response_model=List[MaintenanceTicketResponse])
 def get_maintenance_tickets(
@@ -195,6 +257,42 @@ def update_maintenance_ticket_status(
         ticket.updated_at = datetime.utcnow()
         db.commit()
         return {"message": f"Ticket {ticket_id} status updated to {status}"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")
+
+@app.put("/api/tickets/maintenance/{ticket_id}")
+def update_maintenance_ticket(
+    ticket_id: int, 
+    update_data: TicketUpdateRequest, 
+    db: Session = Depends(get_db)
+):
+    """Update maintenance ticket with status and message"""
+    ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    try:
+        # Store previous status for update history
+        previous_status = ticket.status
+        
+        # Update ticket status
+        ticket.status = update_data.status
+        ticket.updated_at = datetime.utcnow()
+        
+        # Create update history entry
+        ticket_update = TicketUpdate(
+            ticket_type='maintenance',
+            ticket_id=ticket_id,
+            status_from=previous_status,
+            status_to=update_data.status,
+            update_message=update_data.update_message,
+            updated_by=update_data.updated_by
+        )
+        
+        db.add(ticket_update)
+        db.commit()
+        return {"message": f"Ticket {ticket_id} updated successfully"}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")

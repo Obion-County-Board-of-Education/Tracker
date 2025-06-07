@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -11,7 +15,11 @@ from management_service import management_service
 from service_health import health_checker
 
 # Initialize database on startup
-init_database()
+try:
+    init_database()
+except Exception as e:
+    print(f"⚠️ Database initialization failed: {e}")
+    print("🔄 Starting application without database connection")
 
 app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
@@ -262,6 +270,9 @@ async def view_tech_ticket(request: Request, ticket_id: int):
         if not ticket:
             return RedirectResponse("/tickets/tech/open", status_code=303)
         
+        # Get ticket update history
+        updates = await tickets_service.get_ticket_updates("tech", ticket_id)
+        
         # Format dates for display
         if ticket.get("created_at"):
             try:
@@ -277,6 +288,14 @@ async def view_tech_ticket(request: Request, ticket_id: int):
             except:
                 pass
         
+        # Format update timestamps
+        for update in updates:
+            try:
+                created_at = datetime.fromisoformat(update["created_at"].replace('Z', '+00:00'))
+                update["created_at"] = created_at.strftime("%B %d, %Y at %I:%M %p")
+            except:
+                pass
+        
     except Exception as e:
         print(f"Error fetching ticket: {e}")
         return RedirectResponse("/tickets/tech/open", status_code=303)
@@ -285,21 +304,33 @@ async def view_tech_ticket(request: Request, ticket_id: int):
     return templates.TemplateResponse("tech_ticket_detail.html", {
         "request": request,
         "ticket": ticket,
+        "updates": updates,
         **menu_context
     })
 
 @app.post("/tickets/tech/{ticket_id}/update")
-async def update_tech_ticket_status(ticket_id: int, status: str = Form(...)):
-    """Update technology ticket status via Tickets API"""
+async def update_tech_ticket_status(
+    ticket_id: int,
+    status: str = Form(...),
+    update_message: str = Form(default="")
+):
+    """Update technology ticket status and add update message via Tickets API"""
     try:
-        success = await tickets_service.update_tech_ticket_status(ticket_id, status)
-        if success:
-            print(f"Tech ticket {ticket_id} status updated to {status}")
+        if update_message.strip():
+            update_data = {
+                "status": status,
+                "update_message": update_message.strip(),
+                "updated_by": "System User"  # Replace with actual user when auth is implemented
+            }
+            success = await tickets_service.update_tech_ticket_comprehensive(ticket_id, update_data)
         else:
-            print(f"Failed to update tech ticket {ticket_id} status")
+            success = await tickets_service.update_tech_ticket_status(ticket_id, status)
+        if success:
+            print(f"Tech ticket {ticket_id} updated - Status: {status}")
+        else:
+            print(f"Failed to update tech ticket {ticket_id}")
     except Exception as e:
-        print(f"Error updating tech ticket status: {e}")
-    
+        print(f"Error updating tech ticket: {e}")
     return RedirectResponse(f"/tickets/tech/{ticket_id}", status_code=303)
 
 # Maintenance Ticket Routes - now use service layer
@@ -412,6 +443,9 @@ async def view_maintenance_ticket(request: Request, ticket_id: int):
         if not ticket:
             return RedirectResponse("/tickets/maintenance/open", status_code=303)
         
+        # Get ticket update history
+        updates = await tickets_service.get_ticket_updates("maintenance", ticket_id)
+        
         # Format dates for display
         if ticket.get("created_at"):
             try:
@@ -427,6 +461,14 @@ async def view_maintenance_ticket(request: Request, ticket_id: int):
             except:
                 pass
         
+        # Format update timestamps
+        for update in updates:
+            try:
+                created_at = datetime.fromisoformat(update["created_at"].replace('Z', '+00:00'))
+                update["created_at"] = created_at.strftime("%B %d, %Y at %I:%M %p")
+            except:
+                pass
+        
     except Exception as e:
         print(f"Error fetching ticket: {e}")
         return RedirectResponse("/tickets/maintenance/open", status_code=303)
@@ -435,21 +477,33 @@ async def view_maintenance_ticket(request: Request, ticket_id: int):
     return templates.TemplateResponse("maintenance_ticket_detail.html", {
         "request": request,
         "ticket": ticket,
+        "updates": updates,
         **menu_context
     })
 
 @app.post("/tickets/maintenance/{ticket_id}/update")
-async def update_maintenance_ticket_status(ticket_id: int, status: str = Form(...)):
-    """Update maintenance ticket status via Tickets API"""
+async def update_maintenance_ticket_status(
+    ticket_id: int,
+    status: str = Form(...),
+    update_message: str = Form(default="")
+):
+    """Update maintenance ticket status and add update message via Tickets API"""
     try:
-        success = await tickets_service.update_maintenance_ticket_status(ticket_id, status)
-        if success:
-            print(f"Maintenance ticket {ticket_id} status updated to {status}")
+        if update_message.strip():
+            update_data = {
+                "status": status,
+                "update_message": update_message.strip(),
+                "updated_by": "System User"  # Replace with actual user when auth is implemented
+            }
+            success = await tickets_service.update_maintenance_ticket_comprehensive(ticket_id, update_data)
         else:
-            print(f"Failed to update maintenance ticket {ticket_id} status")
+            success = await tickets_service.update_maintenance_ticket_status(ticket_id, status)
+        if success:
+            print(f"Maintenance ticket {ticket_id} updated - Status: {status}")
+        else:
+            print(f"Failed to update maintenance ticket {ticket_id}")
     except Exception as e:
-        print(f"Error updating maintenance ticket status: {e}")
-    
+        print(f"Error updating maintenance ticket: {e}")
     return RedirectResponse(f"/tickets/maintenance/{ticket_id}", status_code=303)
 
 # Keep other non-ticket routes (inventory, users, etc.)
