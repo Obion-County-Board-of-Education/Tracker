@@ -416,6 +416,25 @@
     color: white;
 }
 
+/* Override static CSS for maintenance ticket detail buttons */
+.action-buttons .btn-primary,
+.form-actions .btn-success,
+.form-actions .btn-outline {
+    background: #28a745 !important;
+    background-image: none !important; /* Override any gradient */
+    color: white !important;
+    border: 1px solid #28a745 !important;
+}
+
+.action-buttons .btn-primary:hover,
+.form-actions .btn-success:hover,
+.form-actions .btn-outline:hover {
+    background: #218838 !important;
+    background-image: none !important; /* Override any gradient */
+    border-color: #218838 !important;
+    color: white !important;
+}
+
 .updates-container {
     display: flex;
     flex-direction: column;
