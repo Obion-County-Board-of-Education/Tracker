@@ -147,15 +147,9 @@
             </div>
             {% endif %}<div class="detail-section">
                 <h3><i class="fa fa-cogs"></i> Actions</h3>
-                <div class="action-buttons">
-                    <button class="btn btn-primary" onclick="toggleUpdateForm()">
+                <div class="action-buttons">                <button class="btn btn-primary" onclick="toggleUpdateForm()">
                         <i class="fa fa-edit"></i> Update Request
                     </button>
-                    {% if ticket.status != 'closed' %}
-                    <button class="btn btn-danger" onclick="updateStatus({{ ticket.id }}, 'closed')">
-                        <i class="fa fa-times"></i> Close Request
-                    </button>
-                    {% endif %}
                 </div>
                 <!-- Update Form (initially hidden) -->
                 <div id="updateForm" class="update-form" style="display: none;">
@@ -563,24 +557,9 @@ function toggleUpdateForm() {
     const form = document.getElementById('updateForm');
     if (form.style.display === 'none' || form.style.display === '') {
         form.style.display = 'block';
-        setTimeout(() => { form.classList.add('form-visible'); }, 10);
-    } else {
+        setTimeout(() => { form.classList.add('form-visible'); }, 10);    } else {
         form.classList.remove('form-visible');
         setTimeout(() => { form.style.display = 'none'; }, 300);
-    }
-}
-function updateStatus(ticketId, newStatus) {
-    if (confirm(`Update maintenance request #${ticketId} status to "${newStatus}"?`)) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/tickets/maintenance/${ticketId}/update`;
-        const statusInput = document.createElement('input');
-        statusInput.type = 'hidden';
-        statusInput.name = 'status';
-        statusInput.value = newStatus;
-        form.appendChild(statusInput);
-        document.body.appendChild(form);
-        form.submit();
     }
 }
 </script>
