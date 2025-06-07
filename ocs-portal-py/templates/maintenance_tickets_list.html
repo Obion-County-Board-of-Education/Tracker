@@ -57,10 +57,13 @@
                             <span class="ticket-location">
                                 <i class="fa fa-map-marker-alt"></i>
                                 {{ ticket.school }} - {{ ticket.room }}
-                            </span>
-                            <span class="ticket-date">
+                            </span>                            <span class="ticket-date">
                                 <i class="fa fa-calendar"></i>
-                                {{ ticket.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                                {% if ticket.created_at %}
+                                    {{ ticket.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                                {% else %}
+                                    Unknown Date
+                                {% endif %}
                             </span>
                         </div>
                     </div>                    <div class="ticket-badges">
@@ -105,7 +108,7 @@
                         </div>                        <div class="detail-item">
                             <i class="fa fa-clock"></i>
                             <span>Age: 
-                                {% set days = (moment().utcnow() - ticket.created_at).days if ticket.created_at else 0 %}
+                                {% set days = (current_datetime - ticket.created_at).days if ticket.created_at else 0 %}
                                 {% if days == 0 %}Today
                                 {% elif days == 1 %}1 day
                                 {% else %}{{ days }} days{% endif %}

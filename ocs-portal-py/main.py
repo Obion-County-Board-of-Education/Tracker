@@ -393,12 +393,50 @@ async def maintenance_tickets_open(request: Request):
     try:
         tickets = await tickets_service.get_maintenance_tickets("open")
         buildings = await tickets_service.get_buildings()
+        
+        # Format dates for template display
+        for ticket in tickets:
+            if ticket.get("created_at"):
+                try:
+                    # Handle various datetime formats
+                    date_str = ticket["created_at"]
+                    # Add seconds if missing (e.g., "2025-06-06T21:08" -> "2025-06-06T21:08:00")
+                    if len(date_str) == 16 and 'T' in date_str:
+                        date_str += ":00"
+                    # Remove Z timezone and add UTC offset
+                    date_str = date_str.replace('Z', '+00:00')
+                    created_at = datetime.fromisoformat(date_str)
+                    ticket["created_at"] = created_at
+                except Exception as e:
+                    print(f"Warning: Could not parse created_at '{ticket.get('created_at')}': {e}")
+                    # If parsing fails, create a default datetime
+                    ticket["created_at"] = datetime.now()
+            else:
+                # If no created_at, set to current time
+                ticket["created_at"] = datetime.now()
+                    
+            if ticket.get("updated_at"):
+                try:
+                    # Handle various datetime formats
+                    date_str = ticket["updated_at"]
+                    # Add seconds if missing
+                    if len(date_str) == 16 and 'T' in date_str:
+                        date_str += ":00"
+                    # Remove Z timezone and add UTC offset
+                    date_str = date_str.replace('Z', '+00:00')
+                    updated_at = datetime.fromisoformat(date_str)
+                    ticket["updated_at"] = updated_at
+                except Exception as e:
+                    print(f"Warning: Could not parse updated_at '{ticket.get('updated_at')}': {e}")
+                    ticket["updated_at"] = None
+            else:
+                ticket["updated_at"] = None
+                    
     except Exception as e:
         print(f"Error fetching tickets: {e}")
         tickets = []
         buildings = []
-    
-    # Get menu context
+      # Get menu context
     menu_context = await get_menu_context()
     
     return templates.TemplateResponse("maintenance_tickets_list.html", {
@@ -407,6 +445,7 @@ async def maintenance_tickets_open(request: Request):
         "buildings": buildings,
         "page_title": "Open Maintenance Requests", 
         "status_filter": "open",
+        "current_datetime": datetime.now(),
         **menu_context
     })
 
@@ -416,6 +455,38 @@ async def maintenance_tickets_closed(request: Request):
     try:
         tickets = await tickets_service.get_maintenance_tickets("closed")
         buildings = await tickets_service.get_buildings()
+        
+        # Format dates for template display
+        for ticket in tickets:
+            if ticket.get("created_at"):
+                try:
+                    # Handle various datetime formats
+                    date_str = ticket["created_at"]
+                    # Add seconds if missing (e.g., "2025-06-06T21:08" -> "2025-06-06T21:08:00")
+                    if len(date_str) == 16 and 'T' in date_str:
+                        date_str += ":00"
+                    # Remove Z timezone and add UTC offset
+                    date_str = date_str.replace('Z', '+00:00')
+                    created_at = datetime.fromisoformat(date_str)
+                    ticket["created_at"] = created_at
+                except Exception as e:
+                    print(f"Warning: Could not parse created_at '{ticket.get('created_at')}': {e}")
+                    ticket["created_at"] = None
+                    
+            if ticket.get("updated_at"):
+                try:
+                    # Handle various datetime formats
+                    date_str = ticket["updated_at"]
+                    # Add seconds if missing
+                    if len(date_str) == 16 and 'T' in date_str:
+                        date_str += ":00"                    # Remove Z timezone and add UTC offset
+                    date_str = date_str.replace('Z', '+00:00')
+                    updated_at = datetime.fromisoformat(date_str)
+                    ticket["updated_at"] = updated_at
+                except Exception as e:
+                    print(f"Warning: Could not parse updated_at '{ticket.get('updated_at')}': {e}")
+                    ticket["updated_at"] = None
+        
     except Exception as e:
         print(f"Error fetching tickets: {e}")
         tickets = []
@@ -428,6 +499,7 @@ async def maintenance_tickets_closed(request: Request):
         "buildings": buildings,
         "page_title": "Closed Maintenance Requests",
         "status_filter": "closed",
+        "current_datetime": datetime.now(),
         **menu_context
     })
 
