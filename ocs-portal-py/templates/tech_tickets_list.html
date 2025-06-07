@@ -12,20 +12,23 @@
     </div>
 </div>
 
-<div class="tickets-container">
-    <!-- Filter and Search Section -->    <div class="filters-section">
+<div class="tickets-container">    <!-- Filter and Search Section -->    <div class="filters-section">
         <div class="filter-tabs">
-            <a href="/tickets/tech/open" class="filter-tab {% if status_filter == 'open' %}active{% endif %}">
-                <i class="fa fa-clock"></i> Open Tickets
-            </a>            <a href="/tickets/tech/closed" class="filter-tab {% if status_filter == 'closed' %}active{% endif %}">
-                <i class="fa fa-check-circle"></i> Closed Tickets
-            </a>
-            <a href="/tickets/tech/export" class="btn btn-success btn-sm export-csv-btn" title="Export all tickets to CSV">
-                <i class="fa fa-download"></i> Export CSV
-            </a>
-            <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
-                <i class="fa fa-trash"></i> Clear All Tickets
-            </button>
+            <div class="tab-navigation">
+                <a href="/tickets/tech/open" class="filter-tab {% if status_filter == 'open' %}active{% endif %}">
+                    <i class="fa fa-clock"></i> Open Tickets
+                </a>
+                <a href="/tickets/tech/closed" class="filter-tab {% if status_filter == 'closed' %}active{% endif %}">
+                    <i class="fa fa-check-circle"></i> Closed Tickets
+                </a>
+            </div>            <div class="action-buttons">
+                <a href="/tickets/tech/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export all tickets to CSV">
+                    <i class="fa fa-download"></i> Export CSV
+                </a>
+                <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
+                    <i class="fa fa-trash"></i> Clear All Tickets
+                </button>
+            </div>
         </div>
         
         <div class="search-and-filters">
@@ -181,7 +184,19 @@
 
 .filter-tabs {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
     border-bottom: 1px solid #e9ecef;
+}
+
+.tab-navigation {
+    display: flex;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .filter-tab {
@@ -208,9 +223,6 @@
 }
 
 .clear-all-btn {
-    margin-left: auto;
-    margin-right: 1rem;
-    align-self: center;
     background: #dc3545;
     border: none;
     color: white;
@@ -221,11 +233,13 @@
     transition: all 0.2s;
 }
 
+.clear-all-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
 .export-csv-btn {
-    margin-left: auto;
-    margin-right: 0.5rem;
-    align-self: center;
-    background: #28a745;
+    background: #6c757d;
     border: none;
     color: white;
     padding: 0.5rem 1rem;
@@ -237,7 +251,7 @@
 }
 
 .export-csv-btn:hover {
-    background: #218838;
+    background: #5a6268;
     color: white;
     text-decoration: none;
     transform: translateY(-1px);
@@ -457,6 +471,18 @@
 
 .btn-primary:hover {
     background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: 1px solid #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    color: white;
 }
 
 .btn-success {
