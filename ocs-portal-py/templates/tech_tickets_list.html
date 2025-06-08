@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="content-header">
-    <div class="header-content">        <h1><i class="fa-solid fa-laptop-code"></i> {{ page_title }}</h1>
+    <div class="header-content">
+        <h1><i class="fa-solid fa-laptop-code"></i> {{ page_title }}</h1>
         <p class="header-subtitle">Manage and track technology support requests</p>
     </div>
     <div class="header-actions">
@@ -12,7 +13,10 @@
 </div>
 
 <div class="tickets-container">
-    <!-- Filter and Search Section -->    <div class="filters-section">        <div class="filter-tabs">            <div class="tab-navigation">
+    <!-- Filter and Search Section -->
+    <div class="filters-section">
+        <div class="filter-tabs">
+            <div class="tab-navigation">
                 <a href="/tickets/tech/open" class="filter-tab {% if status_filter == 'open' %}active{% endif %}">
                     <i class="fa fa-clock"></i> Open Tickets
                 </a>
@@ -20,8 +24,8 @@
                     <i class="fa fa-check-circle"></i> Closed Tickets
                 </a>
             </div>
-            <div class="action-buttons">
-                <button class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
+            <!-- DEBUG: Before action buttons -->
+            <div class="action-buttons">                <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
                     <i class="fa fa-upload"></i> Import CSV
                 </button>
                 <a href="/tickets/tech/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export all tickets to CSV">
@@ -57,7 +61,8 @@
         {% if tickets %}
             {% for ticket in tickets %}
             <div class="ticket-card" data-building="{{ ticket.school }}" 
-                 data-type="{{ ticket.issue_type or 'other' }}" data-status="{{ ticket.status }}">                <div class="ticket-header">
+                 data-type="{{ ticket.issue_type }}" data-status="{{ ticket.status }}">
+                <div class="ticket-header">
                     <div class="ticket-info">
                         <h3 class="ticket-title">{{ ticket.title }}</h3>
                         <div class="ticket-meta">
@@ -75,17 +80,18 @@
                             </span>
                         </div>
                     </div>
-                    <div class="ticket-badges">
+                      <div class="ticket-badges">
                         <span class="status-badge status-{{ ticket.status }}">
                             {% if ticket.status == 'new' %}🆕 New
                             {% elif ticket.status == 'assigned' %}👤 Assigned
-                            {% elif ticket.status == 'in_progress' %}🔧 In Progress
-                            {% elif ticket.status == 'closed' %}📁 Closed
-                            {% elif ticket.status == 'closed' %}📁 Closed
-                            {% else %}🆕 New{% endif %}
+                            {% elif ticket.status == 'in_progress' %}⚙️ In Progress
+                            {% elif ticket.status == 'closed' %}🔒 Closed
+                            {% elif ticket.status == 'closed' %}🔒 Closed
+                            {% else %}📝 {{ ticket.status.title() }}{% endif %}
                         </span>
                     </div>
-                </div>                <div class="ticket-content">
+                </div>
+                  <div class="ticket-content">
                     {% if ticket.latest_update_message %}
                     <p class="ticket-description">
                         <span class="update-label">Latest Update:</span> 
@@ -95,7 +101,8 @@
                     <p class="ticket-description">{{ ticket.description[:200] }}{% if ticket.description|length > 200 %}...{% endif %}</p>
                     {% endif %}
                     
-                    <div class="ticket-details">                        <div class="detail-item">
+                    <div class="ticket-details">
+                        <div class="detail-item">
                             <i class="fa fa-tag"></i>
                             <span>Asset Tag: {{ ticket.tag if ticket.tag else 'N/A' }}</span>
                         </div>
@@ -109,16 +116,20 @@
                         </div>
                     </div>
                 </div>
-                  <div class="ticket-actions">                    <button class="btn btn-primary btn-sm" onclick="viewTicket({{ ticket.id }})">
+                
+                <div class="ticket-actions">
+                    <button class="btn btn-outline btn-sm" onclick="viewTicket({{ ticket.id }})">
                         <i class="fa fa-eye"></i> View
                     </button>
                 </div>
             </div>
             {% endfor %}
         {% else %}
-            <div class="empty-state">                <div class="empty-icon">
+            <div class="empty-state">
+                <div class="empty-icon">
                     <i class="fa fa-clipboard-list"></i>
-                </div><h3>No tickets found</h3>
+                </div>
+                <h3>No tickets found</h3>
                 <p>
                     {% if status_filter == 'open' %}
                         There are no open technology tickets at the moment.
@@ -175,9 +186,6 @@
     margin: 0 0 0.5rem 0;
     color: #2c3e50;
     font-size: 2rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
 }
 
 .header-subtitle {
@@ -235,14 +243,30 @@
 }
 
 .filter-tab:hover {
-    color: #28a745;
+    color: #007bff;
     background: #f8f9fa;
 }
 
 .filter-tab.active {
-    color: #28a745;
-    border-bottom-color: #28a745;
+    color: #007bff;
+    border-bottom-color: #007bff;
     background: #f8f9fa;
+}
+
+.clear-all-btn {
+    background: #dc3545;
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.clear-all-btn:hover {
+    background: #c82333;
+    transform: translateY(-1px);
 }
 
 .export-csv-btn {
@@ -262,27 +286,6 @@
     color: white;
     text-decoration: none;
     transform: translateY(-1px);
-}
-
-.clear-all-btn {
-    background: #dc3545;
-    border: none;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    transition: all 0.2s;
-}
-
-.clear-all-btn:hover {
-    background: #c82333;
-    transform: translateY(-1px);
-}
-
-.clear-all-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
 }
 
 .search-and-filters {
@@ -318,7 +321,7 @@
 
 .search-box input:focus {
     outline: none;
-    border-color: #28a745;
+    border-color: #007bff;
 }
 
 .filter-controls {
@@ -435,12 +438,12 @@
 
 .update-label {
     font-weight: 600;
-    color: #28a745;
-    background: #d4edda;
+    color: #007bff;
+    background: #e7f3ff;
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-size: 0.9rem;
-    border: 1px solid #c3e6cb;
+    border: 1px solid #b3d7ff;
 }
 
 .ticket-details {
@@ -493,27 +496,12 @@
 }
 
 .btn-primary {
-    background-color: #28a745;
+    background-color: #007bff;
     color: white;
 }
 
 .btn-primary:hover {
-    background-color: #218838;
-}
-
-/* Ensure ticket action buttons use primary styling */
-.ticket-actions .btn-primary {
-    background: #28a745 !important;
-    background-image: none !important; /* Override any gradient */
-    color: white !important;
-    border: 1px solid #28a745 !important;
-}
-
-.ticket-actions .btn-primary:hover {
-    background: #218838 !important;
-    background-image: none !important; /* Override any gradient */
-    border-color: #218838 !important;
-    color: white !important;
+    background-color: #0056b3;
 }
 
 .btn-secondary {
@@ -529,12 +517,12 @@
 }
 
 .btn-success {
-    background-color: #17a2b8;
+    background-color: #28a745;
     color: white;
 }
 
 .btn-success:hover {
-    background-color: #138496;
+    background-color: #218838;
 }
 
 .btn-outline {
@@ -583,12 +571,6 @@
 .modal-content { background:#fff; margin:5% auto; padding:2rem; border-radius:8px; width:100%; max-width:400px; position:relative; }
 .close { position:absolute; top:1rem; right:1rem; font-size:2rem; cursor:pointer; color:#888; }
 
-@media (max-width: 1024px) {
-    .ticket-details {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
 @media (max-width: 768px) {
     .content-header {
         flex-direction: column;
@@ -618,11 +600,8 @@
     .ticket-badges {
         justify-content: flex-start;
     }
-      .ticket-details {
-        grid-template-columns: 1fr;
-    }
     
-    .tickets-list {
+    .ticket-details {
         grid-template-columns: 1fr;
     }
     
@@ -690,8 +669,7 @@ function updateStatus(ticketId, newStatus) {
         statusInput.type = 'hidden';
         statusInput.name = 'status';
         statusInput.value = newStatus;
-        
-        form.appendChild(statusInput);
+          form.appendChild(statusInput);
         document.body.appendChild(form);
         form.submit();
     }
@@ -718,7 +696,7 @@ function clearAllTickets(ticketType) {
     form.submit();
 }
 
-// Modal functions
+// Import CSV modal functions
 function showImportModal(type) {
   document.getElementById('importCsvModal-' + type).style.display = 'block';
 }
