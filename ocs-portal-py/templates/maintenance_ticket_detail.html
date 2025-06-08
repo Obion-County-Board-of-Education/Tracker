@@ -17,7 +17,8 @@
             <div class="ticket-info">
                 <h2 class="ticket-title">{{ ticket.title }}</h2>                <div class="ticket-meta">
                     <span class="status-badge status-{{ ticket.status }}">
-                        {% if ticket.status == 'new' %}🆕 New
+                        {% if ticket.status == 'open' %}📂 Open
+                        {% elif ticket.status == 'new' %}🆕 New
                         {% elif ticket.status == 'assigned' %}👤 Assigned
                         {% elif ticket.status == 'in_progress' %}🔧 In Progress
                         {% elif ticket.status == 'closed' %}📁 Closed
@@ -45,10 +46,10 @@
                     <div class="detail-item">
                         <label>Request ID:</label>
                         <span>#{{ ticket.id }}</span>
-                    </div>
-                    <div class="detail-item">
+                    </div>                    <div class="detail-item">
                         <label>Status:</label>                        <span class="status-badge status-{{ ticket.status }}">
-                            {% if ticket.status == 'new' %}🆕 New
+                            {% if ticket.status == 'open' %}📂 Open
+                            {% elif ticket.status == 'new' %}🆕 New
                             {% elif ticket.status == 'assigned' %}👤 Assigned
                             {% elif ticket.status == 'in_progress' %}🔧 In Progress
                             {% elif ticket.status == 'closed' %}📁 Closed
@@ -115,9 +116,9 @@
                                 <span class="update-by">by {{ update.updated_by }}</span>
                             </div>
                             {% if update.status_from and update.status_to %}
-                            <div class="status-change">
-                                <span class="status-badge status-{{ update.status_from }}">
-                                    {% if update.status_from == 'new' %}🆕 New
+                            <div class="status-change">                                <span class="status-badge status-{{ update.status_from }}">
+                                    {% if update.status_from == 'open' %}📂 Open
+                                    {% elif update.status_from == 'new' %}🆕 New
                                     {% elif update.status_from == 'assigned' %}👤 Assigned
                                     {% elif update.status_from == 'in_progress' %}⚙️ In Progress
                                     {% elif update.status_from == 'closed' %}✅ Closed
@@ -126,7 +127,8 @@
                                 </span>
                                 <i class="fa fa-arrow-right status-arrow"></i>
                                 <span class="status-badge status-{{ update.status_to }}">
-                                    {% if update.status_to == 'new' %}🆕 New
+                                    {% if update.status_to == 'open' %}📂 Open
+                                    {% elif update.status_to == 'new' %}🆕 New
                                     {% elif update.status_to == 'assigned' %}👤 Assigned
                                     {% elif update.status_to == 'in_progress' %}⚙️ In Progress
                                     {% elif update.status_to == 'closed' %}✅ Closed
@@ -159,6 +161,7 @@
                             <label for="status">Update Status:</label>                            <select name="status" id="status" class="form-control" required>
                                 <option value="">Select Status</option>
                                 <option value="new" {% if ticket.status == 'new' %}selected{% endif %}>🆕 New</option>
+                                <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>📂 Open</option>
                                 <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>🔧 In Progress</option>
                                 <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>✅ Closed</option>
                             </select>
@@ -253,6 +256,12 @@
     font-size: 0.9rem;
     font-weight: 600;
     white-space: nowrap;
+}
+
+.status-badge.status-open {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
 }
 
 .status-badge.status-new {

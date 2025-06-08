@@ -80,9 +80,9 @@
                             </span>
                         </div>
                     </div>
-                      <div class="ticket-badges">
-                        <span class="status-badge status-{{ ticket.status }}">
-                            {% if ticket.status == 'new' %}🆕 New
+                      <div class="ticket-badges">                        <span class="status-badge status-{{ ticket.status }}">
+                            {% if ticket.status == 'open' %}📂 Open
+                            {% elif ticket.status == 'new' %}🆕 New
                             {% elif ticket.status == 'assigned' %}👤 Assigned
                             {% elif ticket.status == 'in_progress' %}⚙️ In Progress
                             {% elif ticket.status == 'closed' %}🔒 Closed
@@ -416,6 +416,12 @@
     font-size: 0.85rem;
     font-weight: 600;
     white-space: nowrap;
+}
+
+.status-badge.status-open {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
 }
 
 .status-badge.status-new {
