@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="content-header">
+    <div class="header-content">
+        <h1><i class="fa-solid fa-laptop-code"></i> Test Tech Tickets</h1>
+        <p class="header-subtitle">Testing Import CSV button</p>
+    </div>
+</div>
+
+<div class="tickets-container">
+    <div class="filters-section">
+        <div class="filter-tabs">
+            <div class="tab-navigation">
+                <a href="/tickets/tech/open" class="filter-tab active">
+                    <i class="fa fa-clock"></i> Open Tickets
+                </a>
+                <a href="/tickets/tech/closed" class="filter-tab">
+                    <i class="fa fa-check-circle"></i> Closed Tickets
+                </a>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
+                    <i class="fa fa-upload"></i> Import CSV
+                </button>
+                <a href="/tickets/tech/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export all tickets to CSV">
+                    <i class="fa fa-download"></i> Export CSV
+                </a>
+                <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
+                    <i class="fa fa-trash"></i> Clear All Tickets
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+</style>
+
+<script>
+function showImportModal(type) {
+    alert('Import CSV modal would open for ' + type);
+}
+
+function clearAllTickets(type) {
+    alert('Clear all ' + type + ' tickets function');
+}
+</script>
+{% endblock %}

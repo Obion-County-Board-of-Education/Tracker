@@ -194,8 +194,7 @@ async def tech_tickets_open(request: Request):
                     created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
                     ticket["created_at"] = created_at
                 except:
-                    ticket["created_at"] = None
-                    
+                    ticket["created_at"] = None                    
             if ticket.get("updated_at"):
                 try:
                     updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
@@ -217,6 +216,7 @@ async def tech_tickets_open(request: Request):
         "buildings": buildings,
         "page_title": "Open Technology Tickets",
         "status_filter": "open",
+        "current_datetime": datetime.now(),
         **menu_context
     })
 
@@ -242,7 +242,6 @@ async def tech_tickets_closed(request: Request):
                     ticket["updated_at"] = updated_at
                 except:
                     ticket["updated_at"] = None
-        
     except Exception as e:
         print(f"Error fetching tickets: {e}")
         tickets = []
@@ -252,8 +251,10 @@ async def tech_tickets_closed(request: Request):
     return templates.TemplateResponse("tech_tickets_list.html", {
         "request": request,
         "tickets": tickets,
-        "buildings": buildings,        "page_title": "Closed Technology Tickets",
+        "buildings": buildings,
+        "page_title": "Closed Technology Tickets",
         "status_filter": "closed",
+        "current_datetime": datetime.now(),
         **menu_context
     })
 
@@ -275,6 +276,24 @@ async def export_tech_tickets(request: Request):
         )
     except Exception as e:
         print(f"❌ Error exporting tech tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/tech/open", status_code=303)
+
+# CSV Import Routes
+@app.post("/tickets/tech/import")
+async def import_tech_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
+    """Import tech tickets from CSV"""
+    try:
+        # Read file content
+        file_content = await file.read()
+        
+        # Call the import service
+        result = await tickets_service.import_tech_tickets_csv(file_content, operation)
+        
+        print(f"✅ Tech tickets import successful: {result}")
+        return RedirectResponse("/tickets/tech/open", status_code=303)
+    except Exception as e:
+        print(f"❌ Error importing tech tickets: {e}")
         # Return to the tickets page with error
         return RedirectResponse("/tickets/tech/open", status_code=303)
 
@@ -539,6 +558,23 @@ async def export_maintenance_tickets(request: Request):
         )
     except Exception as e:
         print(f"❌ Error exporting maintenance tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+
+@app.post("/tickets/maintenance/import")
+async def import_maintenance_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
+    """Import maintenance tickets from CSV"""
+    try:
+        # Read file content
+        file_content = await file.read()
+        
+        # Call the import service
+        result = await tickets_service.import_maintenance_tickets_csv(file_content, operation)
+        
+        print(f"✅ Maintenance tickets import successful: {result}")
+        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+    except Exception as e:
+        print(f"❌ Error importing maintenance tickets: {e}")
         # Return to the tickets page with error
         return RedirectResponse("/tickets/maintenance/open", status_code=303)
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, Form, HTTPException
+from fastapi import FastAPI, Request, Depends, Form, HTTPException, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
@@ -184,6 +184,148 @@ def export_maintenance_tickets_csv(db: Session = Depends(get_db)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting maintenance tickets: {str(e)}")
+
+# CSV Import API
+@app.post("/api/tickets/tech/import")
+async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str = Form(...), db: Session = Depends(get_db)):
+    """Import technology tickets from CSV"""
+    try:
+        # Read and decode CSV file
+        content = await file.read()
+        csv_content = content.decode('utf-8')
+        
+        # Parse CSV
+        csv_reader = csv.DictReader(io.StringIO(csv_content))
+        
+        imported_count = 0
+        errors = []
+        
+        # If overwrite mode, clear existing tickets
+        if operation == "overwrite":
+            db.query(TechTicket).delete()
+            db.commit()
+        
+        for row_num, row in enumerate(csv_reader, 1):
+            try:
+                # Find or create building
+                building = db.query(Building).filter(Building.name == row.get('school', '').strip()).first()
+                if not building:
+                    # Create building if it doesn't exist
+                    building = Building(name=row.get('school', '').strip())
+                    db.add(building)
+                    db.flush()
+                
+                # Find or create room
+                room = db.query(Room).filter(Room.name == row.get('room', '').strip(), Room.building_id == building.id).first()
+                if not room:
+                    # Create room if it doesn't exist
+                    room = Room(name=row.get('room', '').strip(), building_id=building.id)
+                    db.add(room)
+                    db.flush()
+                
+                # Create tech ticket
+                ticket = TechTicket(
+                    title=row.get('title', '').strip(),
+                    description=row.get('description', '').strip(),
+                    issue_type=row.get('issue_type', '').strip(),
+                    status=row.get('status', 'open').strip(),
+                    school=building.name,
+                    room=room.name,
+                    tag=row.get('tag', '').strip() if row.get('tag', '').strip() else None,
+                    created_by=row.get('created_by', 'Import').strip(),
+                    created_at=central_now(),
+                    updated_at=central_now()
+                )
+                
+                db.add(ticket)
+                imported_count += 1
+                
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+                continue
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "imported_count": imported_count,
+            "errors": errors,
+            "operation": operation
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error importing tech tickets: {str(e)}")
+
+@app.post("/api/tickets/maintenance/import")
+async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation: str = Form(...), db: Session = Depends(get_db)):
+    """Import maintenance tickets from CSV"""
+    try:
+        # Read and decode CSV file
+        content = await file.read()
+        csv_content = content.decode('utf-8')
+        
+        # Parse CSV
+        csv_reader = csv.DictReader(io.StringIO(csv_content))
+        
+        imported_count = 0
+        errors = []
+        
+        # If overwrite mode, clear existing tickets
+        if operation == "overwrite":
+            db.query(MaintenanceTicket).delete()
+            db.commit()
+        
+        for row_num, row in enumerate(csv_reader, 1):
+            try:
+                # Find or create building
+                building = db.query(Building).filter(Building.name == row.get('school', '').strip()).first()
+                if not building:
+                    # Create building if it doesn't exist
+                    building = Building(name=row.get('school', '').strip())
+                    db.add(building)
+                    db.flush()
+                
+                # Find or create room
+                room = db.query(Room).filter(Room.name == row.get('room', '').strip(), Room.building_id == building.id).first()
+                if not room:
+                    # Create room if it doesn't exist
+                    room = Room(name=row.get('room', '').strip(), building_id=building.id)
+                    db.add(room)
+                    db.flush()
+                
+                # Create maintenance ticket
+                ticket = MaintenanceTicket(
+                    title=row.get('title', '').strip(),
+                    description=row.get('description', '').strip(),
+                    issue_type=row.get('issue_type', '').strip(),
+                    status=row.get('status', 'open').strip(),
+                    school=building.name,
+                    room=room.name,
+                    created_by=row.get('created_by', 'Import').strip(),
+                    created_at=central_now(),
+                    updated_at=central_now()
+                )
+                
+                db.add(ticket)
+                imported_count += 1
+                
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+                continue
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "imported_count": imported_count,
+            "errors": errors,
+            "operation": operation
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error importing maintenance tickets: {str(e)}")
 
 @app.get("/api/tickets/tech/{ticket_id}", response_model=TechTicketResponse)
 def get_tech_ticket(ticket_id: int, db: Session = Depends(get_db)):

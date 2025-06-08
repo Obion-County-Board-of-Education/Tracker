@@ -289,6 +289,32 @@ class TicketsService:
             print(f"Error exporting maintenance tickets: {e}")
             raise Exception(f"Error exporting maintenance tickets: {str(e)}")
 
+    async def import_tech_tickets_csv(self, file_content: bytes, operation: str = "add") -> dict:
+        """Import tech tickets from CSV file"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                files = {"file": ("tickets.csv", file_content, "text/csv")}
+                data = {"operation": operation}
+                response = await client.post(f"{self.base_url}/api/tickets/tech/import", files=files, data=data)
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error importing tech tickets: {e}")
+            raise Exception(f"Error importing tech tickets: {str(e)}")
+
+    async def import_maintenance_tickets_csv(self, file_content: bytes, operation: str = "add") -> dict:
+        """Import maintenance tickets from CSV file"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                files = {"file": ("tickets.csv", file_content, "text/csv")}
+                data = {"operation": operation}
+                response = await client.post(f"{self.base_url}/api/tickets/maintenance/import", files=files, data=data)
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error importing maintenance tickets: {e}")
+            raise Exception(f"Error importing maintenance tickets: {str(e)}")
+            
 # Create service instances
 tickets_service = TicketsService()
 
