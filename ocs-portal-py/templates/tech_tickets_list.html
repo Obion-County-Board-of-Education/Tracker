@@ -116,9 +116,8 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="ticket-actions">
-                    <button class="btn btn-outline btn-sm" onclick="viewTicket({{ ticket.id }})">
+                  <div class="ticket-actions">
+                    <button class="btn btn-primary btn-sm" onclick="viewTicket({{ ticket.id }})">
                         <i class="fa fa-eye"></i> View
                     </button>
                 </div>
@@ -161,10 +160,9 @@
           <label><input type="radio" name="operation" value="add" checked> Add to Database</label>
           <label style="margin-left:2em;"><input type="radio" name="operation" value="overwrite"> Overwrite Database</label>
         </div>
-      </div>
-      <div class="form-actions">
+      </div>      <div class="form-actions">
         <button type="submit" class="btn btn-primary">Import</button>
-        <button type="button" class="btn btn-outline" onclick="closeImportModal('tech')">Cancel</button>
+        <button type="button" class="btn btn-secondary" onclick="closeImportModal('tech')">Cancel</button>
       </div>
     </form>
   </div>
