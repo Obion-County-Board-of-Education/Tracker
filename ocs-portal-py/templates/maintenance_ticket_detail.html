@@ -21,7 +21,7 @@
                         {% elif ticket.status == 'new' %}🆕 New
                         {% elif ticket.status == 'assigned' %}👤 Assigned
                         {% elif ticket.status == 'in_progress' %}🔧 In Progress
-                        {% elif ticket.status == 'closed' %}📁 Closed
+                        {% elif ticket.status == 'closed' %}🔒 Closed
                         {% else %}🆕 New{% endif %}
                     </span>
                     <span class="ticket-type">
@@ -52,7 +52,7 @@
                             {% elif ticket.status == 'new' %}🆕 New
                             {% elif ticket.status == 'assigned' %}👤 Assigned
                             {% elif ticket.status == 'in_progress' %}🔧 In Progress
-                            {% elif ticket.status == 'closed' %}📁 Closed
+                            {% elif ticket.status == 'closed' %}🔒 Closed
                             {% else %}🆕 New{% endif %}
                         </span>
                     </div>
@@ -120,18 +120,15 @@
                                     {% if update.status_from == 'open' %}📂 Open
                                     {% elif update.status_from == 'new' %}🆕 New
                                     {% elif update.status_from == 'assigned' %}👤 Assigned
-                                    {% elif update.status_from == 'in_progress' %}⚙️ In Progress
-                                    {% elif update.status_from == 'closed' %}✅ Closed
-                                    {% elif update.status_from == 'closed' %}🔒 Closed
+                                    {% elif update.status_from == 'in_progress' %}⚙️ In Progress                                    {% elif update.status_from == 'closed' %}🔒 Closed
                                     {% else %}📝 {{ update.status_from.title() }}{% endif %}
                                 </span>
-                                <i class="fa fa-arrow-right status-arrow"></i>
-                                <span class="status-badge status-{{ update.status_to }}">
+                                <i class="fa fa-arrow-right status-arrow"></i>                                <span class="status-badge status-{{ update.status_to }}">
                                     {% if update.status_to == 'open' %}📂 Open
                                     {% elif update.status_to == 'new' %}🆕 New
                                     {% elif update.status_to == 'assigned' %}👤 Assigned
                                     {% elif update.status_to == 'in_progress' %}⚙️ In Progress
-                                    {% elif update.status_to == 'closed' %}✅ Closed
+                                    {% elif update.status_to == 'closed' %}🔒 Closed
                                     {% elif update.status_to == 'closed' %}🔒 Closed
                                     {% else %}📝 {{ update.status_to.title() }}{% endif %}
                                 </span>
@@ -163,7 +160,7 @@
                                 <option value="new" {% if ticket.status == 'new' %}selected{% endif %}>🆕 New</option>
                                 <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>📂 Open</option>
                                 <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>🔧 In Progress</option>
-                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>✅ Closed</option>
+                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>🔒 Closed</option>
                             </select>
                         </div>
                         <div class="form-group">

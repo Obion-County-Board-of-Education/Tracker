@@ -77,11 +77,9 @@
                     </div>
                     <div class="ticket-badges">
                         <span class="status-badge status-{{ ticket.status }}">
-                            {% if ticket.status == 'new' %}🆕 New
-                            {% elif ticket.status == 'assigned' %}👤 Assigned
+                            {% if ticket.status == 'new' %}🆕 New                            {% elif ticket.status == 'assigned' %}👤 Assigned
                             {% elif ticket.status == 'in_progress' %}🔧 In Progress
-                            {% elif ticket.status == 'closed' %}📁 Closed
-                            {% elif ticket.status == 'closed' %}📁 Closed
+                            {% elif ticket.status == 'closed' %}🔒 Closed
                             {% else %}🆕 New{% endif %}
                         </span>
                     </div>
