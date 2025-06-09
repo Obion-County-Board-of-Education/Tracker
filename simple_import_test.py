@@ -1,31 +1,48 @@
-import requests
-import time
+#!/usr/bin/env python3
 
-def test_import_buttons():
-    print("Testing import button visibility...")
+import requests
+
+def test_csv_import():
+    """Test CSV import functionality"""
     
-    # Wait a moment for service to start
-    time.sleep(2)
+    print("Testing CSV import with debug file...")
     
     try:
-        response = requests.get("http://localhost:8003/tickets/tech/open", timeout=10)
-        if response.status_code == 200:
-            content = response.text
-            if "Import CSV" in content:
-                print("✅ Import CSV button found in tech tickets page!")
-            else:
-                print("❌ Import CSV button NOT found in tech tickets page")
-                
-            if "action-buttons" in content:
-                print("✅ Action buttons section found")
-            else:
-                print("❌ Action buttons section NOT found")
-                
-        else:
-            print(f"❌ Failed to load page: {response.status_code}")
+        with open('debug_import_test.csv', 'rb') as f:
+            files = {'file': ('debug_import_test.csv', f, 'text/csv')}
+            data = {'operation': 'append'}
             
+            response = requests.post("http://localhost:8000/api/tickets/tech/import", 
+                                   files=files, data=data)
+            
+            print(f"Status Code: {response.status_code}")
+            print(f"Response: {response.text}")
+            
+            if response.status_code == 200:
+                print("Import successful!")
+                
+                # Check the most recent tickets
+                print("\nChecking most recent tickets...")
+                response = requests.get("http://localhost:8000/api/tickets/tech")
+                if response.status_code == 200:
+                    tickets = response.json()
+                    recent_tickets = tickets[:2]
+                    
+                    for i, ticket in enumerate(recent_tickets):
+                        print(f"\nTicket {i+1}:")
+                        print(f"  Title: '{ticket.get('title')}'")
+                        print(f"  Description: '{ticket.get('description')}'")
+                        print(f"  School: '{ticket.get('school')}'")
+                        print(f"  Room: '{ticket.get('room')}'")
+                        print(f"  Issue Type: '{ticket.get('issue_type')}'")
+                        print(f"  Tag: '{ticket.get('tag')}'")
+                        print(f"  Status: '{ticket.get('status')}'")
+                        print(f"  Created By: '{ticket.get('created_by')}'")
+            else:
+                print("Import failed!")
+                
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
-    test_import_buttons()
+    test_csv_import()

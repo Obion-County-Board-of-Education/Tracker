@@ -89,43 +89,72 @@ def get_tech_tickets(
 
 # CSV Export API - Must come before parameterized routes
 @app.get("/api/tickets/tech/export")
-def export_tech_tickets_csv(db: Session = Depends(get_db)):
-    """Export all technology tickets to CSV"""
+def export_tech_tickets_csv(import_ready: str = "false", db: Session = Depends(get_db)):
+    """Export all technology tickets to CSV. Use import_ready=true for import-compatible format."""
     try:
+        # Convert string parameter to boolean
+        import_ready_bool = import_ready.lower() in ['true', '1', 'yes', 'on']
+        
         # Get all tech tickets
         tickets = db.query(TechTicket).order_by(desc(TechTicket.created_at)).all()
         
         # Create temporary file
         temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', encoding='utf-8')
         
-        # Write CSV headers
+        # Write CSV headers - conditionally include ID and timestamp fields
         writer = csv.writer(temp_file)
-        writer.writerow([
-            'ID', 'Title', 'Description', 'Issue Type', 'School', 'Room', 'Tag', 
-            'Status', 'Created By', 'Created At', 'Updated At'
-        ])
+        
+        if import_ready_bool:
+            # Import-ready format: exclude id, created_at, updated_at
+            writer.writerow([
+                'title', 'description', 'issue_type', 'school', 'room', 'tag', 
+                'status', 'created_by'
+            ])
+        else:
+            # Full format: include all fields
+            writer.writerow([
+                'id', 'title', 'description', 'issue_type', 'school', 'room', 'tag', 
+                'status', 'created_by', 'created_at', 'updated_at'
+            ])
         
         # Write ticket data
         for ticket in tickets:
-            writer.writerow([
-                ticket.id,
-                ticket.title,
-                ticket.description,
-                ticket.issue_type or '',
-                ticket.school or '',
-                ticket.room or '',
-                ticket.tag or '',
-                ticket.status,
-                ticket.created_by,
-                ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else '',
-                ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else ''
-            ])
+            if import_ready_bool:
+                # Import-ready format: exclude id, created_at, updated_at
+                writer.writerow([
+                    ticket.title or '',
+                    ticket.description or '',
+                    ticket.issue_type or '',
+                    ticket.school or '',
+                    ticket.room or '',
+                    ticket.tag or '',
+                    ticket.status,
+                    ticket.created_by or ''
+                ])
+            else:
+                # Full format: include all fields
+                writer.writerow([
+                    ticket.id,
+                    ticket.title or '',
+                    ticket.description or '',
+                    ticket.issue_type or '',
+                    ticket.school or '',
+                    ticket.room or '',
+                    ticket.tag or '',
+                    ticket.status,
+                    ticket.created_by or '',
+                    ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else '',
+                    ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else ''
+                ])
         
         temp_file.close()
         
         # Generate filename with current date
         current_date = datetime.now().strftime('%Y-%m-%d')
-        filename = f"tech_tickets_export_{current_date}.csv"
+        if import_ready_bool:
+            filename = f"tech_tickets_import_ready_{current_date}.csv"
+        else:
+            filename = f"tech_tickets_export_{current_date}.csv"
         
         return FileResponse(
             path=temp_file.name,
@@ -138,42 +167,70 @@ def export_tech_tickets_csv(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error exporting tech tickets: {str(e)}")
 
 @app.get("/api/tickets/maintenance/export")
-def export_maintenance_tickets_csv(db: Session = Depends(get_db)):
-    """Export all maintenance tickets to CSV"""
+def export_maintenance_tickets_csv(import_ready: str = "false", db: Session = Depends(get_db)):
+    """Export all maintenance tickets to CSV. Use import_ready=true for import-compatible format."""
     try:
+        # Convert string parameter to boolean
+        import_ready_bool = import_ready.lower() in ['true', '1', 'yes', 'on']
+        
         # Get all maintenance tickets
         tickets = db.query(MaintenanceTicket).order_by(desc(MaintenanceTicket.created_at)).all()
         
         # Create temporary file
         temp_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', encoding='utf-8')
         
-        # Write CSV headers
+        # Write CSV headers - conditionally include ID and timestamp fields
         writer = csv.writer(temp_file)
-        writer.writerow([
-            'ID', 'Title', 'Description', 'Issue Type', 'School', 'Room', 
-            'Status', 'Created By', 'Created At', 'Updated At'
-        ])
+        
+        if import_ready_bool:
+            # Import-ready format: exclude id, created_at, updated_at
+            writer.writerow([
+                'title', 'description', 'issue_type', 'school', 'room', 
+                'status', 'created_by'
+            ])
+        else:
+            # Full format: include all fields
+            writer.writerow([
+                'id', 'title', 'description', 'issue_type', 'school', 'room', 
+                'status', 'created_by', 'created_at', 'updated_at'
+            ])
         
         # Write ticket data
         for ticket in tickets:
-            writer.writerow([
-                ticket.id,
-                ticket.title,
-                ticket.description,
-                ticket.issue_type or '',
-                ticket.school or '',
-                ticket.room or '',
-                ticket.status,
-                ticket.created_by,
-                ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else '',
-                ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else ''
-            ])
+            if import_ready_bool:
+                # Import-ready format: exclude id, created_at, updated_at
+                writer.writerow([
+                    ticket.title or '',
+                    ticket.description or '',
+                    ticket.issue_type or '',
+                    ticket.school or '',
+                    ticket.room or '',
+                    ticket.status,
+                    ticket.created_by or ''
+                ])
+            else:
+                # Full format: include all fields
+                writer.writerow([
+                    ticket.id,
+                    ticket.title or '',
+                    ticket.description or '',
+                    ticket.issue_type or '',
+                    ticket.school or '',
+                    ticket.room or '',
+                    ticket.status,
+                    ticket.created_by or '',
+                    ticket.created_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.created_at else '',
+                    ticket.updated_at.strftime('%Y-%m-%d %H:%M:%S') if ticket.updated_at else ''
+                ])
         
         temp_file.close()
         
         # Generate filename with current date
         current_date = datetime.now().strftime('%Y-%m-%d')
-        filename = f"maintenance_tickets_export_{current_date}.csv"
+        if import_ready_bool:
+            filename = f"maintenance_tickets_import_ready_{current_date}.csv"
+        else:
+            filename = f"maintenance_tickets_export_{current_date}.csv"
         
         return FileResponse(
             path=temp_file.name,
@@ -190,12 +247,23 @@ def export_maintenance_tickets_csv(db: Session = Depends(get_db)):
 async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str = Form(...), db: Session = Depends(get_db)):
     """Import technology tickets from CSV"""
     try:
+        # Validate file type
+        if not file.filename.endswith('.csv'):
+            raise HTTPException(status_code=400, detail="File must be a CSV file")
+        
         # Read and decode CSV file
         content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty file uploaded")
+            
         csv_content = content.decode('utf-8')
         
         # Parse CSV
         csv_reader = csv.DictReader(io.StringIO(csv_content))
+        
+        # Check if we have valid headers
+        if not csv_reader.fieldnames:
+            raise HTTPException(status_code=400, detail="Invalid CSV format - no headers found")
         
         imported_count = 0
         errors = []
@@ -205,32 +273,42 @@ async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str =
             db.query(TechTicket).delete()
             db.commit()
         
+        # Process each row
         for row_num, row in enumerate(csv_reader, 1):
             try:
+                # Skip empty rows
+                if not any(row.values()):
+                    continue
+                
                 # Find or create building
-                building = db.query(Building).filter(Building.name == row.get('school', '').strip()).first()
+                school_name = row.get('school', '').strip()
+                if not school_name:
+                    errors.append(f"Row {row_num}: Missing school name")
+                    continue
+                    
+                building = db.query(Building).filter(Building.name == school_name).first()
                 if not building:
-                    # Create building if it doesn't exist
-                    building = Building(name=row.get('school', '').strip())
+                    building = Building(name=school_name)
                     db.add(building)
                     db.flush()
                 
                 # Find or create room
-                room = db.query(Room).filter(Room.name == row.get('room', '').strip(), Room.building_id == building.id).first()
-                if not room:
-                    # Create room if it doesn't exist
-                    room = Room(name=row.get('room', '').strip(), building_id=building.id)
-                    db.add(room)
-                    db.flush()
+                room_name = row.get('room', '').strip()
+                if room_name:
+                    room = db.query(Room).filter(Room.name == room_name, Room.building_id == building.id).first()
+                    if not room:
+                        room = Room(name=room_name, building_id=building.id)
+                        db.add(room)
+                        db.flush()
                 
                 # Create tech ticket
                 ticket = TechTicket(
-                    title=row.get('title', '').strip(),
-                    description=row.get('description', '').strip(),
-                    issue_type=row.get('issue_type', '').strip(),
+                    title=row.get('title', '').strip() or 'Imported Ticket',
+                    description=row.get('description', '').strip() or '',
+                    issue_type=row.get('issue_type', '').strip() or 'general',
                     status=row.get('status', 'open').strip(),
                     school=building.name,
-                    room=room.name,
+                    room=room_name,
                     tag=row.get('tag', '').strip() if row.get('tag', '').strip() else None,
                     created_by=row.get('created_by', 'Import').strip(),
                     created_at=central_now(),
@@ -244,6 +322,7 @@ async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str =
                 errors.append(f"Row {row_num}: {str(e)}")
                 continue
         
+        # Commit all changes
         db.commit()
         
         return {
@@ -253,6 +332,9 @@ async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str =
             "operation": operation
         }
         
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error importing tech tickets: {str(e)}")
@@ -261,12 +343,23 @@ async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str =
 async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation: str = Form(...), db: Session = Depends(get_db)):
     """Import maintenance tickets from CSV"""
     try:
+        # Validate file type
+        if not file.filename.endswith('.csv'):
+            raise HTTPException(status_code=400, detail="File must be a CSV file")
+        
         # Read and decode CSV file
         content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty file uploaded")
+            
         csv_content = content.decode('utf-8')
         
         # Parse CSV
         csv_reader = csv.DictReader(io.StringIO(csv_content))
+        
+        # Check if we have valid headers
+        if not csv_reader.fieldnames:
+            raise HTTPException(status_code=400, detail="Invalid CSV format - no headers found")
         
         imported_count = 0
         errors = []
@@ -276,32 +369,42 @@ async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation
             db.query(MaintenanceTicket).delete()
             db.commit()
         
+        # Process each row
         for row_num, row in enumerate(csv_reader, 1):
             try:
+                # Skip empty rows
+                if not any(row.values()):
+                    continue
+                
                 # Find or create building
-                building = db.query(Building).filter(Building.name == row.get('school', '').strip()).first()
+                school_name = row.get('school', '').strip()
+                if not school_name:
+                    errors.append(f"Row {row_num}: Missing school name")
+                    continue
+                    
+                building = db.query(Building).filter(Building.name == school_name).first()
                 if not building:
-                    # Create building if it doesn't exist
-                    building = Building(name=row.get('school', '').strip())
+                    building = Building(name=school_name)
                     db.add(building)
                     db.flush()
                 
                 # Find or create room
-                room = db.query(Room).filter(Room.name == row.get('room', '').strip(), Room.building_id == building.id).first()
-                if not room:
-                    # Create room if it doesn't exist
-                    room = Room(name=row.get('room', '').strip(), building_id=building.id)
-                    db.add(room)
-                    db.flush()
+                room_name = row.get('room', '').strip()
+                if room_name:
+                    room = db.query(Room).filter(Room.name == room_name, Room.building_id == building.id).first()
+                    if not room:
+                        room = Room(name=room_name, building_id=building.id)
+                        db.add(room)
+                        db.flush()
                 
                 # Create maintenance ticket
                 ticket = MaintenanceTicket(
-                    title=row.get('title', '').strip(),
-                    description=row.get('description', '').strip(),
-                    issue_type=row.get('issue_type', '').strip(),
+                    title=row.get('title', '').strip() or 'Imported Ticket',
+                    description=row.get('description', '').strip() or '',
+                    issue_type=row.get('issue_type', '').strip() or 'general',
                     status=row.get('status', 'open').strip(),
                     school=building.name,
-                    room=room.name,
+                    room=room_name,
                     created_by=row.get('created_by', 'Import').strip(),
                     created_at=central_now(),
                     updated_at=central_now()
@@ -314,6 +417,7 @@ async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation
                 errors.append(f"Row {row_num}: {str(e)}")
                 continue
         
+        # Commit all changes
         db.commit()
         
         return {
@@ -323,6 +427,9 @@ async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation
             "operation": operation
         }
         
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error importing maintenance tickets: {str(e)}")

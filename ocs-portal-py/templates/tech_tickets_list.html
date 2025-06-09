@@ -146,23 +146,70 @@
 
 <!-- Import CSV Modal -->
 <div id="importCsvModal-tech" class="modal" style="display:none;">
-  <div class="modal-content">
-    <span class="close" onclick="closeImportModal('tech')">&times;</span>
-    <h2>Import Tech Tickets from CSV</h2>
+  <div class="modal-content import-modal">
+    <div class="modal-header">
+      <h2><i class="fa fa-upload"></i> Import Tech Tickets from CSV</h2>
+      <span class="close" onclick="closeImportModal('tech')" title="Close">&times;</span>
+    </div>
+    
     <form id="importCsvForm-tech" method="post" enctype="multipart/form-data" action="/tickets/tech/import">
-      <div class="form-group">
-        <label for="csvFile-tech">Select CSV File:</label>
-        <input type="file" id="csvFile-tech" name="file" accept=".csv" required />
-      </div>
-      <div class="form-group">
-        <label>Import Mode:</label>
-        <div>
-          <label><input type="radio" name="operation" value="add" checked> Add to Database</label>
-          <label style="margin-left:2em;"><input type="radio" name="operation" value="overwrite"> Overwrite Database</label>
+      <div class="modal-body">
+        <!-- File Selection -->
+        <div class="form-group">
+          <label for="csvFile-tech"><i class="fa fa-file-csv"></i> Select CSV File:</label>
+          <div class="file-input-wrapper">
+            <input type="file" id="csvFile-tech" name="file" accept=".csv" required />
+            <div class="file-input-display">
+              <i class="fa fa-cloud-upload"></i>
+              <span class="file-text">Click to select a CSV file or drag and drop</span>
+              <small class="file-info">Supported format: .csv files only</small>
+            </div>
+          </div>
         </div>
-      </div>      <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Import</button>
-        <button type="button" class="btn btn-secondary" onclick="closeImportModal('tech')">Cancel</button>
+
+        <!-- Import Mode -->
+        <div class="form-group">
+          <label><i class="fa fa-cogs"></i> Import Mode:</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" name="operation" value="add" checked>
+              <span class="radio-content">
+                <strong>Add to Database</strong>
+                <small>Keep existing tickets and add new ones from the CSV file</small>
+              </span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="operation" value="overwrite">
+              <span class="radio-content">
+                <strong>Overwrite Database</strong>
+                <small>Replace all existing tickets with the ones from the CSV file</small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- CSV Format Information -->
+        <div class="format-info">
+          <h4><i class="fa fa-info-circle"></i> Expected CSV Format:</h4>
+          <div class="format-example">
+            <code>id,title,description,issue_type,school,room,tag,status,created_by,created_at,updated_at</code>
+          </div>
+          <ul class="format-notes">
+            <li>Headers must match exactly (case-sensitive)</li>
+            <li>Schools and rooms will be created if they don't exist</li>
+            <li>Status should be 'open' or 'closed'</li>
+            <li>Dates should be in format: YYYY-MM-DD HH:MM:SS</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeImportModal('tech')">
+          <i class="fa fa-times"></i> Cancel
+        </button>
+        <button type="submit" class="btn btn-primary" id="importBtn-tech">
+          <i class="fa fa-upload"></i> Import Tickets
+        </button>
       </div>
     </form>
   </div>
@@ -594,6 +641,217 @@
 .modal-content { background:#fff; margin:5% auto; padding:2rem; border-radius:8px; width:100%; max-width:400px; position:relative; }
 .close { position:absolute; top:1rem; right:1rem; font-size:2rem; cursor:pointer; color:#888; }
 
+/* Enhanced Import Modal Styles */
+.import-modal {
+    max-width: 600px;
+    padding: 0;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.modal-header .close {
+    position: static;
+    color: white;
+    opacity: 0.8;
+    font-size: 1.5rem;
+    font-weight: bold;
+    transition: opacity 0.2s;
+}
+
+.modal-header .close:hover {
+    opacity: 1;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+.modal-footer {
+    padding: 1rem 2rem 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.file-input-wrapper {
+    position: relative;
+    margin-top: 0.5rem;
+}
+
+.file-input-wrapper input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.file-input-display {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.file-input-display:hover {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+
+.file-input-display i {
+    font-size: 2rem;
+    color: #007bff;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.file-text {
+    display: block;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+.file-info {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.radio-group {
+    margin-top: 0.5rem;
+}
+
+.radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.radio-option:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.radio-option input[type="radio"] {
+    margin: 0;
+    margin-top: 0.25rem;
+}
+
+.radio-option input[type="radio"]:checked + .radio-content {
+    color: #007bff;
+}
+
+.radio-option:has(input[type="radio"]:checked) {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+
+.radio-content {
+    flex: 1;
+}
+
+.radio-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.radio-content small {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.format-info {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.format-info h4 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 1rem;
+}
+
+.format-example {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+}
+
+.format-example code {
+    color: #e83e8c;
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.format-notes {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.format-notes li {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Loading state for import button */
+.btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 @media (max-width: 768px) {
     .content-header {
         flex-direction: column;
@@ -635,7 +893,108 @@
 </style>
 
 <script>
+// Notification function for displaying success/error messages
+function showNotification(message, type = 'info') {
+    // Create notification container if it doesn't exist
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 400px;
+        `;
+        document.body.appendChild(container);
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        background: ${type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#d1ecf1'};
+        color: ${type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460'};
+        border: 1px solid ${type === 'success' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#bee5eb'};
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateX(420px);
+        transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+        opacity: 0;
+    `;
+    
+    // Add icon based on type
+    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+    notification.innerHTML = `
+        <span style="font-size: 16px;">${icon}</span>
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" style="
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            margin-left: auto;
+            opacity: 0.7;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        ">×</button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+        notification.style.opacity = '1';
+    }, 10);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        notification.style.transform = 'translateX(420px)';
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 300);
+    }, 5000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Check for import success/error messages from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    if (urlParams.get('import_success') === 'true') {
+        const count = urlParams.get('count') || 'some';
+        const mode = urlParams.get('mode') || 'unknown';
+        const modeText = mode === 'overwrite' ? 'replaced all tickets with' : 'added';
+        
+        showNotification(`Successfully ${modeText} ${count} tech tickets from CSV!`, 'success');
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+    } else if (urlParams.get('import_error') === 'true') {
+        const message = urlParams.get('message') || 'Unknown error occurred during import';
+        
+        showNotification(`Import failed: ${message}`, 'error');
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+    }
+    
     // Search functionality
     const searchInput = document.getElementById('searchInput');
     const buildingFilter = document.getElementById('buildingFilter');
@@ -722,10 +1081,166 @@ function clearAllTickets(ticketType) {
 // Import CSV modal functions
 function showImportModal(type) {
   document.getElementById('importCsvModal-' + type).style.display = 'block';
+  initializeImportModal(type);
 }
+
 function closeImportModal(type) {
   document.getElementById('importCsvModal-' + type).style.display = 'none';
+  resetImportModal(type);
 }
+
+function initializeImportModal(type) {
+  const fileInput = document.getElementById('csvFile-' + type);
+  const fileDisplay = fileInput.parentNode.querySelector('.file-input-display');
+  const form = document.getElementById('importCsvForm-' + type);
+  const importBtn = document.getElementById('importBtn-' + type);
+  
+  // Enhanced file input handling
+  fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.type !== 'text/csv' && !file.name.toLowerCase().endsWith('.csv')) {
+        alert('Please select a valid CSV file.');
+        e.target.value = '';
+        return;
+      }
+      
+      fileDisplay.innerHTML = `
+        <i class="fa fa-file-csv"></i>
+        <span class="file-text">${file.name}</span>
+        <small class="file-info">Size: ${(file.size / 1024).toFixed(1)} KB</small>
+      `;
+      fileDisplay.style.borderColor = '#28a745';
+      fileDisplay.style.background = '#d4edda';
+    }
+  });
+  
+  // Form submission with loading state
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    if (!fileInput.files[0]) {
+      alert('Please select a CSV file to import.');
+      return;
+    }
+    
+    // Show loading state
+    importBtn.classList.add('loading');
+    importBtn.disabled = true;
+    
+    // Show progress message
+    const statusDiv = document.createElement('div');
+    statusDiv.className = 'import-status';
+    statusDiv.innerHTML = `
+      <div style="padding: 1rem; background: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 6px; margin-top: 1rem;">
+        <i class="fa fa-spinner fa-spin"></i> Processing CSV import...
+      </div>
+    `;
+    form.appendChild(statusDiv);
+    
+    // Submit the actual form
+    const formData = new FormData(form);
+    fetch(form.action, {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => {
+      if (response.redirected) {
+        // Success - redirect to the page
+        window.location.href = response.url;
+      } else {
+        throw new Error('Import failed');
+      }
+    })
+    .catch(error => {
+      // Remove loading state
+      importBtn.classList.remove('loading');
+      importBtn.disabled = false;
+      
+      // Show error message
+      statusDiv.innerHTML = `
+        <div style="padding: 1rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; margin-top: 1rem;">
+          <i class="fa fa-exclamation-triangle"></i> Import failed. Please check your CSV format and try again.
+        </div>
+      `;
+      
+      setTimeout(() => {
+        statusDiv.remove();
+      }, 5000);
+    });
+  });
+  
+  // Drag and drop functionality
+  fileDisplay.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.borderColor = '#007bff';
+    this.style.background = '#e7f3ff';
+  });
+  
+  fileDisplay.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.style.borderColor = '#ccc';
+    this.style.background = '#f8f9fa';
+  });
+  
+  fileDisplay.addEventListener('drop', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+        fileInput.files = files;
+        
+        // Trigger change event
+        const event = new Event('change', { bubbles: true });
+        fileInput.dispatchEvent(event);
+      } else {
+        alert('Please drop a valid CSV file.');
+      }
+    }
+    
+    this.style.borderColor = '#ccc';
+    this.style.background = '#f8f9fa';
+  });
+}
+
+function resetImportModal(type) {
+  const fileInput = document.getElementById('csvFile-' + type);
+  const fileDisplay = fileInput.parentNode.querySelector('.file-input-display');
+  const importBtn = document.getElementById('importBtn-' + type);
+  const form = document.getElementById('importCsvForm-' + type);
+  
+  // Reset file input
+  fileInput.value = '';
+  fileDisplay.innerHTML = `
+    <i class="fa fa-cloud-upload"></i>
+    <span class="file-text">Click to select a CSV file or drag and drop</span>
+    <small class="file-info">Supported format: .csv files only</small>
+  `;
+  fileDisplay.style.borderColor = '#ccc';
+  fileDisplay.style.background = '#f8f9fa';
+  
+  // Reset button state
+  importBtn.classList.remove('loading');
+  importBtn.disabled = false;
+  
+  // Remove any status messages
+  const statusDiv = form.querySelector('.import-status');
+  if (statusDiv) {
+    statusDiv.remove();
+  }
+  
+  // Reset radio buttons
+  const addRadio = form.querySelector('input[value="add"]');
+  if (addRadio) {
+    addRadio.checked = true;
+  }
+}
+
 window.onclick = function(event) {
   ['tech','maintenance'].forEach(function(type) {
     var modal = document.getElementById('importCsvModal-' + type);

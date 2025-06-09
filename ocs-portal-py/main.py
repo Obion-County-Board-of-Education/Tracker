@@ -291,11 +291,21 @@ async def import_tech_tickets(request: Request, file: UploadFile = File(...), op
         result = await tickets_service.import_tech_tickets_csv(file_content, operation)
         
         print(f"✅ Tech tickets import successful: {result}")
-        return RedirectResponse("/tickets/tech/open", status_code=303)
+        
+        # Parse the result to get import count
+        import_count = "unknown"
+        if result and "imported" in str(result).lower():
+            # Try to extract the number from the result
+            import re
+            match = re.search(r'(\d+)', str(result))
+            if match:
+                import_count = match.group(1)
+        
+        return RedirectResponse(f"/tickets/tech/open?import_success=true&count={import_count}&mode={operation}", status_code=303)
     except Exception as e:
         print(f"❌ Error importing tech tickets: {e}")
-        # Return to the tickets page with error
-        return RedirectResponse("/tickets/tech/open", status_code=303)
+        error_msg = str(e).replace("'", "").replace('"', "")[:100]  # Sanitize and limit length
+        return RedirectResponse(f"/tickets/tech/open?import_error=true&message={error_msg}", status_code=303)
 
 @app.get("/tickets/tech/{ticket_id}")
 async def view_tech_ticket(request: Request, ticket_id: int):
@@ -572,11 +582,21 @@ async def import_maintenance_tickets(request: Request, file: UploadFile = File(.
         result = await tickets_service.import_maintenance_tickets_csv(file_content, operation)
         
         print(f"✅ Maintenance tickets import successful: {result}")
-        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+        
+        # Parse the result to get import count
+        import_count = "unknown"
+        if result and "imported" in str(result).lower():
+            # Try to extract the number from the result
+            import re
+            match = re.search(r'(\d+)', str(result))
+            if match:
+                import_count = match.group(1)
+        
+        return RedirectResponse(f"/tickets/maintenance/open?import_success=true&count={import_count}&mode={operation}", status_code=303)
     except Exception as e:
         print(f"❌ Error importing maintenance tickets: {e}")
-        # Return to the tickets page with error
-        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+        error_msg = str(e).replace("'", "").replace('"', "")[:100]  # Sanitize and limit length
+        return RedirectResponse(f"/tickets/maintenance/open?import_error=true&message={error_msg}", status_code=303)
 
 @app.get("/tickets/maintenance/{ticket_id}")
 async def view_maintenance_ticket(request: Request, ticket_id: int):
