@@ -12,7 +12,6 @@ from datetime import datetime
 # Service URLs - use environment variables in production
 TICKETS_API_URL = os.getenv("TICKETS_API_URL", "http://ocs-tickets-api:8000")
 INVENTORY_API_URL = os.getenv("INVENTORY_API_URL", "http://ocs-inventory-api:8000")
-REQUISITION_API_URL = os.getenv("REQUISITION_API_URL", "http://ocs-requisition-api:8000")
 
 class TicketsService:
     """Service for interacting with the Tickets API"""
@@ -323,15 +322,4 @@ class InventoryService:
     
     def __init__(self):
         self.base_url = INVENTORY_API_URL
-        self.timeout = 30.0
-
-    # TODO: Add inventory service methods when needed
-
-class RequisitionService:
-    """Service for interacting with the Requisition API"""
-    
-    def __init__(self):
-        self.base_url = REQUISITION_API_URL
-        self.timeout = 30.0
-
-    # TODO: Add requisition service methods when needed
+        self.timeout = 30.0    # TODO: Add inventory service methods when needed

@@ -39,7 +39,6 @@ async def get_menu_context():
             "tickets": True,
             "inventory": True,
             "manage": True,
-            "requisitions": True,
             "forms": True,
             "admin": True
         }}

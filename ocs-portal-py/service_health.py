@@ -19,11 +19,7 @@ SERVICE_CONFIG = {
         "menu_item": "inventory", 
         "check_endpoint": "/health"
     },
-    "requisition": {
-        "url": os.getenv("REQUISITION_API_URL", "http://host.docker.internal:8002"),
-        "menu_item": "requisitions",
-        "check_endpoint": "/health"
-    },    "forms": {
+    "forms": {
         "url": os.getenv("FORMS_API_URL", "http://host.docker.internal:8005"),
         "menu_item": "forms",
         "check_endpoint": "/health"

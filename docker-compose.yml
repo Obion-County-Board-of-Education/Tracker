@@ -22,7 +22,6 @@ services:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_tickets
     depends_on:
       - db
-
   ocs-inventory-api:
     build:
       context: .
@@ -31,17 +30,6 @@ services:
       - "8001:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_inventory
-    depends_on:
-      - db
-
-  ocs-requisition-api:
-    build:
-      context: .
-      dockerfile: ocs-requisition-api/Dockerfile
-    ports:
-      - "8002:8000"
-    environment:
-      - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_requisition
     depends_on:
       - db
 

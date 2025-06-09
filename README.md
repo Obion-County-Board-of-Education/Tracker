@@ -17,7 +17,6 @@
 
 - <b>ocs-tickets-api/</b> – FastAPI service for ticket system
 - <b>ocs-inventory-api/</b> – FastAPI service for inventory
-- <b>ocs-requisition-api/</b> – FastAPI service for requisition
 - <b>ocs-forms-api/</b> – FastAPI service for forms (time tracking, fuel tracking)
 - <b>ocs-manage/</b> – FastAPI service for management tasks
 - <b>ocs-portal-py/</b> – FastAPI service for admin portal (Jinja2, static, templates)
