@@ -119,6 +119,36 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
         print("📍 /users/add route accessed")
         return await render_template("add_user.html", {"request": request})
 
+    @app.get("/users/edit/{user_id}")
+    async def edit_user_form(request: Request, user_id: int, db: Session = Depends(get_db)):
+        """Display edit user form"""
+        print(f"📍 /users/edit/{user_id} route accessed")
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                user_data = {
+                    "id": user.id,
+                    "name": user.display_name or user.username,
+                    "email": user.email or f"{user.username}@obionschools.com",
+                    "role": (user.roles or 'user').title(),
+                    "username": user.username
+                }
+            else:
+                # User not found, redirect back to users list
+                return RedirectResponse("/users/list", status_code=302)
+        except Exception as e:
+            print(f"Database error: {e}")
+            # Fallback data for demonstration
+            user_data = {
+                "id": user_id,
+                "name": "Sample User",
+                "email": f"user{user_id}@obionschools.com", 
+                "role": "User",
+                "username": f"user{user_id}"
+            }
+        
+        return await render_template("edit_user.html", {"request": request, "user": user_data})
+
     @app.post("/users/add")
     def add_user_submit(request: Request, name: str = Form(...), email: str = Form(...), role: str = Form(...), db: Session = Depends(get_db)):
         """Add new user to database"""
@@ -138,6 +168,46 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
             print(f"✅ User added: {name} ({email})")
         except Exception as e:
             print(f"Error adding user: {e}")
+            db.rollback()
+        
+        return RedirectResponse("/users/list", status_code=303)
+
+    @app.post("/users/edit/{user_id}")
+    def edit_user_submit(request: Request, user_id: int, name: str = Form(...), email: str = Form(...), role: str = Form(...), db: Session = Depends(get_db)):
+        """Update user in database"""
+        print(f"📍 /users/edit/{user_id} submit route accessed")
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                # Update user fields
+                user.display_name = name
+                user.email = email
+                user.roles = role.lower()
+                
+                db.commit()
+                print(f"✅ User updated: {name} ({email})")
+            else:
+                print(f"❌ User with ID {user_id} not found")
+        except Exception as e:
+            print(f"Error updating user: {e}")
+            db.rollback()
+        
+        return RedirectResponse("/users/list", status_code=303)
+
+    @app.post("/users/delete/{user_id}")
+    def delete_user_submit(request: Request, user_id: int, db: Session = Depends(get_db)):
+        """Delete user from database"""
+        print(f"📍 /users/delete/{user_id} route accessed")
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                db.delete(user)
+                db.commit()
+                print(f"✅ User deleted: {user.display_name or user.username}")
+            else:
+                print(f"❌ User with ID {user_id} not found")
+        except Exception as e:
+            print(f"Error deleting user: {e}")
             db.rollback()
         
         return RedirectResponse("/users/list", status_code=303)
