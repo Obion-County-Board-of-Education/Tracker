@@ -3,19 +3,114 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from pydantic import BaseModel
 import csv
 import io
 import tempfile
 import os
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+import atexit
 from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket, TicketUpdate
 from ocs_shared_models.timezone_utils import central_now
 from database import get_db, init_database
 
 # Initialize database on startup
 init_database()
+
+# Auto-update function to change "new" tickets to "open" after 48 hours
+def auto_update_ticket_status():
+    """Automatically update tickets from 'new' to 'open' status after 48 hours"""
+    try:
+        # Import here to avoid circular import issues
+        from database import SessionLocal
+        
+        db = SessionLocal()
+        
+        # Calculate cutoff time (48 hours ago)
+        cutoff_time = central_now() - timedelta(hours=48)
+        
+        # Find tech tickets that are still "new" and older than 48 hours
+        tech_tickets_to_update = db.query(TechTicket).filter(
+            TechTicket.status == 'new',
+            TechTicket.created_at <= cutoff_time
+        ).all()
+        
+        # Find maintenance tickets that are still "new" and older than 48 hours
+        maintenance_tickets_to_update = db.query(MaintenanceTicket).filter(
+            MaintenanceTicket.status == 'new',
+            MaintenanceTicket.created_at <= cutoff_time
+        ).all()
+        
+        updated_count = 0
+        
+        # Update tech tickets
+        for ticket in tech_tickets_to_update:
+            # Create update history entry
+            ticket_update = TicketUpdate(
+                ticket_type='tech',
+                ticket_id=ticket.id,
+                status_from='new',
+                status_to='open',
+                update_message='Automatically changed to "Open" after 48 hours',
+                updated_by='System'
+            )
+            
+            ticket.status = 'open'
+            ticket.updated_at = central_now()
+            
+            db.add(ticket_update)
+            updated_count += 1
+        
+        # Update maintenance tickets  
+        for ticket in maintenance_tickets_to_update:
+            # Create update history entry
+            ticket_update = TicketUpdate(
+                ticket_type='maintenance',
+                ticket_id=ticket.id,
+                status_from='new',
+                status_to='open',
+                update_message='Automatically changed to "Open" after 48 hours',
+                updated_by='System'
+            )
+            
+            ticket.status = 'open'
+            ticket.updated_at = central_now()
+            
+            db.add(ticket_update)
+            updated_count += 1
+        
+        # Commit all changes
+        db.commit()
+        
+        if updated_count > 0:
+            print(f"Auto-updated {updated_count} tickets from 'new' to 'open' status")
+            
+    except Exception as e:
+        print(f"Error in auto_update_ticket_status: {str(e)}")
+        if 'db' in locals():
+            db.rollback()
+    finally:
+        if 'db' in locals():
+            db.close()
+
+# Set up background scheduler for auto-updating ticket status
+scheduler = BackgroundScheduler()
+scheduler.add_job(
+    func=auto_update_ticket_status,
+    trigger=IntervalTrigger(hours=1),  # Check every hour
+    id='auto_update_tickets',
+    name='Auto-update ticket status from new to open',
+    replace_existing=True
+)
+
+# Start the scheduler
+scheduler.start()
+
+# Shut down the scheduler when the app exits
+atexit.register(lambda: scheduler.shutdown())
 
 app = FastAPI(title="OCS Tickets API")
 
@@ -76,7 +171,7 @@ def get_tech_tickets(
         query = db.query(TechTicket)
         
         if status_filter == "open":
-            query = query.filter(TechTicket.status.in_(['new', 'assigned', 'in_progress']))
+            query = query.filter(TechTicket.status.in_(['new', 'open', 'assigned', 'in_progress']))
         elif status_filter == "closed":
             query = query.filter(TechTicket.status == 'closed')
         elif status_filter:
@@ -552,7 +647,7 @@ def get_maintenance_tickets(
         query = db.query(MaintenanceTicket)
         
         if status_filter == "open":
-            query = query.filter(MaintenanceTicket.status.in_(['new', 'assigned', 'in_progress']))
+            query = query.filter(MaintenanceTicket.status.in_(['new', 'open', 'assigned', 'in_progress']))
         elif status_filter == "closed":
             query = query.filter(MaintenanceTicket.status == 'closed')
         elif status_filter:
@@ -700,3 +795,68 @@ def clear_all_maintenance_tickets(db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error clearing maintenance tickets: {str(e)}")
+
+# Auto-Update Status Management API
+@app.get("/api/tickets/auto-update/status")
+def get_auto_update_status(db: Session = Depends(get_db)):
+    """Get status of tickets that would be affected by auto-update"""
+    try:
+        # Calculate cutoff time (48 hours ago)
+        cutoff_time = central_now() - timedelta(hours=48)
+        
+        # Count tech tickets that would be updated
+        tech_tickets_count = db.query(TechTicket).filter(
+            TechTicket.status == 'new',
+            TechTicket.created_at <= cutoff_time
+        ).count()
+        
+        # Count maintenance tickets that would be updated
+        maintenance_tickets_count = db.query(MaintenanceTicket).filter(
+            MaintenanceTicket.status == 'new',
+            MaintenanceTicket.created_at <= cutoff_time
+        ).count()
+        
+        # Get details of tickets that would be updated
+        tech_tickets = db.query(TechTicket).filter(
+            TechTicket.status == 'new',
+            TechTicket.created_at <= cutoff_time
+        ).all()
+        
+        maintenance_tickets = db.query(MaintenanceTicket).filter(
+            MaintenanceTicket.status == 'new',
+            MaintenanceTicket.created_at <= cutoff_time
+        ).all()
+        
+        return {
+            "cutoff_time": cutoff_time.isoformat(),
+            "tech_tickets_to_update": tech_tickets_count,
+            "maintenance_tickets_to_update": maintenance_tickets_count,
+            "total_tickets_to_update": tech_tickets_count + maintenance_tickets_count,
+            "tech_ticket_details": [
+                {
+                    "id": ticket.id,
+                    "title": ticket.title,
+                    "created_at": ticket.created_at.isoformat(),
+                    "age_hours": (central_now() - ticket.created_at).total_seconds() / 3600
+                } for ticket in tech_tickets
+            ],
+            "maintenance_ticket_details": [
+                {
+                    "id": ticket.id,
+                    "title": ticket.title,
+                    "created_at": ticket.created_at.isoformat(),
+                    "age_hours": (central_now() - ticket.created_at).total_seconds() / 3600
+                } for ticket in maintenance_tickets
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting auto-update status: {str(e)}")
+
+@app.post("/api/tickets/auto-update/trigger")
+def trigger_auto_update():
+    """Manually trigger the auto-update process"""
+    try:
+        auto_update_ticket_status()
+        return {"message": "Auto-update process triggered successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error triggering auto-update: {str(e)}")
