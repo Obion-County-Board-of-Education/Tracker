@@ -48,8 +48,17 @@
                         <a href="/manage/settings">Settings</a>
                         <a href="/manage/logs">System Logs</a>
                         <a href="/manage/other">Other Management</a>
+                    </div>                </div>
+                {% endif %}
+                {% if menu_visibility.purchasing %}
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-shopping-cart"></i> Purchasing <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/purchasing/requisitions">Requisitions</a>
+                        <a href="/purchasing/purchase-orders">Purchase Orders</a>
                     </div>
-                </div>                {% endif %}
+                </div>
+                {% endif %}
                 {% if menu_visibility.forms %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-clipboard-list"></i> Forms <i class="fa fa-caret-down"></i></a>

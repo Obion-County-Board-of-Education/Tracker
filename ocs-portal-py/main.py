@@ -11,7 +11,7 @@ from datetime import datetime
 from ocs_shared_models import User, Building, Room, SystemMessage
 from ocs_shared_models.timezone_utils import central_now, format_central_time
 from database import get_db, init_database
-from services import tickets_service
+from services import tickets_service, purchasing_service
 from management_service import management_service
 from service_health import health_checker
 
@@ -33,11 +33,11 @@ async def get_menu_context():
         print(f"🔍 Dynamic menu context: {menu_visibility}")
         return {"menu_visibility": menu_visibility}
     except Exception as e:
-        print(f"⚠️ Health checker failed, using fallback menu: {e}")
-        # Fallback to show all menus if health checker fails
+        print(f"⚠️ Health checker failed, using fallback menu: {e}")        # Fallback to show all menus if health checker fails
         return {"menu_visibility": {
             "tickets": True,
             "inventory": True,
+            "purchasing": True,
             "manage": True,
             "forms": True,
             "admin": True
@@ -924,6 +924,138 @@ async def fuel_tracking(request: Request):
     except Exception as e:
         print(f"Error loading fuel tracking: {e}")
         return RedirectResponse("/", status_code=303)
+
+# Purchasing Routes
+@app.get("/purchasing/requisitions")
+async def requisitions_page(request: Request):
+    """Requisitions management page"""
+    try:
+        requisitions = await purchasing_service.get_requisitions()
+        menu_context = await get_menu_context()
+        return templates.TemplateResponse("purchasing/requisitions.html", {
+            "request": request,
+            "requisitions": requisitions,
+            **menu_context
+        })
+    except Exception as e:
+        print(f"Error loading requisitions: {e}")
+        return RedirectResponse("/", status_code=303)
+
+@app.get("/purchasing/purchase-orders")
+async def purchase_orders_page(request: Request):
+    """Purchase Orders management page"""
+    try:
+        purchase_orders = await purchasing_service.get_purchase_orders()
+        menu_context = await get_menu_context()
+        return templates.TemplateResponse("purchasing/purchase_orders.html", {
+            "request": request,
+            "purchase_orders": purchase_orders,
+            **menu_context
+        })
+    except Exception as e:
+        print(f"Error loading purchase orders: {e}")
+        return RedirectResponse("/", status_code=303)
+
+@app.get("/purchasing/requisitions/new")
+async def new_requisition_page(request: Request):
+    """Create new requisition page"""
+    try:
+        buildings = await tickets_service.get_buildings()  # Reuse buildings API from tickets
+        menu_context = await get_menu_context()
+        return templates.TemplateResponse("purchasing/new_requisition.html", {
+            "request": request,
+            "buildings": buildings,
+            **menu_context
+        })
+    except Exception as e:
+        print(f"Error loading new requisition form: {e}")
+        return RedirectResponse("/", status_code=303)
+
+@app.post("/purchasing/requisitions/new")
+async def create_requisition(
+    request: Request,
+    title: str = Form(...),
+    description: str = Form(None),
+    department: str = Form(...),
+    requested_by: str = Form(...),
+    estimated_cost: str = Form(None),
+    justification: str = Form(None),
+    priority: str = Form("normal"),
+    building_id: int = Form(None)
+):
+    """Create a new requisition"""
+    try:
+        requisition_data = {
+            "title": title,
+            "description": description,
+            "department": department,
+            "requested_by": requested_by,
+            "estimated_cost": estimated_cost,
+            "justification": justification,
+            "priority": priority,
+            "building_id": building_id
+        }
+        
+        result = await purchasing_service.create_requisition(requisition_data)
+        if result:
+            return RedirectResponse("/purchasing/requisitions", status_code=303)
+        else:
+            # Handle error case
+            return RedirectResponse("/purchasing/requisitions/new", status_code=303)
+    except Exception as e:
+        print(f"Error creating requisition: {e}")
+        return RedirectResponse("/purchasing/requisitions/new", status_code=303)
+
+@app.get("/purchasing/purchase-orders/new")
+async def new_purchase_order_page(request: Request):
+    """Create new purchase order page"""
+    try:
+        # Get approved requisitions for selection
+        approved_requisitions = await purchasing_service.get_requisitions(status_filter="approved")
+        menu_context = await get_menu_context()
+        return templates.TemplateResponse("purchasing/new_purchase_order.html", {
+            "request": request,
+            "approved_requisitions": approved_requisitions,
+            **menu_context
+        })
+    except Exception as e:
+        print(f"Error loading new purchase order form: {e}")
+        return RedirectResponse("/", status_code=303)
+
+@app.post("/purchasing/purchase-orders/new")
+async def create_purchase_order(
+    request: Request,
+    po_number: str = Form(...),
+    requisition_id: int = Form(None),
+    vendor_name: str = Form(...),
+    vendor_contact: str = Form(None),
+    total_amount: str = Form(None),
+    description: str = Form(None),
+    delivery_address: str = Form(None),
+    created_by: str = Form(...)
+):
+    """Create a new purchase order"""
+    try:
+        po_data = {
+            "po_number": po_number,
+            "requisition_id": requisition_id,
+            "vendor_name": vendor_name,
+            "vendor_contact": vendor_contact,
+            "total_amount": total_amount,
+            "description": description,
+            "delivery_address": delivery_address,
+            "created_by": created_by
+        }
+        
+        result = await purchasing_service.create_purchase_order(po_data)
+        if result:
+            return RedirectResponse("/purchasing/purchase-orders", status_code=303)
+        else:
+            # Handle error case
+            return RedirectResponse("/purchasing/purchase-orders/new", status_code=303)
+    except Exception as e:
+        print(f"Error creating purchase order: {e}")
+        return RedirectResponse("/purchasing/purchase-orders/new", status_code=303)
 
 # Health check and service status endpoints
 @app.get("/health")

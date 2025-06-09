@@ -134,14 +134,15 @@ class ManagementService:
     async def update_system_settings(self, settings: dict) -> bool:
         """Update system settings"""
         result = await self._make_request("PUT", "/api/system/settings", settings)
-        return result is not None and result.get("success", False)
-    
+        return result is not None and result.get("success", False)    
     # Service monitoring methods
     async def get_service_status(self) -> dict:
-        """Get the status of all microservices"""        services = {
+        """Get the status of all microservices"""
+        services = {
             "portal": {"healthy": True, "uptime": "2 days, 3:45:12"},
             "tickets": {"healthy": True, "uptime": "2 days, 3:44:58"},
             "inventory": {"healthy": True, "uptime": "2 days, 3:44:45"},
+            "purchasing": {"healthy": True, "uptime": "2 days, 3:44:38"},
             "forms": {"healthy": True, "uptime": "2 days, 3:44:32"},
             "manage": {"healthy": True, "uptime": "2 days, 3:44:19"}
         }

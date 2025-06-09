@@ -33,6 +33,17 @@ services:
     depends_on:
       - db
 
+  ocs-purchasing-api:
+    build:
+      context: .
+      dockerfile: ocs-purchasing-api/Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_purchasing
+    depends_on:
+      - db
+
   ocs-portal-py:
     build:
       context: .

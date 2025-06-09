@@ -12,6 +12,7 @@ from datetime import datetime
 # Service URLs - use environment variables in production
 TICKETS_API_URL = os.getenv("TICKETS_API_URL", "http://ocs-tickets-api:8000")
 INVENTORY_API_URL = os.getenv("INVENTORY_API_URL", "http://ocs-inventory-api:8000")
+PURCHASING_API_URL = os.getenv("PURCHASING_API_URL", "http://ocs-purchasing-api:8000")
 
 class TicketsService:
     """Service for interacting with the Tickets API"""
@@ -323,3 +324,134 @@ class InventoryService:
     def __init__(self):
         self.base_url = INVENTORY_API_URL
         self.timeout = 30.0    # TODO: Add inventory service methods when needed
+
+class PurchasingService:
+    """Service for interacting with the Purchasing API"""
+    
+    def __init__(self):
+        self.base_url = PURCHASING_API_URL
+        self.timeout = 30.0
+
+    async def get_requisitions(self, status_filter: Optional[str] = None, department: Optional[str] = None, priority: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get requisitions with optional filtering"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                params = {}
+                if status_filter:
+                    params["status"] = status_filter
+                if department:
+                    params["department"] = department
+                if priority:
+                    params["priority"] = priority
+                    
+                response = await client.get(f"{self.base_url}/api/requisitions", params=params)
+                response.raise_for_status()
+                return response.json()
+        except httpx.RequestError as e:
+            print(f"Error fetching requisitions: {e}")
+            return []
+        except Exception as e:
+            print(f"Unexpected error fetching requisitions: {e}")
+            return []
+
+    async def get_requisition(self, requisition_id: int) -> Optional[Dict[str, Any]]:
+        """Get a specific requisition"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/requisitions/{requisition_id}")
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return None
+            print(f"Error fetching requisition {requisition_id}: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error fetching requisition {requisition_id}: {e}")
+            return None
+
+    async def create_requisition(self, requisition_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Create a new requisition"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(f"{self.base_url}/api/requisitions", json=requisition_data)
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error creating requisition: {e}")
+            return None
+
+    async def approve_requisition(self, requisition_id: int, approved_by: str) -> bool:
+        """Approve a requisition"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                data = {"approved_by": approved_by}
+                response = await client.put(f"{self.base_url}/api/requisitions/{requisition_id}/approve", params=data)
+                response.raise_for_status()
+                return True
+        except Exception as e:
+            print(f"Error approving requisition: {e}")
+            return False
+
+    async def get_purchase_orders(self, status_filter: Optional[str] = None, vendor: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get purchase orders with optional filtering"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                params = {}
+                if status_filter:
+                    params["status"] = status_filter
+                if vendor:
+                    params["vendor"] = vendor
+                    
+                response = await client.get(f"{self.base_url}/api/purchase-orders", params=params)
+                response.raise_for_status()
+                return response.json()
+        except httpx.RequestError as e:
+            print(f"Error fetching purchase orders: {e}")
+            return []
+        except Exception as e:
+            print(f"Unexpected error fetching purchase orders: {e}")
+            return []
+
+    async def get_purchase_order(self, po_id: int) -> Optional[Dict[str, Any]]:
+        """Get a specific purchase order"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/purchase-orders/{po_id}")
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return None
+            print(f"Error fetching purchase order {po_id}: {e}")
+            return None
+        except Exception as e:
+            print(f"Unexpected error fetching purchase order {po_id}: {e}")
+            return None
+
+    async def create_purchase_order(self, po_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Create a new purchase order"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(f"{self.base_url}/api/purchase-orders", json=po_data)
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error creating purchase order: {e}")
+            return None
+
+    async def update_purchase_order_status(self, po_id: int, status: str, updated_by: str) -> bool:
+        """Update purchase order status"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                params = {"status": status, "updated_by": updated_by}
+                response = await client.put(f"{self.base_url}/api/purchase-orders/{po_id}/status", params=params)
+                response.raise_for_status()
+                return True
+        except Exception as e:
+            print(f"Error updating purchase order status: {e}")
+            return False
+
+# Create service instances
+tickets_service = TicketsService()
+purchasing_service = PurchasingService()
