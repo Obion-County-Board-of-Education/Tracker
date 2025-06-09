@@ -9,6 +9,9 @@ This directory contains all test files for the OCS Portal system, organized by t
 - **`test_menu_context_fix.py`** - Tests for menu context helper functions
 - **`test_menu_error.py`** - Tests for menu error handling
 - **`test_dynamic_menu.py`** - Tests for dynamic menu generation
+- **`test_priority_removal.py`** - Tests for priority field removal feature
+- **`test_open_status_issue.py`** - Tests for open status issue fixes
+- **`verify_timezone_fix.py`** - Verification script for timezone fixes
 
 ### 📁 `portal/` - Portal-Specific Tests
 - **`test_route_accessibility.py`** - Tests route HTTP status and accessibility
@@ -23,8 +26,10 @@ This directory contains all test files for the OCS Portal system, organized by t
 - **`test_main_import.py`** - Tests for main module imports
 - **`test_import.py`** - General import tests
 - **`test_app.py`** - Application-level tests
+- **`test_edit_user_routes.py`** - Tests for edit user route functionality
+- **`test_edit_user_routes_root.py`** - Additional edit user route tests (moved from root)
+- **`test_menu_portal.py`** - Portal menu testing (moved from ocs-portal-py)
 - **`debug_routes_test.py`** - Route debugging utilities
-- **`debug_routes_final.py`** - Final route debugging scripts
 - **`simple_route_test.py`** - Simple route testing utilities
 - **`verify_priority_removal.py`** - Priority removal feature verification
 
@@ -32,12 +37,52 @@ This directory contains all test files for the OCS Portal system, organized by t
 - **`test_api_timezone.py`** - Tests for API timezone handling
 - **`test_maintenance_update.py`** - Tests for maintenance ticket API updates
 - **`test_update.py`** - General update API tests
-- **`check_services.py`** - Service health checking utility
-- **`check_buildings.py`** - Buildings API verification
+- **`test_auto_update.py`** - Tests for auto-update functionality
+- **`test_clear_functionality.py`** - Tests for clear functionality
+- **`simple_api_test.py`** - Simple API testing utilities
 
 ### 📁 `integration/` - Integration Tests
 - **`test_comprehensive_verification.py`** - Full system verification tests
-- **`final_verification.py`** - Final end-to-end verification
+- **`test_data_integrity.py`** - Data integrity verification tests
+- **`final_verification.py`** - Final end-to-end verification (original)
+- **`final_verification_portal.py`** - Portal-specific final verification (moved from ocs-portal-py)
+- **`quick_test.py`** - Quick integration test utilities
+- **`verify_all_fixes.py`** - Verification script for all applied fixes
+
+### 📁 `csv/` - CSV Import/Export Tests
+- **`test_csv_export_functionality.py`** - Tests for CSV export features
+- **`test_csv_import.py`** - Tests for CSV import functionality
+- **`test_csv_import_feedback.py`** - Tests for CSV import feedback system
+- **`test_export_import_cycle.py`** - Tests for full export/import cycles
+- **`test_import_functionality.py`** - General import functionality tests
+- **`test_status_mapping_fix.py`** - Tests for status mapping fixes
+- **`final_csv_export_test.py`** - Final CSV export verification
+- **`final_import_test.py`** - Final import verification
+
+### 📁 `utilities/` - Test Utilities and Verification Scripts
+- **`verify_edit_user_routes.py`** - Verification for edit user routes (original)
+- **`verify_edit_user_routes_root.py`** - Additional verification (moved from root)
+- **`verify_all_fixes.py`** - Comprehensive fix verification
+- **`verify_architecture_compliance.py`** - Architecture compliance verification
+- **`verify_csv_import.py`** - CSV import verification
+- **`verify_feedback_system.py`** - Feedback system verification
+- **`verify_import_buttons.py`** - Import buttons verification
+- **`verify_priority_removal.py`** - Priority removal verification
+- **`verify_timezone_fix.py`** - Timezone fix verification
+- **`quick_verify.py`** - Quick verification utilities (original)
+- **`quick_verify_root.py`** - Additional quick verification (moved from root)
+- **`create_test_ticket.py`** - Test ticket creation utility
+- **`simple_test.py`** - Simple test utilities
+- **`quick_test.py`** - Quick test execution utilities
+
+### 📁 `data/` - Test Data
+Contains sample data files used by tests
+
+### 📁 `results/` - Test Results
+Contains test execution results and reports
+
+### 📁 `scripts/` - Test Scripts
+Contains automation scripts for test execution
 
 ## Running Tests
 

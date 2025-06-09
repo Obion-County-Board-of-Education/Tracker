@@ -50,14 +50,21 @@
                         <a href="/manage/other">Other Management</a>
                     </div>
                 </div>
-                {% endif %}
-                {% if menu_visibility.requisitions %}
+                {% endif %}                {% if menu_visibility.requisitions %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-file-invoice"></i> Requisitions <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
                         <a href="/requisitions/new">New Requisition</a>
                         <a href="/requisitions/open">Open Requisitions</a>
                         <a href="/requisitions/all">All Requisitions</a>
+                    </div>
+                </div>
+                {% endif %}                {% if menu_visibility.forms %}
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-clipboard-list"></i> Forms <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/forms/time">Time Forms</a>
+                        <a href="/forms/fuel">Fuel Tracking</a>
                     </div>
                 </div>
                 {% endif %}

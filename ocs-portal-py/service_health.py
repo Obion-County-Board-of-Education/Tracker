@@ -10,22 +10,26 @@ from datetime import datetime, timedelta
 # Service URLs and their corresponding menu items
 SERVICE_CONFIG = {
     "tickets": {
-        "url": os.getenv("TICKETS_API_URL", "http://ocs-tickets-api:8000"),
+        "url": os.getenv("TICKETS_API_URL", "http://host.docker.internal:8000"),
         "menu_item": "tickets",
         "check_endpoint": "/health"
     },
     "inventory": {
-        "url": os.getenv("INVENTORY_API_URL", "http://ocs-inventory-api:8000"),
+        "url": os.getenv("INVENTORY_API_URL", "http://host.docker.internal:8001"),
         "menu_item": "inventory", 
         "check_endpoint": "/health"
     },
     "requisition": {
-        "url": os.getenv("REQUISITION_API_URL", "http://ocs-requisition-api:8000"),
+        "url": os.getenv("REQUISITION_API_URL", "http://host.docker.internal:8002"),
         "menu_item": "requisitions",
+        "check_endpoint": "/health"
+    },    "forms": {
+        "url": os.getenv("FORMS_API_URL", "http://host.docker.internal:8005"),
+        "menu_item": "forms",
         "check_endpoint": "/health"
     },
     "manage": {
-        "url": os.getenv("MANAGE_API_URL", "http://ocs-manage-api:8000"),
+        "url": os.getenv("MANAGE_API_URL", "http://host.docker.internal:8004"),
         "menu_item": "manage",
         "check_endpoint": "/health"
     }

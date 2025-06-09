@@ -26,18 +26,23 @@ app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Context processor for menu visibility
 async def get_menu_context():
     """Get menu visibility context for templates"""
-    # Temporarily bypass health checker to fix immediate template error
-    print("🔧 Using simplified menu context (health checker bypassed)")
-    return {"menu_visibility": {
-        "tickets": True,
-        "inventory": True,
-        "manage": True,
-        "requisitions": True,
-        "admin": True
-    }}
+    try:
+        menu_visibility = await health_checker.get_menu_visibility()
+        print(f"🔍 Dynamic menu context: {menu_visibility}")
+        return {"menu_visibility": menu_visibility}
+    except Exception as e:
+        print(f"⚠️ Health checker failed, using fallback menu: {e}")
+        # Fallback to show all menus if health checker fails
+        return {"menu_visibility": {
+            "tickets": True,
+            "inventory": True,
+            "manage": True,
+            "requisitions": True,
+            "forms": True,
+            "admin": True
+        }}
 
 async def render_template(template_name: str, context: dict):
     """Helper function to render templates with menu context"""
@@ -893,6 +898,33 @@ async def generate_reports(request: Request):
     except Exception as e:
         print(f"Error generating reports: {e}")
         return {"success": False, "message": str(e)}
+
+# Forms Routes
+@app.get("/forms/time")
+async def time_forms(request: Request):
+    """Time forms management page"""
+    try:
+        menu_context = await get_menu_context()
+        return templates.TemplateResponse("forms/time.html", {
+            "request": request,
+            **menu_context
+        })
+    except Exception as e:
+        print(f"Error loading time forms: {e}")
+        return RedirectResponse("/", status_code=303)
+
+@app.get("/forms/fuel")
+async def fuel_tracking(request: Request):
+    """Fuel tracking management page"""
+    try:
+        menu_context = await get_menu_context()
+        return templates.TemplateResponse("forms/fuel.html", {
+            "request": request,
+            **menu_context
+        })
+    except Exception as e:
+        print(f"Error loading fuel tracking: {e}")
+        return RedirectResponse("/", status_code=303)
 
 # Health check and service status endpoints
 @app.get("/health")
