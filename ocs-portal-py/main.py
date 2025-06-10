@@ -59,7 +59,7 @@ except Exception as e:
 # Homepage route
 @app.get("/")
 async def home(request: Request, db: Session = Depends(get_db)):
-    """Home page with editable system message"""
+    """Home page with editable system message and dashboard"""
     try:
         # Get the homepage message from database
         homepage_message = db.query(SystemMessage).filter(
@@ -84,14 +84,138 @@ async def home(request: Request, db: Session = Depends(get_db)):
         homepage_message = type('obj', (object,), {
             'content': 'You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to "Tickets->Open Tickets" to check these.',
             'updated_at': None
-        })()    # Get menu visibility context
+        })()
+      # Gather dashboard data
+    try:
+        dashboard_data = await get_dashboard_data(db)
+    except Exception as e:
+        print(f"Error getting dashboard data: {e}")
+        # Provide fallback dashboard data
+        dashboard_data = {
+            "tickets": {"tech_open": 0, "tech_closed": 0, "maintenance_open": 0, "maintenance_closed": 0, "total_open": 0, "total_closed": 0},
+            "buildings": {"total_buildings": 0, "total_rooms": 0, "buildings_with_rooms": 0},
+            "users": {"total_users": 0, "admin_users": 0, "regular_users": 0},
+            "recent_activity": [],
+            "service_health": {}
+        }
+    
+    # Get menu visibility context
     menu_context = await get_menu_context()
     
     return templates.TemplateResponse("index.html", {
         "request": request,
         "homepage_message": homepage_message,
+        "dashboard_data": dashboard_data,
         **menu_context
     })
+
+async def get_dashboard_data(db: Session):
+    """Gather data for dashboard charts"""
+    try:
+        dashboard = {
+            "tickets": {
+                "tech_open": 0,
+                "tech_closed": 0,
+                "maintenance_open": 0,
+                "maintenance_closed": 0,
+                "total_open": 0,
+                "total_closed": 0
+            },
+            "buildings": {
+                "total_buildings": 0,
+                "total_rooms": 0,
+                "buildings_with_rooms": 0
+            },
+            "users": {
+                "total_users": 0,
+                "admin_users": 0,
+                "regular_users": 0
+            },
+            "recent_activity": [],
+            "ticket_trends": [],
+            "service_health": {}
+        }
+        
+        # Get ticket data from APIs
+        try:
+            tech_open = await tickets_service.get_tech_tickets("open")
+            tech_closed = await tickets_service.get_tech_tickets("closed")
+            maintenance_open = await tickets_service.get_maintenance_tickets("open")
+            maintenance_closed = await tickets_service.get_maintenance_tickets("closed")
+            
+            dashboard["tickets"]["tech_open"] = len(tech_open) if tech_open else 0
+            dashboard["tickets"]["tech_closed"] = len(tech_closed) if tech_closed else 0
+            dashboard["tickets"]["maintenance_open"] = len(maintenance_open) if maintenance_open else 0
+            dashboard["tickets"]["maintenance_closed"] = len(maintenance_closed) if maintenance_closed else 0
+            dashboard["tickets"]["total_open"] = dashboard["tickets"]["tech_open"] + dashboard["tickets"]["maintenance_open"]
+            dashboard["tickets"]["total_closed"] = dashboard["tickets"]["tech_closed"] + dashboard["tickets"]["maintenance_closed"]
+            
+            # Get recent activity from recent tickets
+            recent_tickets = []
+            if tech_open:
+                recent_tickets.extend(tech_open[:5])
+            if maintenance_open:
+                recent_tickets.extend(maintenance_open[:5])
+            
+            # Sort by creation date and take most recent
+            if recent_tickets:
+                sorted_tickets = sorted(recent_tickets, 
+                                      key=lambda x: x.get('created_at', ''), 
+                                      reverse=True)[:5]
+                dashboard["recent_activity"] = [
+                    {
+                        "type": "ticket",
+                        "title": ticket.get('title', 'Unknown'),
+                        "category": "Tech" if "tech" in str(ticket.get('id', '')).lower() else "Maintenance",
+                        "created_at": ticket.get('created_at', 'Unknown'),
+                        "status": ticket.get('status', 'open')
+                    }
+                    for ticket in sorted_tickets
+                ]
+                
+        except Exception as e:
+            print(f"Error fetching ticket data for dashboard: {e}")
+        
+        # Get building and room data from database
+        try:
+            buildings = db.query(Building).all()
+            rooms = db.query(Room).all()
+            
+            dashboard["buildings"]["total_buildings"] = len(buildings)
+            dashboard["buildings"]["total_rooms"] = len(rooms)
+            dashboard["buildings"]["buildings_with_rooms"] = len([b for b in buildings if b.rooms])
+            
+        except Exception as e:
+            print(f"Error fetching building data for dashboard: {e}")
+        
+        # Get user data from database
+        try:
+            users = db.query(User).all()
+            dashboard["users"]["total_users"] = len(users)
+            dashboard["users"]["admin_users"] = len([u for u in users if u.roles and 'admin' in u.roles.lower()])
+            dashboard["users"]["regular_users"] = dashboard["users"]["total_users"] - dashboard["users"]["admin_users"]
+            
+        except Exception as e:
+            print(f"Error fetching user data for dashboard: {e}")
+        
+        # Get service health
+        try:
+            dashboard["service_health"] = await health_checker.get_service_health()
+        except Exception as e:
+            print(f"Error fetching service health for dashboard: {e}")
+            dashboard["service_health"] = {}
+        
+        return dashboard
+        
+    except Exception as e:
+        print(f"Error gathering dashboard data: {e}")
+        return {
+            "tickets": {"tech_open": 0, "tech_closed": 0, "maintenance_open": 0, "maintenance_closed": 0, "total_open": 0, "total_closed": 0},
+            "buildings": {"total_buildings": 0, "total_rooms": 0, "buildings_with_rooms": 0},
+            "users": {"total_users": 0, "admin_users": 0, "regular_users": 0},
+            "recent_activity": [],
+            "service_health": {}
+        }
 
 @app.post("/update-homepage-message")
 def update_homepage_message(

@@ -1,3 +1,0 @@
-title,description,issue_type,status,school,room,tag,created_by
-Test Import Debug,This is a test description for debugging the CSV import,hardware,open,Debug School,Room 999,DEBUG001,Debug User
-Test Import 2,Another test description with building and room data,software,new,Test High School,Computer Lab,DEBUG002,Test Admin
