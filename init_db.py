@@ -16,7 +16,8 @@ def create_databases():
         "ocs_portal",
         "ocs_tickets", 
         "ocs_inventory",
-        "ocs_requisition"
+        "ocs_requisition",
+        "ocs_manage"
     ]
     
     # Connect to PostgreSQL server

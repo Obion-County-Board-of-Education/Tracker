@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Ticket Update</title>
+</head>
+<body>
+    <h2>Test Tech Ticket Update</h2>
+    <form action="http://localhost:8003/tickets/tech/1/update" method="POST">
+        <label for="status">Status:</label>
+        <select name="status" id="status" required>
+            <option value="new">New</option>
+            <option value="in_progress">In Progress</option>
+            <option value="closed">Closed</option>
+        </select>
+        <br><br>
+        
+        <label for="update_message">Update Message:</label>
+        <textarea name="update_message" id="update_message" rows="4" cols="50" placeholder="Enter update message here...">Testing comprehensive update functionality with status change and message</textarea>
+        <br><br>
+        
+        <button type="submit">Update Ticket</button>
+    </form>
+</body>
+</html>

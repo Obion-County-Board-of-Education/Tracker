@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 import enum
+from .timezone_utils import central_now
 
 Base = declarative_base()
 
@@ -26,8 +27,8 @@ class Building(Base):
     __tablename__ = 'buildings'
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
     rooms = relationship("Room", back_populates="building")
     users = relationship("User", secondary=user_buildings, back_populates="buildings")
 
@@ -60,8 +61,8 @@ class TechTicket(Base):
     tag = Column(String)
     issue_type = Column(String)
     created_by = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
 
 class MaintenanceTicket(Base):
     __tablename__ = 'maintenance_tickets'
@@ -74,8 +75,19 @@ class MaintenanceTicket(Base):
     tag = Column(String)
     issue_type = Column(String)
     created_by = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
+
+class TicketUpdate(Base):
+    __tablename__ = 'ticket_updates'
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_type = Column(String, nullable=False)  # 'tech' or 'maintenance'
+    ticket_id = Column(Integer, nullable=False)
+    status_from = Column(String)  # Previous status
+    status_to = Column(String)    # New status
+    update_message = Column(String)  # Update description
+    updated_by = Column(String, nullable=False)
+    created_at = Column(DateTime, default=central_now)
 
 class SystemMessage(Base):
     __tablename__ = 'system_messages'
@@ -83,5 +95,40 @@ class SystemMessage(Base):
     message_type = Column(String, nullable=False)  # 'homepage', 'announcement', etc.
     content = Column(String, nullable=False)
     created_by = Column(String, default='System Admin')
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
+
+class Requisition(Base):
+    __tablename__ = 'requisitions'
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String)
+    department = Column(String)
+    requested_by = Column(String, nullable=False)
+    status = Column(String, default='pending')  # pending, approved, rejected, ordered
+    estimated_cost = Column(String)  # Store as string to avoid decimal issues
+    justification = Column(String)
+    priority = Column(String, default='normal')  # low, normal, high, urgent
+    building_id = Column(Integer, ForeignKey('buildings.id'), nullable=True)
+    approved_by = Column(String, nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
+
+class PurchaseOrder(Base):
+    __tablename__ = 'purchase_orders'
+    id = Column(Integer, primary_key=True, index=True)
+    po_number = Column(String, unique=True, nullable=False)
+    requisition_id = Column(Integer, ForeignKey('requisitions.id'), nullable=True)
+    vendor_name = Column(String, nullable=False)
+    vendor_contact = Column(String)
+    total_amount = Column(String)  # Store as string to avoid decimal issues
+    status = Column(String, default='draft')  # draft, sent, received, completed, cancelled
+    description = Column(String)
+    delivery_address = Column(String)
+    created_by = Column(String, nullable=False)
+    approved_by = Column(String, nullable=True)
+    sent_date = Column(DateTime, nullable=True)
+    received_date = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)

@@ -4,14 +4,10 @@
     <div class="header-content">
         <h1><i class="fa-solid fa-tools"></i> Maintenance Request #{{ ticket.id }}</h1>
         <p class="header-subtitle">View and manage maintenance request details</p>
-    </div>
-    <div class="header-actions">
+    </div>    <div class="header-actions">
         <a href="/tickets/maintenance/open" class="btn btn-outline">
             <i class="fa fa-arrow-left"></i> Back to Requests
         </a>
-        <button class="btn btn-primary" onclick="editTicket({{ ticket.id }})">
-            <i class="fa fa-edit"></i> Edit Request
-        </button>
     </div>
 </div>
 
@@ -19,14 +15,13 @@
     <div class="ticket-detail-card">
         <div class="ticket-header">
             <div class="ticket-info">
-                <h2 class="ticket-title">{{ ticket.title }}</h2>
-                <div class="ticket-meta">
+                <h2 class="ticket-title">{{ ticket.title }}</h2>                <div class="ticket-meta">
                     <span class="status-badge status-{{ ticket.status }}">
-                        {% if ticket.status == 'new' %}🆕 New
+                        {% if ticket.status == 'open' %}📂 Open
+                        {% elif ticket.status == 'new' %}🆕 New
                         {% elif ticket.status == 'assigned' %}👤 Assigned
                         {% elif ticket.status == 'in_progress' %}🔧 In Progress
-                        {% elif ticket.status == 'resolved' %}✅ Resolved
-                        {% elif ticket.status == 'closed' %}📁 Closed
+                        {% elif ticket.status == 'closed' %}🔒 Closed
                         {% else %}🆕 New{% endif %}
                     </span>
                     <span class="ticket-type">
@@ -51,15 +46,13 @@
                     <div class="detail-item">
                         <label>Request ID:</label>
                         <span>#{{ ticket.id }}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Status:</label>
-                        <span class="status-badge status-{{ ticket.status }}">
-                            {% if ticket.status == 'new' %}🆕 New
+                    </div>                    <div class="detail-item">
+                        <label>Status:</label>                        <span class="status-badge status-{{ ticket.status }}">
+                            {% if ticket.status == 'open' %}📂 Open
+                            {% elif ticket.status == 'new' %}🆕 New
                             {% elif ticket.status == 'assigned' %}👤 Assigned
                             {% elif ticket.status == 'in_progress' %}🔧 In Progress
-                            {% elif ticket.status == 'resolved' %}✅ Resolved
-                            {% elif ticket.status == 'closed' %}📁 Closed
+                            {% elif ticket.status == 'closed' %}🔒 Closed
                             {% else %}🆕 New{% endif %}
                         </span>
                     </div>
@@ -104,23 +97,85 @@
                         <span>{{ ticket.room }}</span>
                     </div>
                 </div>
-            </div>
-
-            <div class="detail-section">
+            </div>            <div class="detail-section">
                 <h3><i class="fa fa-clipboard-list"></i> Request Description</h3>
                 <div class="description-content">
                     <p>{{ ticket.description }}</p>
                 </div>
             </div>
 
+            {% if updates %}
             <div class="detail-section">
+                <h3><i class="fa fa-history"></i> Update History</h3>
+                <div class="updates-container">
+                    {% for update in updates %}
+                    <div class="update-item">
+                        <div class="update-header">
+                            <div class="update-meta">
+                                <span class="update-timestamp">{{ update.created_at }}</span>
+                                <span class="update-by">by {{ update.updated_by }}</span>
+                            </div>
+                            {% if update.status_from and update.status_to %}
+                            <div class="status-change">                                <span class="status-badge status-{{ update.status_from }}">
+                                    {% if update.status_from == 'open' %}📂 Open
+                                    {% elif update.status_from == 'new' %}🆕 New
+                                    {% elif update.status_from == 'assigned' %}👤 Assigned
+                                    {% elif update.status_from == 'in_progress' %}⚙️ In Progress                                    {% elif update.status_from == 'closed' %}🔒 Closed
+                                    {% else %}📝 {{ update.status_from.title() }}{% endif %}
+                                </span>
+                                <i class="fa fa-arrow-right status-arrow"></i>                                <span class="status-badge status-{{ update.status_to }}">
+                                    {% if update.status_to == 'open' %}📂 Open
+                                    {% elif update.status_to == 'new' %}🆕 New
+                                    {% elif update.status_to == 'assigned' %}👤 Assigned
+                                    {% elif update.status_to == 'in_progress' %}⚙️ In Progress
+                                    {% elif update.status_to == 'closed' %}🔒 Closed
+                                    {% elif update.status_to == 'closed' %}🔒 Closed
+                                    {% else %}📝 {{ update.status_to.title() }}{% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if update.update_message %}
+                        <div class="update-message">
+                            <p>{{ update.update_message }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}<div class="detail-section">
                 <h3><i class="fa fa-cogs"></i> Actions</h3>
-                <div class="action-buttons">
-                    {% if ticket.status != 'closed' %}
-                    <button class="btn btn-danger" onclick="updateStatus({{ ticket.id }}, 'closed')">
-                        <i class="fa fa-times"></i> Close Request
+                <div class="action-buttons">                <button class="btn btn-primary" onclick="toggleUpdateForm()">
+                        <i class="fa fa-edit"></i> Update Request
                     </button>
-                    {% endif %}
+                </div>
+                <!-- Update Form (initially hidden) -->
+                <div id="updateForm" class="update-form" style="display: none;">
+                    <h4><i class="fa fa-edit"></i> Update Maintenance Request</h4>
+                    <form method="POST" action="/tickets/maintenance/{{ ticket.id }}/update">
+                        <div class="form-group">
+                            <label for="status">Update Status:</label>                            <select name="status" id="status" class="form-control" required>
+                                <option value="">Select Status</option>
+                                <option value="new" {% if ticket.status == 'new' %}selected{% endif %}>🆕 New</option>
+                                <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>📂 Open</option>
+                                <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>🔧 In Progress</option>
+                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>🔒 Closed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="update_message">Update Message:</label>
+                            <textarea name="update_message" id="update_message" class="form-control" rows="4" placeholder="Enter details about this update (optional)..."></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa fa-save"></i> Save Update
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="toggleUpdateForm()">
+                                <i class="fa fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -161,7 +216,7 @@
 }
 
 .ticket-detail-container {
-    max-width: 1200px;
+    max-width: 95%;
     margin: 0 auto;
 }
 
@@ -200,6 +255,12 @@
     white-space: nowrap;
 }
 
+.status-badge.status-open {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
 .status-badge.status-new {
     background: #e7f3ff;
     color: #004085;
@@ -216,12 +277,6 @@
     background: #d1ecf1;
     color: #0c5460;
     border: 1px solid #bee5eb;
-}
-
-.status-badge.status-resolved {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
 }
 
 .status-badge.status-closed {
@@ -362,10 +417,139 @@
     border: 2px solid #6c757d;
 }
 
-.btn-outline:hover {
-    background-color: #5a6268;
+.btn-outline:hover {    background-color: #5a6268;
     border-color: #545b62;
     color: white;
+}
+
+/* Override static CSS for maintenance ticket detail buttons */
+.action-buttons .btn-primary,
+.form-actions .btn-success,
+.form-actions .btn-outline {
+    background: #28a745 !important;
+    background-image: none !important; /* Override any gradient */
+    color: white !important;
+    border: 1px solid #28a745 !important;
+}
+
+.action-buttons .btn-primary:hover,
+.form-actions .btn-success:hover,
+.form-actions .btn-outline:hover {
+    background: #218838 !important;
+    background-image: none !important; /* Override any gradient */
+    border-color: #218838 !important;
+    color: white !important;
+}
+
+.updates-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.update-item {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.update-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.update-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.update-timestamp {
+    font-weight: 600;
+    color: #495057;
+}
+
+.update-by {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.status-change {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-arrow {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.update-message {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.update-message p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.update-form {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.update-form h4 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.update-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.update-form label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.update-form .form-control {
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+.update-form .form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.update-form .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
 }
 
 @media (max-width: 768px) {
@@ -394,26 +578,13 @@
 </style>
 
 <script>
-function editTicket(ticketId) {
-    // TODO: Implement ticket editing
-    alert(`Edit maintenance request #${ticketId} - This will redirect to the edit form`);
-}
-
-function updateStatus(ticketId, newStatus) {
-    if (confirm(`Update maintenance request #${ticketId} status to "${newStatus}"?`)) {
-        // Create a form and submit it
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/tickets/maintenance/${ticketId}/update`;
-        
-        const statusInput = document.createElement('input');
-        statusInput.type = 'hidden';
-        statusInput.name = 'status';
-        statusInput.value = newStatus;
-        
-        form.appendChild(statusInput);
-        document.body.appendChild(form);
-        form.submit();
+function toggleUpdateForm() {
+    const form = document.getElementById('updateForm');
+    if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+        setTimeout(() => { form.classList.add('form-visible'); }, 10);    } else {
+        form.classList.remove('form-visible');
+        setTimeout(() => { form.style.display = 'none'; }, 300);
     }
 }
 </script>

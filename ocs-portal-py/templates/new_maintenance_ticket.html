@@ -31,17 +31,13 @@
             <div class="form-group">
                 <label for="issue_type" class="form-label">
                     Type of Request <span class="required">*</span>
-                </label>
-                <select id="issue_type" name="issue_type" class="form-select" required>
+                </label>                <select id="issue_type" name="issue_type" class="form-select" required>
                     <option value="">Select the type of maintenance needed</option>
-                    <option value="plumbing">🚰 Plumbing (faucets, toilets, pipes, water issues)</option>
                     <option value="electrical">⚡ Electrical (lights, outlets, wiring, power)</option>
-                    <option value="hvac">🌡️ HVAC (heating, cooling, ventilation, air quality)</option>
                     <option value="grounds">🌿 Grounds (landscaping, outdoor areas, parking)</option>
-                    <option value="cleaning">🧹 Cleaning (spills, deep cleaning, sanitization)</option>
-                    <option value="security">🔒 Security (locks, doors, windows, safety)</option>
-                    <option value="furniture">🪑 Furniture (desks, chairs, cabinets, fixtures)</option>
-                    <option value="painting">🎨 Painting (walls, touch-ups, refinishing)</option>
+                    <option value="hvac">🌡️ HVAC (heating, cooling, ventilation, air quality)</option>
+                    <option value="plumbing">🚰 Plumbing (faucets, toilets, pipes, water issues)</option>
+                    <option value="structure">🏗️ Structure (walls, floors, ceilings, building repairs)</option>
                     <option value="other">❓ Other (describe in details below)</option>
                 </select>
                 <div class="help-text">Choose the category that best describes your maintenance need</div>
@@ -88,16 +84,6 @@
                     <div class="help-text">Choose the specific room, area, or location</div>
                 </div>
             </div>
-
-            <div class="form-group">
-                <label for="specific_location" class="form-label">
-                    Specific Location Details
-                </label>
-                <input type="text" id="specific_location" name="specific_location" class="form-input" 
-                       placeholder="e.g., 'Near the whiteboard', 'By the window', 'Main entrance'" 
-                       maxlength="100">
-                <div class="help-text">Provide additional details to help locate the exact spot</div>
-            </div>
         </div>
 
         <!-- Request Details Section -->
@@ -118,76 +104,10 @@
                     Detailed information helps us bring the right tools and schedule appropriately. 
                     <span id="charCount">0/2000 characters</span>
                 </div>
-            </div>            <div class="form-group">
-                <label for="access_info" class="form-label">Access Information</label>
-                <select id="access_info" name="access_info" class="form-select">
-                    <option value="normal">Normal access during business hours</option>
-                    <option value="key_needed">Key/access card required</option>
-                    <option value="occupied">Area is usually occupied</option>
-                    <option value="after_hours">Best accessed after hours</option>
-                    <option value="contact_first">Contact me before accessing</option>
-                </select>
-                <div class="help-text">How can maintenance staff access the location?</div>
             </div>
-
-            <div class="form-group">
-                <label for="preferred_time" class="form-label">Preferred Completion Time</label>
-                <select id="preferred_time" name="preferred_time" class="form-select">
-                    <option value="anytime">Anytime - no preference</option>
-                    <option value="business_hours">During business hours (8 AM - 4 PM)</option>
-                    <option value="after_hours">After hours (4 PM - 8 AM)</option>
-                    <option value="weekend">Weekends preferred</option>
-                    <option value="asap">As soon as possible</option>
-                </select>
-                <div class="help-text">When would be the best time to complete this work?</div>
-            </div>
-        </div>
-
-        <!-- Contact Information Section -->
-        <div class="form-section">
-            <div class="section-header">
-                <h3><i class="fa fa-user"></i> Contact Information</h3>
-                <p>How can we reach you for updates or to schedule access?</p>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="submitted_by" class="form-label">
-                        Your Name <span class="required">*</span>
-                    </label>
-                    <input type="text" id="submitted_by" name="submitted_by" class="form-input" 
-                           placeholder="Your full name" required maxlength="50">
-                </div>
-                
-                <div class="form-group">
-                    <label for="contact_email" class="form-label">
-                        Email Address <span class="required">*</span>
-                    </label>
-                    <input type="email" id="contact_email" name="contact_email" class="form-input" 
-                           placeholder="your.email@domain.com" required maxlength="100">
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="phone" class="form-label">Phone Number</label>
-                    <input type="tel" id="phone" name="phone" class="form-input" 
-                           placeholder="(555) 123-4567" maxlength="20">
-                    <div class="help-text">Optional - for urgent issues or scheduling</div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="department" class="form-label">Department/Role</label>
-                    <input type="text" id="department" name="department" class="form-input" 
-                           placeholder="e.g., 'Teacher - 3rd Grade', 'Office Staff'" maxlength="50">
-                    <div class="help-text">Helps us understand the impact and urgency</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Submit Section -->
+        </div><!-- Submit Section -->
         <div class="form-actions">
-            <button type="button" class="btn btn-outline" onclick="history.back()">
+            <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
                 <i class="fa fa-arrow-left"></i> Cancel
             </button>
             <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -356,25 +276,39 @@
     white-space: nowrap;
 }
 
-.btn-primary {
-    background-color: #28a745;
+.form-actions button.btn.btn-primary {
+    background: #28a745;
     color: white;
+    border: none;
 }
 
-.btn-primary:hover {
-    background-color: #218838;
+.form-actions button.btn.btn-primary:hover {
+    background: #218838;
     transform: translateY(-1px);
 }
 
 .btn-outline {
     background-color: transparent;
-    color: #ffffff;
-    border: 2px solid #e9ecef;
+    color: #28a745;
+    border: 2px solid #28a745;
 }
 
 .btn-outline:hover {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.form-actions button.btn.btn-outline-secondary {
+    background: #28a745;
+    color: white;
+    border: 2px solid #28a745;
+}
+
+.form-actions button.btn.btn-outline-secondary:hover {
+    background: #218838;
+    color: white;
+    border-color: #218838;
 }
 
 .error-message {
@@ -547,13 +481,32 @@ document.addEventListener('DOMContentLoaded', function() {
         
         errorMsg.textContent = message;
     }
-    
-    function clearError(formGroup) {
+      function clearError(formGroup) {
         formGroup.classList.remove('error');
         const errorMsg = formGroup.querySelector('.error-message');
         if (errorMsg) {
             errorMsg.style.display = 'none';
         }
+    }    // Handle hover effects for green buttons
+    const cancelBtn = document.querySelector('.form-actions button.btn-outline-secondary');
+    const submitBtn = document.querySelector('.form-actions button.btn-primary');
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('mouseenter', function() {
+            this.style.background = '#218838';
+        });
+        cancelBtn.addEventListener('mouseleave', function() {
+            this.style.background = '#28a745';
+        });
+    }
+    
+    if (submitBtn) {
+        submitBtn.addEventListener('mouseenter', function() {
+            this.style.background = '#218838';
+        });
+        submitBtn.addEventListener('mouseleave', function() {
+            this.style.background = '#28a745';
+        });
     }
 });
 </script>

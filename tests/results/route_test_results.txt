@@ -1,0 +1,7 @@
+=== User and Building Routes Test Results ===
+Test run at: 2025-06-06 21:47:47
+
+❌ /users - Error (500)
+❌ /users/list - Error (500)
+❌ /buildings - Error (404)
+❌ /buildings/list - Error (404)

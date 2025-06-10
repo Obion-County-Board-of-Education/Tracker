@@ -120,11 +120,9 @@
                     <span id="charCount">0/2000 characters</span>
                 </div>
             </div>
-        </div>
-
-        <!-- Submit Section -->
+        </div>        <!-- Submit Section -->
         <div class="form-actions">
-            <button type="button" class="btn btn-outline" onclick="history.back()">
+            <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
                 <i class="fa fa-arrow-left"></i> Cancel
             </button>
             <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -305,13 +303,26 @@
 
 .btn-outline {
     background-color: transparent;
+    color: #007bff;
+    border: 2px solid #007bff;
+}
+
+.btn-outline:hover {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
     color: #ffffff;
     border: 2px solid #e9ecef;
 }
 
-.btn-outline:hover {
-    background-color: #f8f9fa;
-    border-color: #dee2e6;
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
 }
 
 .error-message {

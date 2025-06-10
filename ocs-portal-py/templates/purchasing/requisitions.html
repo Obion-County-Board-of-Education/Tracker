@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="content-header">
+    <div class="header-content">
+        <h1><i class="fa-solid fa-file-invoice"></i> Requisitions</h1>
+        <p class="header-subtitle">Manage and track purchase requisitions</p>
+    </div>
+    <div class="header-actions">
+        <a href="/purchasing/requisitions/new" class="btn btn-primary">
+            <i class="fa fa-plus"></i> New Requisition
+        </a>
+    </div>
+</div>
+
+<div class="purchasing-container">
+    <div class="filters-section">
+        <div class="filter-tabs">
+            <div class="tab-navigation">
+                <a href="/purchasing/requisitions?status=pending" class="filter-tab">
+                    <i class="fa fa-clock"></i> Pending
+                </a>
+                <a href="/purchasing/requisitions?status=approved" class="filter-tab">
+                    <i class="fa fa-check"></i> Approved
+                </a>
+                <a href="/purchasing/requisitions?status=rejected" class="filter-tab">
+                    <i class="fa fa-times"></i> Rejected
+                </a>
+                <a href="/purchasing/requisitions" class="filter-tab active">
+                    <i class="fa fa-list"></i> All Requisitions
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="requisitions-list">
+        {% if requisitions %}
+            {% for requisition in requisitions %}
+            <div class="requisition-card">
+                <div class="requisition-header">
+                    <h3 class="requisition-title">{{ requisition.title }}</h3>
+                    <div class="requisition-badges">
+                        <span class="badge status-{{ requisition.status }}">
+                            {{ requisition.status|title }}
+                        </span>
+                        <span class="badge priority-{{ requisition.priority }}">
+                            {{ requisition.priority|title }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="requisition-details">
+                    <div class="detail-item">
+                        <strong>Department:</strong> {{ requisition.department }}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Requested by:</strong> {{ requisition.requested_by }}
+                    </div>
+                    {% if requisition.estimated_cost %}
+                    <div class="detail-item">
+                        <strong>Estimated Cost:</strong> ${{ requisition.estimated_cost }}
+                    </div>
+                    {% endif %}
+                    <div class="detail-item">
+                        <strong>Created:</strong> {{ requisition.created_at }}
+                    </div>
+                </div>
+                
+                {% if requisition.description %}
+                <div class="requisition-description">
+                    <p>{{ requisition.description }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="requisition-actions">
+                    <button class="btn btn-sm btn-outline" onclick="viewRequisition({{ requisition.id }})">
+                        <i class="fa fa-eye"></i> View
+                    </button>
+                    {% if requisition.status == 'pending' %}
+                    <button class="btn btn-sm btn-success" onclick="approveRequisition({{ requisition.id }})">
+                        <i class="fa fa-check"></i> Approve
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fa fa-file-invoice fa-3x"></i>
+                <h3>No Requisitions Found</h3>
+                <p>Create your first requisition to get started.</p>
+                <a href="/purchasing/requisitions/new" class="btn btn-primary">
+                    <i class="fa fa-plus"></i> Create Requisition
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.purchasing-container {
+    max-width: 95%;
+    margin: 0 auto;
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-content h1 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-subtitle {
+    margin: 0;
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+.filters-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.filter-tabs {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.tab-navigation {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #6c757d;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.filter-tab:hover {
+    background: #f8f9fa;
+    color: #495057;
+}
+
+.filter-tab.active {
+    background: #007bff;
+    color: white;
+}
+
+.requisitions-list {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.requisition-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    border-left: 4px solid #007bff;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.requisition-card:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.requisition-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    gap: 1rem;
+}
+
+.requisition-title {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.requisition-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background: #d1edff;
+    color: #004085;
+}
+
+.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.priority-low {
+    background: #e7f3ff;
+    color: #0366d6;
+}
+
+.priority-normal {
+    background: #f6f8fa;
+    color: #586069;
+}
+
+.priority-high {
+    background: #fff5b4;
+    color: #735c0f;
+}
+
+.priority-urgent {
+    background: #ffdce0;
+    color: #86181d;
+}
+
+.requisition-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 0 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detail-item strong {
+    color: #6c757d;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.requisition-description {
+    padding: 0 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.requisition-description p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.6;
+}
+
+.requisition-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    margin-bottom: 1rem;
+    color: #dee2e6;
+}
+
+.empty-state h3 {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.empty-state p {
+    margin-bottom: 2rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #1e7e34;
+}
+
+.btn-outline {
+    background: transparent;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.btn-outline:hover {
+    background: #f8f9fa;
+    color: #495057;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+</style>
+
+<script>
+function viewRequisition(id) {
+    // Navigate to requisition detail view
+    window.location.href = `/purchasing/requisitions/${id}`;
+}
+
+function approveRequisition(id) {
+    if (confirm('Are you sure you want to approve this requisition?')) {
+        // Submit approval
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/purchasing/requisitions/${id}/approve`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}
