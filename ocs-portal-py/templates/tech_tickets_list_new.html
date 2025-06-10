@@ -116,7 +116,7 @@
         {% else %}
             <div class="empty-state">                <div class="empty-icon">
                     <i class="fa fa-clipboard-list"></i>
-                </div><h3>No tickets found</h3>
+                </div>                <h3>No tickets found</h3>
                 <p>
                     {% if status_filter == 'open' %}
                         There are no open technology tickets at the moment.
@@ -124,9 +124,6 @@
                         No technology tickets have been created yet.
                     {% endif %}
                 </p>
-                <a href="/tickets/tech/new" class="btn btn-primary">
-                    <i class="fa fa-plus"></i> Create First Ticket
-                </a>
             </div>
         {% endif %}
     </div>

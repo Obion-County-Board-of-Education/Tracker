@@ -125,8 +125,7 @@
             <div class="empty-state">
                 <div class="empty-icon">
                     <i class="fa fa-tools"></i>
-                </div>
-                <h3>No maintenance requests found</h3>
+                </div>                <h3>No maintenance requests found</h3>
                 <p>
                     {% if status_filter == 'open' %}
                         There are no open maintenance requests at the moment.
@@ -135,9 +134,6 @@
                     {% endif %}
                     Click the button above to submit a new maintenance request.
                 </p>
-                <a href="/tickets/maintenance/new" class="btn btn-primary">
-                    <i class="fa fa-plus"></i> Submit First Request
-                </a>
             </div>
         {% endif %}
     </div>
