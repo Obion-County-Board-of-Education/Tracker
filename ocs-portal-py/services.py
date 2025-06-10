@@ -314,6 +314,20 @@ class TicketsService:
         except Exception as e:
             print(f"Error importing maintenance tickets: {e}")
             raise Exception(f"Error importing maintenance tickets: {str(e)}")
+    
+    async def get_closed_tickets_count(self, ticket_type: str) -> int:
+        """Get count of closed tickets for a specific type (tech or maintenance)"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                endpoint = f"{self.base_url}/api/tickets/{ticket_type}"
+                params = {"status_filter": "closed"}
+                response = await client.get(endpoint, params=params)
+                response.raise_for_status()
+                tickets = response.json()
+                return len(tickets)
+        except Exception as e:
+            print(f"Error fetching closed {ticket_type} tickets count: {e}")
+            return 0
             
 # Create service instances
 tickets_service = TicketsService()
@@ -452,6 +466,6 @@ class PurchasingService:
             print(f"Error updating purchase order status: {e}")
             return False
 
-# Create service instances
-tickets_service = TicketsService()
+# Create all service instances
 purchasing_service = PurchasingService()
+inventory_service = InventoryService()

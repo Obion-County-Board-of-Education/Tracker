@@ -42,8 +42,7 @@
                 <i class="fa fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search tickets by title, school, or created by..." />
             </div>
-            
-            <div class="filter-controls">
+              <div class="filter-controls">
                 <select id="buildingFilter" class="filter-select">
                     <option value="">All Buildings</option>
                     {% if buildings %}
@@ -54,6 +53,19 @@
                 </select>
             </div>
         </div>
+        
+        <!-- Closed Tickets Counter (only shown on open pages) -->
+        {% if status_filter == 'open' and closed_count is defined %}
+        <div class="closed-tickets-counter">
+            <div class="counter-card">
+                <i class="fa fa-check-circle counter-icon"></i>
+                <div class="counter-content">
+                    <div class="counter-number">{{ closed_count }}</div>
+                    <div class="counter-label">Closed Tickets</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Tickets List -->
@@ -397,6 +409,54 @@
     font-size: 0.9rem;
     background: white;
     min-width: 140px;
+}
+
+/* Closed Tickets Counter Styles */
+.closed-tickets-counter {
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+.counter-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #28a745;
+    transition: all 0.2s ease;
+}
+
+.counter-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.counter-icon {
+    font-size: 1.5rem;
+    color: #28a745;
+}
+
+.counter-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.counter-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+    line-height: 1;
+}
+
+.counter-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
 }
 
 .tickets-list {

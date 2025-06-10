@@ -190,6 +190,7 @@ async def tech_tickets_open(request: Request):
     try:
         tickets = await tickets_service.get_tech_tickets("open")
         buildings = await tickets_service.get_buildings()
+        closed_count = await tickets_service.get_closed_tickets_count("tech")
         
         # Format dates for template display
         for ticket in tickets:
@@ -198,7 +199,8 @@ async def tech_tickets_open(request: Request):
                     created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
                     ticket["created_at"] = created_at
                 except:
-                    ticket["created_at"] = None                    
+                    ticket["created_at"] = None
+                    
             if ticket.get("updated_at"):
                 try:
                     updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
@@ -210,6 +212,7 @@ async def tech_tickets_open(request: Request):
         print(f"Error fetching tickets: {e}")
         tickets = []
         buildings = []
+        closed_count = 0
     
     # Get menu context
     menu_context = await get_menu_context()
@@ -218,6 +221,7 @@ async def tech_tickets_open(request: Request):
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
+        "closed_count": closed_count,
         "page_title": "Open Technology Tickets",
         "status_filter": "open",
         "current_datetime": datetime.now(),
@@ -446,6 +450,7 @@ async def maintenance_tickets_open(request: Request):
     try:
         tickets = await tickets_service.get_maintenance_tickets("open")
         buildings = await tickets_service.get_buildings()
+        closed_count = await tickets_service.get_closed_tickets_count("maintenance")
         
         # Format dates for template display
         for ticket in tickets:
@@ -474,8 +479,7 @@ async def maintenance_tickets_open(request: Request):
                     date_str = ticket["updated_at"]
                     # Add seconds if missing
                     if len(date_str) == 16 and 'T' in date_str:
-                        date_str += ":00"
-                    # Remove Z timezone and add UTC offset
+                        date_str += ":00"                    # Remove Z timezone and add UTC offset
                     date_str = date_str.replace('Z', '+00:00')
                     updated_at = datetime.fromisoformat(date_str)
                     ticket["updated_at"] = updated_at
@@ -489,13 +493,16 @@ async def maintenance_tickets_open(request: Request):
         print(f"Error fetching tickets: {e}")
         tickets = []
         buildings = []
-      # Get menu context
+        closed_count = 0
+        
+    # Get menu context
     menu_context = await get_menu_context()
     
     return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
+        "closed_count": closed_count,
         "page_title": "Open Maintenance Requests", 
         "status_filter": "open",
         "current_datetime": datetime.now(),
