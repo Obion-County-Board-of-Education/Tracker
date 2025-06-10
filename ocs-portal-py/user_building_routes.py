@@ -232,6 +232,70 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
         
         return RedirectResponse("/buildings/list", status_code=303)
 
+    @app.get("/buildings/edit/{building_id}")
+    async def edit_building_form(request: Request, building_id: int, db: Session = Depends(get_db)):
+        """Display edit form for a building"""
+        print(f"📍 /buildings/edit/{building_id} route accessed")
+        try:
+            building = db.query(Building).filter(Building.id == building_id).first()
+            if building:
+                building_data = {
+                    "id": building.id,
+                    "name": building.name
+                }
+            else:
+                building_data = {"id": building_id, "name": ""}
+        except Exception as e:
+            print(f"Database error: {e}")
+            building_data = {"id": building_id, "name": ""}
+        
+        return await render_template("edit_building.html", {
+            "request": request, 
+            "building": building_data
+        })
+
+    @app.post("/buildings/edit/{building_id}")
+    def edit_building_submit(request: Request, building_id: int, name: str = Form(...), db: Session = Depends(get_db)):
+        """Update building in database"""
+        print(f"📍 /buildings/edit/{building_id} submit route accessed")
+        try:
+            building = db.query(Building).filter(Building.id == building_id).first()
+            if building:
+                building.name = name
+                db.commit()
+                print(f"✅ Building updated: {name}")
+            else:
+                print(f"❌ Building not found: {building_id}")
+        except Exception as e:
+            print(f"Error updating building: {e}")
+            db.rollback()
+        
+        return RedirectResponse("/buildings/list", status_code=303)
+
+    @app.post("/buildings/delete/{building_id}")
+    def delete_building_submit(request: Request, building_id: int, db: Session = Depends(get_db)):
+        """Delete building and all its rooms from database"""
+        print(f"📍 /buildings/delete/{building_id} route accessed")
+        try:
+            building = db.query(Building).filter(Building.id == building_id).first()
+            if building:
+                # First delete all rooms in this building
+                rooms = db.query(Room).filter(Room.building_id == building_id).all()
+                for room in rooms:
+                    db.delete(room)
+                
+                # Then delete the building
+                db.delete(building)
+                db.commit()
+                print(f"✅ Building and its rooms deleted: {building.name}")
+            else:
+                print(f"❌ Building not found: {building_id}")
+        except Exception as e:
+            print(f"Error deleting building: {e}")
+            db.rollback()
+        
+        return RedirectResponse("/buildings/list", status_code=303)
+
     @app.get("/buildings/{building_id}/rooms")
     async def building_rooms(request: Request, building_id: int, db: Session = Depends(get_db)):
         """List all rooms in a specific building"""
