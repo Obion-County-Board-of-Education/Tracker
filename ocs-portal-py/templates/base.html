@@ -40,15 +40,13 @@
                         <a href="/inventory/view">View Inventory</a>
                     </div>
                 </div>
-                {% endif %}
-                {% if menu_visibility.manage %}
+                {% endif %}                {% if menu_visibility.manage %}
                 <div class="dropdown">
                     <a href="#" class="nav-link"><i class="fa-solid fa-gears"></i> Manage <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
-                        <a href="/manage/settings">Settings</a>
-                        <a href="/manage/logs">System Logs</a>
-                        <a href="/manage/other">Other Management</a>
-                    </div>                </div>
+                        <a href="/manage/device-register">Device Register</a>
+                    </div>
+                </div>
                 {% endif %}
                 {% if menu_visibility.purchasing %}
                 <div class="dropdown">
