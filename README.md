@@ -11,8 +11,6 @@
   <b>Modular Python FastAPI + PostgreSQL backend for Obion County Schools</b>
 </p>
 
-##Test
-
 ---
 
 ## 🗂️ Project Structure
