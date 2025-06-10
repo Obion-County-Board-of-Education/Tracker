@@ -1,3 +1,0 @@
-title,description,issue_type,school,room,tag,status,created_by
-Test Import Ticket,This is a test ticket for import cycle verification,Software,Central Office,Computer Lab,laptop,new,test.user
-Network Issue,Network connectivity problem in main office,Network,Central Office,Main Office,network,new,admin.user

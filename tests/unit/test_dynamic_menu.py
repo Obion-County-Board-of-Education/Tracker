@@ -1,76 +1,107 @@
 #!/usr/bin/env python3
 """
 Test script for dynamic menu functionality
-This script tests the service health checking and menu visibility features.
+This script tests the menu visibility based on service health status
 """
 
-import asyncio
 import sys
 import os
+import asyncio
+import httpx
 
 # Add the portal directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ocs-portal-py'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'ocs-portal-py'))
 
 from service_health import health_checker
 
-async def test_health_checker():
-    """Test the health checker functionality"""
-    print("🔍 Testing Dynamic Menu Health Checker")
-    print("=" * 50)
+async def test_service_health():
+    """Test individual service health checks"""
+    print("🔍 Testing individual service health...")
+    
+    services = ["tickets", "inventory", "requisition", "manage"]
+    
+    for service in services:
+        try:
+            is_healthy = await health_checker.check_service_health(service)
+            status = "✅ HEALTHY" if is_healthy else "❌ UNHEALTHY"
+            print(f"  {service.capitalize()} Service: {status}")
+        except Exception as e:
+            print(f"  {service.capitalize()} Service: ❌ ERROR - {e}")
+
+async def test_menu_visibility():
+    """Test the menu visibility function"""
+    print("\n🎯 Testing menu visibility...")
     
     try:
-        # Test service health checking
-        print("\n📊 Checking service health...")
-        service_health = await health_checker.get_service_health()
-        
-        for service, is_healthy in service_health.items():
-            status = "✅ Healthy" if is_healthy else "❌ Unhealthy"
-            print(f"  {service}: {status}")
-        
-        # Test menu visibility
-        print("\n🎯 Checking menu visibility...")
         menu_visibility = await health_checker.get_menu_visibility()
+        print("Menu Visibility Results:")
+        for menu_item, visible in menu_visibility.items():
+            status = "👁️  VISIBLE" if visible else "🚫 HIDDEN"
+            print(f"  {menu_item.capitalize()} Menu: {status}")
         
-        for menu_item, is_visible in menu_visibility.items():
-            visibility = "👁️  Visible" if is_visible else "🚫 Hidden"
-            print(f"  {menu_item.title()} Menu: {visibility}")
-        
-        # Test caching
-        print("\n⚡ Testing cache performance...")
-        import time
-        
-        start_time = time.time()
-        await health_checker.get_menu_visibility()
-        cached_time = time.time() - start_time
-        
-        print(f"  Cached response time: {cached_time:.4f} seconds")
-        
-        print("\n✅ Health checker test completed successfully!")
-        return True
-        
+        return menu_visibility
     except Exception as e:
-        print(f"\n❌ Error during health check test: {e}")
-        return False
+        print(f"❌ Error getting menu visibility: {e}")
+        return None
+
+async def test_portal_endpoint():
+    """Test the portal's service status endpoint"""
+    print("\n🌐 Testing portal service status endpoint...")
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get("http://localhost:8003/api/services/status")
+            if response.status_code == 200:
+                data = response.json()
+                print("Portal Service Status:")
+                for service, status in data.items():
+                    emoji = "✅" if status else "❌"
+                    print(f"  {service}: {emoji}")
+            else:
+                print(f"❌ Portal endpoint returned status: {response.status_code}")
+    except Exception as e:
+        print(f"❌ Error testing portal endpoint: {e}")
 
 async def main():
-    """Main test function"""
-    print("🚀 Dynamic Menu Feature Test")
-    print("This test verifies that the dynamic menu system is working correctly.")
-    print("Menu items will be hidden when their corresponding services are unavailable.\n")
+    print("🧪 Dynamic Menu Functionality Test")
+    print("=" * 50)
     
-    success = await test_health_checker()
+    # Test individual services
+    await test_service_health()
     
-    if success:
-        print("\n🎉 All tests passed!")
-        print("\nTo see the dynamic menu in action:")
-        print("1. Start all services with: docker-compose up")
-        print("2. Visit the portal at: http://localhost:8003")
-        print("3. Stop individual services to see menus disappear")
-        print("4. Restart services to see menus reappear")
-    else:
-        print("\n💥 Tests failed!")
+    # Test menu visibility logic
+    menu_visibility = await test_menu_visibility()
+    
+    # Test portal endpoint if it exists
+    await test_portal_endpoint()
+    
+    print("\n📋 Test Summary:")
+    print("- The 'Manage' menu should be HIDDEN since ocs-manage-api is not running")
+    print("- The 'Tickets', 'Inventory', and 'Requisitions' menus should be VISIBLE")
+    print("- The 'Admin' menu should always be VISIBLE")
+    
+    if menu_visibility:
+        expected_results = {
+            "tickets": True,
+            "inventory": True,
+            "requisitions": True,
+            "manage": False,  # This should be False since manage service is not running
+            "admin": True
+        }
         
-    return success
+        print("\n🎯 Expected vs Actual Results:")
+        all_correct = True
+        for menu_item, expected in expected_results.items():
+            actual = menu_visibility.get(menu_item, False)
+            match = "✅" if actual == expected else "❌"
+            print(f"  {menu_item.capitalize()}: Expected {expected}, Got {actual} {match}")
+            if actual != expected:
+                all_correct = False
+        
+        if all_correct:
+            print("\n🎉 SUCCESS: Dynamic menu is working correctly!")
+        else:
+            print("\n⚠️  ISSUE: Some menu items are not showing expected behavior")
 
 if __name__ == "__main__":
     asyncio.run(main())
