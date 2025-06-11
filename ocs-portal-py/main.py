@@ -856,17 +856,37 @@ async def ticket_success(request: Request):
         **menu_context
     })
 
-# Management Routes - Basic Device Register route
+# Management Routes - Device Register
 @app.get("/manage/device-register")
 async def device_register(request: Request):
-    """Basic device register page - placeholder"""
-    menu_context = await get_menu_context()
-    return templates.TemplateResponse("manage.html", {
-        "request": request,
-        "page_title": "Device Register",
-        "content": "Device Register functionality - Coming Soon",
-        **menu_context
-    })
+    """Device register page with inventory management and dual checkout system"""
+    try:
+        # Import necessary items from the management service
+        from management_service import management_service
+        
+        # Get buildings and users for the form
+        buildings = await management_service.get_buildings()
+        users = await management_service.get_users()
+        inventory_items = await management_service.get_inventory_items()
+        
+        menu_context = await get_menu_context()
+        return templates.TemplateResponse("device_register.html", {
+            "request": request,
+            "buildings": buildings,
+            "users": users,
+            "inventory_items": inventory_items,
+            **menu_context
+        })
+    except Exception as e:
+        print(f"Error loading device register: {e}")
+        menu_context = await get_menu_context()
+        return templates.TemplateResponse("device_register.html", {
+            "request": request,
+            "buildings": [],
+            "users": [],
+            "inventory_items": [],
+            **menu_context
+        })
 
 # Forms Routes
 @app.get("/forms/time")
