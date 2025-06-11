@@ -24,13 +24,15 @@
                     <i class="fa fa-check-circle"></i> Closed Tickets
                 </a>
             </div>
-            <!-- DEBUG: Before action buttons -->
-            <div class="action-buttons">                <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
+            <!-- DEBUG: Before action buttons -->            <div class="action-buttons">                <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
                     <i class="fa fa-upload"></i> Import CSV
                 </button>
                 <a href="/tickets/tech/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export all tickets to CSV">
                     <i class="fa fa-download"></i> Export CSV
                 </a>
+                <button class="btn btn-warning btn-sm roll-database-btn" onclick="alert('Roll Database feature coming soon!')" title="Roll database (coming soon)">
+                    <i class="fa fa-refresh"></i> Roll Database
+                </button>
                 <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
                     <i class="fa fa-trash"></i> Clear All Tickets
                 </button>
@@ -319,6 +321,22 @@
 
 .clear-all-btn:hover {
     background: #c82333;
+    transform: translateY(-1px);
+}
+
+.roll-database-btn {
+    background: #fd7e14;
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.roll-database-btn:hover {
+    background: #e8690b;
     transform: translateY(-1px);
 }
 
