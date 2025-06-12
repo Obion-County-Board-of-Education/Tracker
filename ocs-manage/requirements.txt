@@ -7,4 +7,3 @@ pydantic
 psycopg2-binary
 sqlalchemy
 python-dotenv
--e ./ocs_shared_models

@@ -1,5 +1,10 @@
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File

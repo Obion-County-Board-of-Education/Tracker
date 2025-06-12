@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from ocs_shared_models import User, Building, Room

@@ -3,4 +3,4 @@ uvicorn
 jinja2
 python-multipart
 httpx
--e ./ocs_shared_models
+python-dotenv
