@@ -82,6 +82,54 @@ class ManagementService:
         result = await self._make_request("GET", f"/api/buildings/{building_id}/rooms")
         return result if result else []
     
+    # Inventory management methods
+    async def get_inventory_items(self) -> List[dict]:
+        """Get all inventory items"""
+        result = await self._make_request("GET", "/api/inventory")
+        if result:
+            return result.get("inventory_items", [])
+        return []
+    
+    async def get_inventory_item(self, item_id: int) -> Optional[dict]:
+        """Get specific inventory item"""
+        result = await self._make_request("GET", f"/api/inventory/{item_id}")
+        return result
+    
+    async def create_inventory_item(self, item_data: dict) -> bool:
+        """Create new inventory item"""
+        result = await self._make_request("POST", "/api/inventory", item_data)
+        return result is not None and result.get("success", False)
+    
+    async def update_inventory_item(self, item_id: int, item_data: dict) -> bool:
+        """Update inventory item"""
+        result = await self._make_request("PUT", f"/api/inventory/{item_id}", item_data)
+        return result is not None and result.get("success", False)
+    
+    async def delete_inventory_item(self, item_id: int) -> bool:
+        """Delete inventory item"""
+        result = await self._make_request("DELETE", f"/api/inventory/{item_id}")
+        return result is not None and result.get("success", False)
+    
+    async def checkout_device(self, checkout_data: dict) -> bool:
+        """Checkout device to location or user"""
+        result = await self._make_request("POST", "/api/inventory/checkout", checkout_data)
+        return result is not None and result.get("success", False)
+    
+    async def checkin_device(self, checkout_id: int, return_data: dict) -> bool:
+        """Check in device from checkout"""
+        result = await self._make_request("PUT", f"/api/inventory/checkout/{checkout_id}/return", return_data)
+        return result is not None and result.get("success", False)
+    
+    async def get_checkout_history(self, item_id: int = None) -> List[dict]:
+        """Get checkout history for item or all items"""
+        endpoint = f"/api/inventory/checkout/history"
+        if item_id:
+            endpoint += f"?item_id={item_id}"
+        result = await self._make_request("GET", endpoint)
+        if result:
+            return result.get("checkouts", [])
+        return []
+    
     # System logs and settings (placeholder methods for future implementation)
     async def get_system_logs(self, limit: int = 100, service: str = None, level: str = None) -> List[dict]:
         """Get system logs with filtering options"""

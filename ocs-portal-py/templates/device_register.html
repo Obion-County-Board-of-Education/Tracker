@@ -1,0 +1,825 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="content-header">
+    <h1><i class="fa-solid fa-tablet-alt"></i> Device Register</h1>
+    <div class="header-actions">
+        <a href="/device-register/history" class="btn btn-outline">
+            <i class="fa fa-history"></i> Checkout History
+        </a>
+    </div>
+</div>
+
+<div class="device-register-container">
+    <!-- Checkout Form -->
+    <div class="action-section">
+        <div class="section-header">
+            <h2><i class="fa fa-sign-out-alt"></i> Device Checkout</h2>
+            <p>Check out a device to a location or user</p>
+        </div>
+        
+        <form method="post" action="/device-register/checkout" class="device-form" id="checkoutForm">
+            <!-- Device Selection -->
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="device_id" class="form-label">
+                        Device <span class="required">*</span>
+                    </label>
+                    <select id="device_id" name="device_id" class="form-select" required>
+                        <option value="">Select a device</option>
+                        {% if inventory_items %}
+                            {% for item in inventory_items %}
+                                {% if item.status == 'available' %}
+                                <option value="{{ item.id }}" data-tag="{{ item.tag_number }}" data-model="{{ item.model }}">
+                                    {{ item.tag_number }} - {{ item.model }} ({{ item.category }})
+                                </option>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <option value="1">TC-12345 - Dell Chromebook 3100 (Laptop)</option>
+                            <option value="2">TC-12346 - iPad Air 10.9" (Tablet)</option>
+                            <option value="3">TC-12347 - HP EliteBook 840 (Laptop)</option>
+                        {% endif %}
+                    </select>
+                    <div class="help-text">Select the device you want to check out</div>
+                </div>
+
+                <div id="device-info" class="device-info-card" style="display: none;">
+                    <div class="info-row">
+                        <span class="info-label">Tag Number:</span>
+                        <span id="info-tag">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Model:</span>
+                        <span id="info-model">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checkout Type Selection -->
+            <div class="form-section">
+                <div class="form-group">
+                    <label class="form-label">
+                        Checkout Type <span class="required">*</span>
+                    </label>
+                    <div class="checkout-type-toggle">
+                        <input type="radio" id="location_checkout" name="checkout_type" value="LOCATION" checked>
+                        <label for="location_checkout" class="toggle-option">
+                            <i class="fa fa-map-marker-alt"></i>
+                            <span>Location</span>
+                            <small>Assign to a building/room</small>
+                        </label>
+                        
+                        <input type="radio" id="user_checkout" name="checkout_type" value="USER">
+                        <label for="user_checkout" class="toggle-option">
+                            <i class="fa fa-user"></i>
+                            <span>User</span>
+                            <small>Assign to a specific person</small>
+                        </label>
+                    </div>
+                    <div class="help-text">Choose whether to assign the device to a location or a user</div>
+                </div>
+            </div>
+
+            <!-- Location Checkout Fields -->
+            <div id="location-fields" class="form-section checkout-fields">
+                <div class="section-header">
+                    <h3><i class="fa fa-map-marker-alt"></i> Location Assignment</h3>
+                    <p>Specify the building and room where this device will be located</p>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="building" class="form-label">
+                            Building <span class="required">*</span>
+                        </label>
+                        <select id="building" name="building" class="form-select">
+                            <option value="">Select a building</option>
+                            {% if buildings %}
+                                {% for building in buildings %}
+                                <option value="{{ building.id }}">{{ building.name }}</option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="main">Main Building</option>
+                                <option value="annex">Annex Building</option>
+                                <option value="gym">Gymnasium</option>
+                                <option value="library">Library</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="room" class="form-label">
+                            Room <span class="required">*</span>
+                        </label>
+                        <select id="room" name="room" class="form-select" disabled>
+                            <option value="">First select a building</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Checkout Fields -->
+            <div id="user-fields" class="form-section checkout-fields" style="display: none;">
+                <div class="section-header">
+                    <h3><i class="fa fa-user"></i> User Assignment</h3>
+                    <p>Select the person who will be responsible for this device</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="user_id" class="form-label">
+                        User <span class="required">*</span>
+                    </label>
+                    <select id="user_id" name="user_id" class="form-select">
+                        <option value="">Select a user</option>
+                        {% if users %}
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.name }} ({{ user.email }})</option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="1">John Doe (john.doe@school.edu)</option>
+                            <option value="2">Jane Smith (jane.smith@school.edu)</option>
+                            <option value="3">Mike Johnson (mike.johnson@school.edu)</option>
+                        {% endif %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="checkout_notes" class="form-label">
+                        Notes (Optional)
+                    </label>
+                    <textarea id="checkout_notes" name="notes" class="form-textarea" 
+                              placeholder="Add any additional notes about this checkout..."
+                              rows="3" maxlength="500"></textarea>
+                    <div class="help-text">
+                        Any special instructions or notes about this device assignment
+                        <span id="checkoutCharCount">0/500 characters</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="checkoutBtn">
+                    <i class="fa fa-sign-out-alt"></i> Check Out Device
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Check-in Form -->
+    <div class="action-section">
+        <div class="section-header">
+            <h2><i class="fa fa-sign-in-alt"></i> Device Check-in</h2>
+            <p>Return a device that was previously checked out</p>
+        </div>
+        
+        <form method="post" action="/device-register/checkin" class="device-form" id="checkinForm">
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="checkin_device_id" class="form-label">
+                        Device <span class="required">*</span>
+                    </label>
+                    <select id="checkin_device_id" name="device_id" class="form-select" required>
+                        <option value="">Select a device to check in</option>
+                        {% if inventory_items %}
+                            {% for item in inventory_items %}
+                                {% if item.status == 'checked_out' %}
+                                <option value="{{ item.id }}" 
+                                        data-tag="{{ item.tag_number }}" 
+                                        data-model="{{ item.model }}"
+                                        data-checkout-type="{{ item.current_checkout_type if item.current_checkout_type else 'Unknown' }}"
+                                        data-location="{{ item.current_location if item.current_location else 'N/A' }}"
+                                        data-user="{{ item.current_user if item.current_user else 'N/A' }}">
+                                    {{ item.tag_number }} - {{ item.model }}
+                                </option>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <option value="4" data-tag="TC-12348" data-model="Dell Chromebook 3100" data-checkout-type="LOCATION" data-location="Room 101" data-user="N/A">TC-12348 - Dell Chromebook 3100</option>
+                            <option value="5" data-tag="TC-12349" data-model="iPad Air 10.9" data-checkout-type="USER" data-location="N/A" data-user="John Doe">TC-12349 - iPad Air 10.9</option>
+                        {% endif %}
+                    </select>
+                    <div class="help-text">Select the device you want to check back in</div>
+                </div>
+
+                <div id="checkin-device-info" class="device-info-card" style="display: none;">
+                    <div class="info-row">
+                        <span class="info-label">Tag Number:</span>
+                        <span id="checkin-info-tag">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Model:</span>
+                        <span id="checkin-info-model">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Checkout Type:</span>
+                        <span id="checkin-info-type">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Current Assignment:</span>
+                        <span id="checkin-info-assignment">-</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="checkin_notes" class="form-label">
+                        Return Notes (Optional)
+                    </label>
+                    <textarea id="checkin_notes" name="notes" class="form-textarea" 
+                              placeholder="Any notes about the device condition or return reason..."
+                              rows="3" maxlength="500"></textarea>
+                    <div class="help-text">
+                        Document any issues, damage, or other relevant information
+                        <span id="checkinCharCount">0/500 characters</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success" id="checkinBtn">
+                    <i class="fa fa-sign-in-alt"></i> Check In Device
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.content-header h1 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 2rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.device-register-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.action-section {
+    background: #fff;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.section-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.section-header h2 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+.section-header h3 {
+    margin: 0 0 0.5rem 0;
+    color: #495057;
+    font-size: 1.2rem;
+}
+
+.section-header p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+.device-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.required {
+    color: #dc3545;
+}
+
+.form-select, .form-textarea {
+    padding: 0.75rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-select:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.checkout-type-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.checkout-type-toggle input[type="radio"] {
+    display: none;
+}
+
+.toggle-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.toggle-option:hover {
+    border-color: #007bff;
+    background: #f8f9ff;
+}
+
+.toggle-option i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+}
+
+.toggle-option span {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+.toggle-option small {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.checkout-type-toggle input[type="radio"]:checked + .toggle-option {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
+
+.checkout-type-toggle input[type="radio"]:checked + .toggle-option i {
+    color: #007bff;
+}
+
+.checkout-type-toggle input[type="radio"]:checked + .toggle-option span {
+    color: #007bff;
+}
+
+.checkout-fields {
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1.5rem;
+    background: #f8f9fa;
+}
+
+.device-info-card {
+    background: #e7f3ff;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.info-row:last-child {
+    margin-bottom: 0;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #1e7e34;
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid #6c757d;
+    color: #6c757d;
+}
+
+.btn-outline:hover {
+    background: #6c757d;
+    color: white;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.form-group.error .form-select,
+.form-group.error .form-textarea {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+@media (max-width: 992px) {
+    .device-register-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .checkout-type-toggle {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .action-section {
+        padding: 1.5rem;
+    }
+    
+    .content-header {
+        text-align: center;
+    }
+    
+    .content-header h1 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Checkout form elements
+    const checkoutForm = document.getElementById('checkoutForm');
+    const deviceSelect = document.getElementById('device_id');
+    const deviceInfo = document.getElementById('device-info');
+    const locationRadio = document.getElementById('location_checkout');
+    const userRadio = document.getElementById('user_checkout');
+    const locationFields = document.getElementById('location-fields');
+    const userFields = document.getElementById('user-fields');
+    const buildingSelect = document.getElementById('building');
+    const roomSelect = document.getElementById('room');
+    
+    // Check-in form elements
+    const checkinForm = document.getElementById('checkinForm');
+    const checkinDeviceSelect = document.getElementById('checkin_device_id');
+    const checkinDeviceInfo = document.getElementById('checkin-device-info');
+    
+    // Character counters
+    const checkoutNotes = document.getElementById('checkout_notes');
+    const checkinNotes = document.getElementById('checkin_notes');
+    const checkoutCharCount = document.getElementById('checkoutCharCount');
+    const checkinCharCount = document.getElementById('checkinCharCount');
+    
+    // Device selection for checkout
+    if (deviceSelect) {
+        deviceSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (this.value && selectedOption.dataset.tag) {
+                document.getElementById('info-tag').textContent = selectedOption.dataset.tag;
+                document.getElementById('info-model').textContent = selectedOption.dataset.model;
+                deviceInfo.style.display = 'block';
+            } else {
+                deviceInfo.style.display = 'none';
+            }
+        });
+    }
+    
+    // Device selection for check-in
+    if (checkinDeviceSelect) {
+        checkinDeviceSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (this.value && selectedOption.dataset.tag) {
+                document.getElementById('checkin-info-tag').textContent = selectedOption.dataset.tag;
+                document.getElementById('checkin-info-model').textContent = selectedOption.dataset.model;
+                document.getElementById('checkin-info-type').textContent = selectedOption.dataset.checkoutType;
+                
+                const assignment = selectedOption.dataset.checkoutType === 'USER' 
+                    ? selectedOption.dataset.user 
+                    : selectedOption.dataset.location;
+                document.getElementById('checkin-info-assignment').textContent = assignment;
+                
+                checkinDeviceInfo.style.display = 'block';
+            } else {
+                checkinDeviceInfo.style.display = 'none';
+            }
+        });
+    }
+    
+    // Checkout type toggle
+    function toggleCheckoutFields() {
+        if (locationRadio.checked) {
+            locationFields.style.display = 'block';
+            userFields.style.display = 'none';
+            // Set required attributes
+            buildingSelect.required = true;
+            roomSelect.required = true;
+            document.getElementById('user_id').required = false;
+        } else {
+            locationFields.style.display = 'none';
+            userFields.style.display = 'block';
+            // Set required attributes
+            buildingSelect.required = false;
+            roomSelect.required = false;
+            document.getElementById('user_id').required = true;
+        }
+    }
+    
+    if (locationRadio && userRadio) {
+        locationRadio.addEventListener('change', toggleCheckoutFields);
+        userRadio.addEventListener('change', toggleCheckoutFields);
+        toggleCheckoutFields(); // Set initial state
+    }
+    
+    // Building/Room cascading dropdowns
+    if (buildingSelect && roomSelect) {
+        buildingSelect.addEventListener('change', function() {
+            const buildingId = this.value;
+            roomSelect.disabled = !buildingId;
+            
+            if (buildingId) {
+                roomSelect.innerHTML = '<option value="">Loading rooms...</option>';
+                
+                fetch(`/api/buildings/${buildingId}/rooms`)
+                    .then(response => response.json())
+                    .then(data => {
+                        let options = '<option value="">Select a room</option>';
+                        if (data.rooms && data.rooms.length > 0) {
+                            data.rooms.forEach(room => {
+                                options += `<option value="${room.id}">${room.name}</option>`;
+                            });
+                        } else {
+                            // Fallback rooms for testing
+                            options += '<option value="101">Room 101</option>';
+                            options += '<option value="102">Room 102</option>';
+                            options += '<option value="103">Room 103</option>';
+                            options += '<option value="library">Library</option>';
+                            options += '<option value="office">Main Office</option>';
+                        }
+                        roomSelect.innerHTML = options;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching rooms:', error);
+                        // Fallback rooms for testing
+                        let options = '<option value="">Select a room</option>';
+                        options += '<option value="101">Room 101</option>';
+                        options += '<option value="102">Room 102</option>';
+                        options += '<option value="103">Room 103</option>';
+                        options += '<option value="library">Library</option>';
+                        options += '<option value="office">Main Office</option>';
+                        roomSelect.innerHTML = options;
+                    });
+            } else {
+                roomSelect.innerHTML = '<option value="">First select a building</option>';
+            }
+        });
+    }
+    
+    // Character counters
+    if (checkoutNotes && checkoutCharCount) {
+        checkoutNotes.addEventListener('input', function() {
+            const count = this.value.length;
+            checkoutCharCount.textContent = `${count}/500 characters`;
+            
+            if (count > 450) {
+                checkoutCharCount.style.color = '#dc3545';
+            } else if (count > 350) {
+                checkoutCharCount.style.color = '#ffc107';
+            } else {
+                checkoutCharCount.style.color = '#6c757d';
+            }
+        });
+    }
+    
+    if (checkinNotes && checkinCharCount) {
+        checkinNotes.addEventListener('input', function() {
+            const count = this.value.length;
+            checkinCharCount.textContent = `${count}/500 characters`;
+            
+            if (count > 450) {
+                checkinCharCount.style.color = '#dc3545';
+            } else if (count > 350) {
+                checkinCharCount.style.color = '#ffc107';
+            } else {
+                checkinCharCount.style.color = '#6c757d';
+            }
+        });
+    }
+    
+    // Form validation and submission
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function(e) {
+            if (!validateCheckoutForm()) {
+                e.preventDefault();
+                return;
+            }
+            
+            const submitBtn = document.getElementById('checkoutBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Checking Out...';
+            submitBtn.disabled = true;
+        });
+    }
+    
+    if (checkinForm) {
+        checkinForm.addEventListener('submit', function(e) {
+            if (!validateCheckinForm()) {
+                e.preventDefault();
+                return;
+            }
+            
+            const submitBtn = document.getElementById('checkinBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Checking In...';
+            submitBtn.disabled = true;
+        });
+    }
+    
+    function validateCheckoutForm() {
+        let isValid = true;
+        
+        // Clear previous errors
+        clearAllErrors();
+        
+        // Validate device selection
+        if (!deviceSelect.value) {
+            showError(deviceSelect.closest('.form-group'), 'Please select a device');
+            isValid = false;
+        }
+        
+        // Validate checkout type specific fields
+        if (locationRadio.checked) {
+            if (!buildingSelect.value) {
+                showError(buildingSelect.closest('.form-group'), 'Please select a building');
+                isValid = false;
+            }
+            if (!roomSelect.value) {
+                showError(roomSelect.closest('.form-group'), 'Please select a room');
+                isValid = false;
+            }
+        } else if (userRadio.checked) {
+            const userSelect = document.getElementById('user_id');
+            if (!userSelect.value) {
+                showError(userSelect.closest('.form-group'), 'Please select a user');
+                isValid = false;
+            }
+        }
+        
+        return isValid;
+    }
+    
+    function validateCheckinForm() {
+        let isValid = true;
+        
+        clearAllErrors();
+        
+        if (!checkinDeviceSelect.value) {
+            showError(checkinDeviceSelect.closest('.form-group'), 'Please select a device to check in');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+    
+    function showError(formGroup, message) {
+        formGroup.classList.add('error');
+        let errorMsg = formGroup.querySelector('.error-message');
+        
+        if (!errorMsg) {
+            errorMsg = document.createElement('div');
+            errorMsg.className = 'error-message';
+            formGroup.appendChild(errorMsg);
+        }
+        
+        errorMsg.textContent = message;
+        errorMsg.style.display = 'block';
+    }
+    
+    function clearError(formGroup) {
+        formGroup.classList.remove('error');
+        const errorMsg = formGroup.querySelector('.error-message');
+        if (errorMsg) {
+            errorMsg.style.display = 'none';
+        }
+    }
+    
+    function clearAllErrors() {
+        const errorGroups = document.querySelectorAll('.form-group.error');
+        errorGroups.forEach(group => clearError(group));
+    }
+});
+</script>
+{% endblock %}
