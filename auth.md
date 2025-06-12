@@ -45,23 +45,23 @@ The OCS Tracker authentication system integrates with **Microsoft Graph API** to
 
 | Azure AD Group | OCS Role | Access Level | Description |
 |---|---|---|---|
-| `OCS-IT-Staff` | Super Admin | Full Access | Complete system administration |
-| `OCS-Principals` | Admin | Management | School-level administration |
-| `OCS-Teachers` | User | Limited Write | Submit tickets/requisitions, view own data |
-| `OCS-Maintenance` | Technician | Service Access | Handle tickets, manage inventory |
-| `OCS-Office-Staff` | User | Read/Write | Process forms, view reports |
-| `OCS-Transportation` | Specialist | Department Specific | Vehicle/route management |
+| `Technology Department` | Super Admin | Full Access | Complete system administration and technical support |
+| `Director of Schools` | Super Admin | Full Access | Executive leadership with full administrative rights |
+| `Finance` | Super Admin | Full Access | Financial administration with full system access |
+| `All_Staff` | Staff User | Limited Write | Submit tickets/requisitions, view own submissions |
+| `All_Students` | Student User | Basic Access | Submit and view own tickets only |
 
 ### **Permission Matrix**
 
-| Service | IT Staff | Principals | Teachers | Maintenance | Office Staff |
+| Service | Technology Dept | Director of Schools | Finance | All_Staff | All_Student |
 |---|---|---|---|---|---|
-| **Tickets** | Admin | View All | Create/View Own | Admin | View Department |
-| **Inventory** | Admin | View All | Read Only | Write Access | Read Only |
-| **Purchasing** | Admin | Admin | Submit Requests | Read Only | Process Requests |
-| **Forms** | Admin | View All | Submit Own | Submit Own | Admin |
-| **User Management** | Admin | Limited | None | None | None |
-| **Reports** | Admin | Department View | None | Department View | Department View |
+| **Tickets** | Admin | Admin | Admin | Create/View Own | Create/View Own |
+| **Inventory** | Admin | Admin | Admin | Read Only | None |
+| **Purchasing/Requisitions** | Admin | Admin | Admin | Submit/View Own | None |
+| **Forms** | Admin | Admin | Admin | Submit Own | None |
+| **User Management** | Admin | Admin | Admin | None | None |
+| **Reports** | Admin | Admin | Admin | None | None |
+| **System Administration** | Admin | Admin | Limited | None | None |
 
 ---
 
@@ -182,8 +182,8 @@ Security and compliance tracking
 
 ## 📊 Permission Examples
 
-### **Scenario 1: Teacher Creates Ticket**
-1. **User**: Ms. Johnson (OCS-Teachers group)
+### **Scenario 1: Staff Member Creates Ticket**
+1. **User**: Ms. Johnson (All_Staff group)
 2. **Action**: Create new tech support ticket
 3. **Permissions Check**:
    - ✅ Has `tickets_access: write`
@@ -192,25 +192,45 @@ Security and compliance tracking
    - ❌ Cannot view other users' tickets
 4. **Result**: Ticket created with `created_by: ms.johnson@ocs.edu`
 
-### **Scenario 2: Principal Views Reports**
-1. **User**: Mr. Davis (OCS-Principals group)
-2. **Action**: View monthly ticket report
+### **Scenario 2: Student Creates Ticket**
+1. **User**: John Smith (All_Student group)
+2. **Action**: Create new tech support ticket
 3. **Permissions Check**:
-   - ✅ Has `access_level: admin`
-   - ✅ Can view school-wide data
-   - ❌ Cannot view district-wide data
-   - ✅ Department filter: `["Elementary School"]`
-4. **Result**: Report shows only Elementary School tickets
+   - ✅ Has `tickets_access: write`
+   - ✅ Can create tickets
+   - ❌ Cannot access purchasing/requisitions
+   - ❌ Cannot view other users' tickets
+4. **Result**: Ticket created with `created_by: john.smith@student.ocs.edu`
 
-### **Scenario 3: IT Staff System Admin**
-1. **User**: IT Admin (OCS-IT-Staff group)
-2. **Action**: Manage user permissions
+### **Scenario 3: Technology Department System Admin**
+1. **User**: IT Admin (Technology Department group)
+2. **Action**: Manage user permissions and view all system data
 3. **Permissions Check**:
    - ✅ Has `access_level: super_admin`
    - ✅ Can modify group role mappings
    - ✅ Can view audit logs
-   - ✅ Can access all services
+   - ✅ Can access all services and data
 4. **Result**: Full administrative access granted
+
+### **Scenario 4: Director of Schools Views Reports**
+1. **User**: Superintendent (Director of Schools group)
+2. **Action**: View district-wide reports and manage operations
+3. **Permissions Check**:
+   - ✅ Has `access_level: super_admin`
+   - ✅ Can view all school and district data
+   - ✅ Can manage staff and resources
+   - ✅ Can access financial information
+4. **Result**: Complete oversight access granted
+
+### **Scenario 5: Finance Staff Manages Purchasing**
+1. **User**: Finance Director (Finance group)
+2. **Action**: Process and approve requisitions
+3. **Permissions Check**:
+   - ✅ Has `access_level: super_admin`
+   - ✅ Can view all purchasing requests
+   - ✅ Can approve/deny requisitions
+   - ✅ Can manage budget allocations
+4. **Result**: Full financial management access granted
 
 ---
 
@@ -257,12 +277,11 @@ Required App Registrations:
     - Secret: Generate client secret for authentication
 
 Required Groups:
-  - OCS-IT-Staff
-  - OCS-Principals  
-  - OCS-Teachers
-  - OCS-Maintenance
-  - OCS-Office-Staff
-  - OCS-Transportation
+  - Technology Department
+  - Director of Schools
+  - Finance
+  - All_Staff
+  - All_Student
 ```
 
 ### **Environment Variables**
