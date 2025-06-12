@@ -1,39 +1,508 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container">
-    <h2>New Technology Ticket</h2>
-    <form method="post" action="/tickets/tech/new">
-        <label for="title">Title<span style="color:red">*</span></label>
-        <input type="text" id="title" name="title" placeholder="Enter a short summary" required>
-        <div style="display:flex; gap:1em;">
-            <div style="flex:1;">
-                <label for="school">School<span style="color:red">*</span></label>
-                <select id="school" name="school" required>
-                    <option value="">Select a school</option>
-                    <!-- Populate with school options -->
-                </select>
+<div class="content-header">
+    <h1><i class="fa-solid fa-laptop-code"></i> New Technology Ticket</h1>
+    <div class="header-actions">
+        <a href="/tickets/tech/open" class="btn btn-outline">
+            <i class="fa fa-list"></i> View Tickets
+        </a>
+    </div>
+</div>
+
+<div class="ticket-container">
+    <form method="post" action="/tickets/tech/new" class="ticket-form" id="techTicketForm">
+        <!-- Basic Information Section -->
+        <div class="form-section">
+            <div class="section-header">
+                <h3><i class="fa fa-info-circle"></i> Basic Information</h3>
+                <p>Provide a summary and categorization of your technology issue</p>
             </div>
-            <div style="flex:1;">
-                <label for="room">Room #<span style="color:red">*</span></label>
-                <select id="room" name="room" required>
-                    <option value="">Select a room</option>
-                    <!-- Populate with room options -->
+            
+            <div class="form-group">
+                <label for="title" class="form-label">
+                    Ticket Title <span class="required">*</span>
+                </label>
+                <input type="text" id="title" name="title" class="form-input" 
+                       placeholder="Brief description of the issue (e.g., 'Printer not responding')" 
+                       required maxlength="100">
+                <div class="help-text">Provide a clear, concise summary of the problem</div>
+            </div>
+
+            <div class="form-group">
+                <label for="issue_type" class="form-label">
+                    Type of Issue <span class="required">*</span>
+                </label>
+                <select id="issue_type" name="issue_type" class="form-select" required>
+                    <option value="">Select the type of technology issue</option>
+                    <option value="hardware">🖥️ Hardware (computers, printers, devices)</option>
+                    <option value="software">💻 Software (applications, programs)</option>
+                    <option value="networking">🌐 Networking (internet, wifi, connectivity)</option>
+                    <option value="relocation">📦 Relocation (moving equipment)</option>
                 </select>
+                <div class="help-text">Choose the category that best describes your issue</div>
             </div>
         </div>
-        <label for="tag">Tag #<span style="color:red">*</span></label>
-        <input type="text" id="tag" name="tag" placeholder="Tag Number" required>
-        <label for="description">Issue Description<span style="color:red">*</span></label>
-        <textarea id="description" name="description" placeholder="Describe the issue or request in detail" required rows="14" style="min-height:280px;"></textarea>
-        <label for="issue_type">Type of Issue<span style="color:red">*</span></label>
-        <select id="issue_type" name="issue_type" required>
-            <option value="">Select type</option>
-            <option value="hardware">Hardware</option>
-            <option value="software">Software</option>
-            <option value="network">Network</option>
-            <option value="other">Other</option>
-        </select>
-        <button type="submit">Submit Ticket</button>
+
+        <!-- Location Information Section -->
+        <div class="form-section">
+            <div class="section-header">
+                <h3><i class="fa fa-map-marker-alt"></i> Location Information</h3>
+                <p>Help us locate the issue by specifying the building and room</p>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="building" class="form-label">
+                        Building <span class="required">*</span>
+                    </label>
+                    <select id="building" name="building" class="form-select" required>
+                        <option value="">Select a building</option>
+                        {% if buildings %}
+                            {% for building in buildings %}
+                            <option value="{{ building.id }}">{{ building.name }}</option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="main">Main Building</option>
+                            <option value="annex">Annex Building</option>
+                            <option value="gym">Gymnasium</option>
+                            <option value="library">Library</option>
+                        {% endif %}
+                    </select>
+                    <div class="help-text">Select the building where the issue is located</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="room" class="form-label">
+                        Room Number <span class="required">*</span>
+                    </label>
+                    <select id="room" name="room" class="form-select" required disabled>
+                        <option value="">First select a building</option>
+                    </select>
+                    <div class="help-text">Choose the specific room or area</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Information Section -->
+        <div class="form-section">
+            <div class="section-header">
+                <h3><i class="fa fa-desktop"></i> Device Information</h3>
+                <p>Provide details about the specific device or equipment</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="tag" class="form-label">
+                    Asset Tag Number <span class="required">*</span>
+                </label>
+                <input type="text" id="tag" name="tag" class="form-input" 
+                       placeholder="Enter the asset tag number (e.g., 'TC-12345')" 
+                       required maxlength="20">
+                <div class="help-text">Look for a sticker with numbers/letters on the device. If no tag is visible, write "NO TAG"</div>
+            </div>
+        </div>
+
+        <!-- Issue Details Section -->
+        <div class="form-section">
+            <div class="section-header">
+                <h3><i class="fa fa-clipboard-list"></i> Issue Details</h3>
+                <p>Describe the problem in detail to help us provide better support</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="description" class="form-label">
+                    Detailed Description <span class="required">*</span>
+                </label>
+                <textarea id="description" name="description" class="form-textarea" 
+                          placeholder="Please provide a detailed description of the issue including:&#10;• What were you trying to do?&#10;• What happened instead?&#10;• Any error messages you saw&#10;• When did this start happening?&#10;• Has this worked before?" 
+                          required rows="8" maxlength="2000"></textarea>
+                <div class="help-text">
+                    The more details you provide, the faster we can resolve your issue. 
+                    <span id="charCount">0/2000 characters</span>
+                </div>
+            </div>
+        </div>        <!-- Submit Section -->
+        <div class="form-actions">
+            <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                <i class="fa fa-arrow-left"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="fa fa-paper-plane"></i> Submit Ticket
+            </button>
+        </div>
     </form>
 </div>
+
+<style>
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.content-header h1 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 2rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.ticket-container {
+    max-width: 95%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+.ticket-form {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+}
+
+.form-section {
+    padding: 2rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.section-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.section-header h3 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-header p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+.required {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: white;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-select:disabled {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.5;
+}
+
+.help-text {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+    line-height: 1.4;
+}
+
+.form-actions {
+    padding: 2rem;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: #007bff;
+    border: 2px solid #007bff;
+}
+
+.btn-outline:hover {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    color: #ffffff;
+    border: 2px solid #e9ecef;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    display: none;
+}
+
+.form-group.error .form-input,
+.form-group.error .form-select,
+.form-group.error .form-textarea {
+    border-color: #dc3545;
+}
+
+.form-group.error .error-message {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .form-section {
+        padding: 1.5rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .section-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .form-section {
+        padding: 1rem;
+    }
+    
+    .form-actions {
+        padding: 1.5rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Character counter for description
+    const description = document.getElementById('description');
+    const charCount = document.getElementById('charCount');
+    
+    if (description && charCount) {
+        description.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = `${count}/2000 characters`;
+            
+            if (count > 1800) {
+                charCount.style.color = '#dc3545';
+            } else if (count > 1500) {
+                charCount.style.color = '#ffc107';
+            } else {
+                charCount.style.color = '#6c757d';
+            }
+        });
+    }
+    
+    // Building/Room cascading dropdowns
+    const buildingSelect = document.getElementById('building');
+    const roomSelect = document.getElementById('room');
+    
+    if (buildingSelect && roomSelect) {
+        buildingSelect.addEventListener('change', function() {
+            const buildingId = this.value;
+            roomSelect.disabled = !buildingId;
+            
+            if (buildingId) {
+                // Clear current options
+                roomSelect.innerHTML = '<option value="">Loading rooms...</option>';
+                
+                // Fetch rooms from API
+                fetch(`/api/buildings/${buildingId}/rooms`)
+                    .then(response => response.json())
+                    .then(data => {
+                        let options = '<option value="">Select a room</option>';
+                        if (data.rooms && data.rooms.length > 0) {
+                            data.rooms.forEach(room => {
+                                options += `<option value="${room.id}">${room.name}</option>`;
+                            });
+                        } else {
+                            options += '<option value="">No rooms available</option>';
+                        }
+                        roomSelect.innerHTML = options;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching rooms:', error);
+                        roomSelect.innerHTML = '<option value="">Error loading rooms</option>';
+                    });
+            } else {
+                roomSelect.innerHTML = '<option value="">First select a building</option>';
+            }
+        });
+    }
+    
+    // Form validation
+    const form = document.getElementById('techTicketForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Submitting...';
+            submitBtn.disabled = true;
+            
+            // Allow the form to submit normally to the server
+        });
+    }
+    
+    function validateForm() {
+        let isValid = true;
+        const requiredFields = form.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            const formGroup = field.closest('.form-group');
+            
+            if (!field.value.trim()) {
+                showError(formGroup, 'This field is required');
+                isValid = false;
+            } else {
+                clearError(formGroup);
+            }
+        });
+        
+        return isValid;
+    }
+    
+    function showError(formGroup, message) {
+        formGroup.classList.add('error');
+        let errorMsg = formGroup.querySelector('.error-message');
+        
+        if (!errorMsg) {
+            errorMsg = document.createElement('div');
+            errorMsg.className = 'error-message';
+            formGroup.appendChild(errorMsg);
+        }
+        
+        errorMsg.textContent = message;
+    }
+    
+    function clearError(formGroup) {
+        formGroup.classList.remove('error');
+        const errorMsg = formGroup.querySelector('.error-message');
+        if (errorMsg) {
+            errorMsg.style.display = 'none';
+        }
+    }
+});
+</script>
 {% endblock %}

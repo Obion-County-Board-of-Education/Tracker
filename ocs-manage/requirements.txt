@@ -1,6 +1,10 @@
 fastapi
 uvicorn
+jinja2
+python-multipart
+httpx
+pydantic
 psycopg2-binary
-SQLAlchemy
-ocs-shared-models @ file:///ocs-shared-models
+sqlalchemy
 python-dotenv
+-e ./ocs_shared_models

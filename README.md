@@ -17,11 +17,51 @@
 
 - <b>ocs-tickets-api/</b> – FastAPI service for ticket system
 - <b>ocs-inventory-api/</b> – FastAPI service for inventory
-- <b>ocs-requisition-api/</b> – FastAPI service for requisition
+- <b>ocs-forms-api/</b> – FastAPI service for forms (time tracking, fuel tracking)
 - <b>ocs-manage/</b> – FastAPI service for management tasks
 - <b>ocs-portal-py/</b> – FastAPI service for admin portal (Jinja2, static, templates)
-- <b>ocs-shared-models/</b> – Shared SQLAlchemy models for all services
+- <b>ocs_shared_models/</b> – Shared SQLAlchemy models for all services
+- <b>tests/</b> – Comprehensive test suite organized by component and type
 - <b>docker-compose.yml</b> – Orchestration for all services and a single PostgreSQL container
+
+---
+
+## 🧪 Testing
+
+All testing scripts are properly organized in the `tests/` folder:
+
+- **Unit Tests**: `tests/unit/` - Component-level testing
+- **Portal Tests**: `tests/portal/` - Portal-specific functionality tests  
+- **API Tests**: `tests/api/` - API endpoint testing
+- **Integration Tests**: `tests/integration/` - End-to-end testing
+- **CSV Tests**: `tests/csv/` - CSV import/export functionality
+- **Utilities**: `tests/utilities/` - Test utilities and verification scripts
+
+### Running Tests
+
+**PowerShell (Windows):**
+```powershell
+# Run all tests
+.\Run-AllTests.ps1
+
+# Run specific category
+.\Run-AllTests.ps1 -Category Portal
+
+# Show test organization
+.\Run-AllTests.ps1 -ShowOrganization
+```
+
+**Python:**
+```bash
+# Run all tests  
+python run_all_tests.py
+
+# Run specific category
+python run_all_tests.py portal
+
+# Show test organization
+python run_all_tests.py organization
+```
 
 ---
 

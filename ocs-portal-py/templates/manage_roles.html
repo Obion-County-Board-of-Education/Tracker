@@ -1,23 +1,302 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<div class="container">
-    <h2>Manage User Permissions</h2>
-    <table style="width:100%; border-collapse:collapse;">
-        <thead>
-            <tr>
-                <th>Role</th>
-                <th>Permissions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for role in roles %}
-            <tr>
-                <td>{{ role.name }}</td>
-                <td>{{ role.permissions | join(', ') }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <!-- You can add forms/buttons here to edit permissions if needed -->
+<div class="content-header">
+    <h1><i class="fa-solid fa-shield-alt"></i> User Permissions & Roles</h1>
+    <a href="/users/list" class="btn btn-secondary">
+        <i class="fa fa-arrow-left"></i> Back to Users
+    </a>
 </div>
+
+<div class="roles-container">
+    <div class="roles-overview">
+        <h3><i class="fa fa-info-circle"></i> Role Overview</h3>
+        <p>The OCS Portal uses role-based access control to manage user permissions. Each user is assigned one of the roles below, which determines their access level throughout the system.</p>
+    </div>
+
+    <div class="roles-grid">
+        {% for role in roles %}
+        <div class="role-card">
+            <div class="role-header">
+                <div class="role-icon role-{{ role.name.lower() }}">
+                    {% if role.name == 'Admin' %}
+                        <i class="fa fa-crown"></i>
+                    {% elif role.name == 'Technician' %}
+                        <i class="fa fa-tools"></i>
+                    {% else %}
+                        <i class="fa fa-user"></i>
+                    {% endif %}
+                </div>
+                <div class="role-info">
+                    <h3>{{ role.name }}</h3>
+                    <span class="role-badge role-{{ role.name.lower() }}">
+                        {{ role.name }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="role-permissions">
+                <h4><i class="fa fa-key"></i> Permissions</h4>
+                <ul class="permissions-list">
+                    {% for permission in role.permissions %}
+                    <li>
+                        <i class="fa fa-check-circle"></i>
+                        {{ permission|replace('_', ' ')|title }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            {% if role.name == 'Admin' %}
+            <div class="role-description">
+                <p><strong>Full system access:</strong> Can manage all users, tickets, inventory, and system settings. Has administrative privileges for all modules.</p>
+            </div>
+            {% elif role.name == 'Technician' %}
+            <div class="role-description">
+                <p><strong>Technical support role:</strong> Can view and manage tickets, access inventory for repairs, and handle technical support requests.</p>
+            </div>
+            {% else %}
+            <div class="role-description">
+                <p><strong>Standard staff access:</strong> Can submit tickets, view personal information, and access basic portal features.</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="roles-footer">
+        <div class="security-note">
+            <h4><i class="fa fa-shield-alt"></i> Security Information</h4>
+            <p>Role assignments should be reviewed regularly. Only assign Admin roles to trusted personnel who require full system access. Contact IT if you need to modify role permissions.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.content-header h1 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 2rem;
+}
+
+.roles-overview {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    margin-bottom: 2rem;
+}
+
+.roles-overview h3 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.roles-overview p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.6;
+}
+
+.roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.role-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.role-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.role-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.role-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.role-icon.role-admin {
+    background: #dc3545;
+}
+
+.role-icon.role-technician {
+    background: #28a745;
+}
+
+.role-icon.role-user {
+    background: #17a2b8;
+}
+
+.role-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-badge.role-admin {
+    background: #dc3545;
+    color: white;
+}
+
+.role-badge.role-technician {
+    background: #28a745;
+    color: white;
+}
+
+.role-badge.role-user {
+    background: #17a2b8;
+    color: white;
+}
+
+.role-permissions {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.role-permissions h4 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.permissions-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.permissions-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    color: #495057;
+}
+
+.permissions-list i {
+    color: #28a745;
+    font-size: 0.9rem;
+}
+
+.role-description {
+    padding: 1.5rem;
+    background: #f8f9fa;
+}
+
+.role-description p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.roles-footer {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.security-note h4 {
+    margin: 0 0 1rem 0;
+    color: #856404;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.security-note p {
+    margin: 0;
+    color: #856404;
+    line-height: 1.6;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .roles-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .role-header {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
 {% endblock %}

@@ -1,0 +1,6 @@
+ID,Title,Description,Issue Type,School,Room,Tag,Status,Created By,Created At,Updated At
+11,Student Management System Slow,PowerSchool taking 5+ minutes to load student records. Affects grading and attendance entry.,Software,Central Office,Room 150,,new,teacher.brown,2025-06-07 15:57:26,2025-06-07 15:57:26
+10,Email Access Issues,Cannot access school email through Outlook. Getting authentication errors. Password reset didn't resolve issue.,Software,Central Office,Main Office,,new,secretary.wilson,2025-06-07 15:57:26,2025-06-07 15:57:26
+9,Projector Display Problems,"Smart board projector showing distorted colors and flickering. Tried different input sources, issue persists.",Hardware,Central Office,Room 205,,new,teacher.davis,2025-06-07 15:57:26,2025-06-07 15:57:26
+8,WiFi Connection Issues in Library,Students unable to connect to school WiFi network. Connection drops frequently. Affects approximately 15 devices.,Network,Central Office,Library,,new,librarian.jones,2025-06-07 15:57:26,2025-06-07 15:57:26
+7,Computer Won't Start in Room 101,Desktop computer in classroom 101 won't power on. Power button LED is not lighting up. Checked power cable connections.,Hardware,Central Office,Room 101,,new,teacher.smith,2025-06-07 15:57:26,2025-06-07 15:57:26
