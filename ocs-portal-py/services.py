@@ -375,6 +375,28 @@ class TicketsService:
             print(f"Error importing tech tickets CSV: {e}")
             raise
 
+    async def clear_all_tech_tickets(self) -> Dict:
+        """Clear all tech tickets"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(f"{self.base_url}/api/tickets/tech/clear")
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error clearing tech tickets: {e}")
+            raise
+
+    async def clear_all_maintenance_tickets(self) -> Dict:
+        """Clear all maintenance tickets"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(f"{self.base_url}/api/tickets/maintenance/clear")
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error clearing maintenance tickets: {e}")
+            raise
+
 class InventoryService:
     """Service for interacting with the Inventory API"""
     

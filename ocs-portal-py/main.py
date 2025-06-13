@@ -429,8 +429,7 @@ async def export_maintenance_tickets(request: Request):
         )
     except Exception as e:
         print(f"❌ Error exporting maintenance tickets: {e}")
-        # Return to the tickets page with error
-        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+        # Return to the tickets page with error        return RedirectResponse("/tickets/maintenance/open", status_code=303)
 
 # CSV Import Routes
 @app.post("/tickets/tech/import")
@@ -603,6 +602,38 @@ async def maintenance_tickets_archives(
         **menu_context
     })
 
+# Clear All Tickets Routes - Must come before parameterized routes
+@app.post("/tickets/tech/clear")
+async def clear_tech_tickets(request: Request):
+    """Clear all tech tickets"""
+    try:
+        result = await tickets_service.clear_all_tech_tickets()
+        print(f"✅ Tech tickets cleared: {result}")
+        
+        # Redirect back to tech tickets page with success message
+        return RedirectResponse("/tickets/tech/open?message=Tech tickets cleared successfully", status_code=303)
+        
+    except Exception as e:
+        print(f"❌ Error clearing tech tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/tech/open?error=Failed to clear tickets", status_code=303)
+
+@app.post("/tickets/maintenance/clear")
+async def clear_maintenance_tickets(request: Request):
+    """Clear all maintenance tickets"""
+    try:
+        result = await tickets_service.clear_all_maintenance_tickets()
+        print(f"✅ Maintenance tickets cleared: {result}")
+        
+        # Redirect back to maintenance tickets page with success message
+        return RedirectResponse("/tickets/maintenance/open?message=Maintenance tickets cleared successfully", status_code=303)
+        
+    except Exception as e:
+        print(f"❌ Error clearing maintenance tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/maintenance/open?error=Failed to clear tickets", status_code=303)
+
+# Parameterized routes - Must come after specific routes
 @app.get("/tickets/tech/{ticket_id}")
 async def view_tech_ticket(request: Request, ticket_id: int):
     """View individual technology ticket details"""

@@ -200,6 +200,10 @@ def root():
 def health_check():
     return {"status": "healthy", "service": "ocs-tickets-api"}
 
+@app.post("/test-post")
+def test_post():
+    return {"message": "POST request works!", "success": True}
+
 # Technology Tickets API
 @app.get("/api/tickets/tech", response_model=List[TechTicketResponse])
 def get_tech_tickets(
@@ -359,9 +363,9 @@ def export_maintenance_tickets_csv(import_ready: str = "false", db: Session = De
                 ])
         
         temp_file.close()
-        
-        # Generate filename with current date
+          # Generate filename with current date
         current_date = datetime.now().strftime('%Y-%m-%d')
+        
         if import_ready_bool:
             filename = f"maintenance_tickets_import_ready_{current_date}.csv"
         else:
@@ -376,6 +380,63 @@ def export_maintenance_tickets_csv(import_ready: str = "false", db: Session = De
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting maintenance tickets: {str(e)}")
+
+# Clear All Tickets API - Must come before parameterized routes
+@app.post("/api/tickets/tech/clear")
+def clear_all_tech_tickets(db: Session = Depends(get_db)):
+    """Clear all technology tickets from the database"""
+    try:
+        # Get count before deletion
+        count = db.query(TechTicket).count()
+        
+        # Delete all tech tickets
+        db.query(TechTicket).delete()
+        
+        # Reset the closed ticket counter
+        db.execute(text("""
+            INSERT INTO counter (name, value) VALUES ('closed_tech_tickets', 0)
+            ON CONFLICT (name) DO UPDATE SET value = 0;
+        """))
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Successfully cleared {count} technology tickets",
+            "cleared_count": count
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error clearing tech tickets: {str(e)}")
+
+@app.post("/api/tickets/maintenance/clear")
+def clear_all_maintenance_tickets(db: Session = Depends(get_db)):
+    """Clear all maintenance tickets from the database"""
+    try:
+        # Get count before deletion
+        count = db.query(MaintenanceTicket).count()
+        
+        # Delete all maintenance tickets
+        db.query(MaintenanceTicket).delete()
+        
+        # Reset the closed ticket counter
+        db.execute(text("""
+            INSERT INTO counter (name, value) VALUES ('closed_maintenance_tickets', 0)
+            ON CONFLICT (name) DO UPDATE SET value = 0;
+        """))
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Successfully cleared {count} maintenance tickets",
+            "cleared_count": count
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error clearing maintenance tickets: {str(e)}")
 
 # CSV Import API
 @app.post("/api/tickets/tech/import")
@@ -775,8 +836,7 @@ def get_maintenance_archive_tickets(
             tickets.append(ticket)
             
         return {
-            "archive_name": archive_name,
-            "table_name": table_name,
+            "archive_name": archive_name,            "table_name": table_name,
             "tickets": tickets,
             "count": len(tickets)
         }
