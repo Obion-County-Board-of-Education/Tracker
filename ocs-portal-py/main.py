@@ -412,6 +412,26 @@ async def export_tech_tickets(request: Request):
         # Return to the tickets page with error
         return RedirectResponse("/tickets/tech/open", status_code=303)
 
+@app.get("/tickets/maintenance/export")
+async def export_maintenance_tickets(request: Request):
+    """Export maintenance tickets to CSV"""
+    try:
+        csv_content = await tickets_service.export_maintenance_tickets_csv()
+        
+        # Generate filename with current date
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        filename = f"maintenance_tickets_export_{current_date}.csv"
+        
+        return Response(
+            content=csv_content,
+            media_type='text/csv',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        print(f"❌ Error exporting maintenance tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+
 # CSV Import Routes
 @app.post("/tickets/tech/import")
 async def import_tech_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
@@ -444,10 +464,10 @@ async def import_tech_tickets(request: Request, file: UploadFile = File(...), op
 @app.get("/tickets/tech/archives")
 async def tech_tickets_archives(
     request: Request,
-    archive_name: Optional[str] = None,
+    archive: Optional[str] = None,
     status_filter: Optional[str] = None
 ):
-    """Display archived technology tickets"""
+    """Display tech ticket archives using main template with archive selector"""
     try:
         # Get list of available archives
         archives = await tickets_service.get_tech_archives()
@@ -457,11 +477,11 @@ async def tech_tickets_archives(
         archive_info = {}
         
         # If an archive is selected, get its tickets
-        if archive_name:
-            archive_data = await tickets_service.get_tech_archive_tickets(archive_name, status_filter)
+        if archive:
+            archive_data = await tickets_service.get_tech_archive_tickets(archive, status_filter)
             tickets = archive_data.get("tickets", [])
-            selected_archive = archive_name
-            archive_info = next((a for a in archives if a["name"] == archive_name), {})
+            selected_archive = archive
+            archive_info = next((a for a in archives if a["name"] == archive), {})
             
             # Format dates for template display
             for ticket in tickets:
@@ -480,14 +500,25 @@ async def tech_tickets_archives(
                         ticket["updated_at"] = None
         
         buildings = await tickets_service.get_buildings()
+        
+        # Get closed tickets count for consistency
+        closed_count = 0
+        try:
+            closed_response = await tickets_service.get_closed_tech_tickets()
+            if isinstance(closed_response, dict) and "tickets" in closed_response:
+                closed_count = len(closed_response["tickets"])
+        except:
+            pass
+            
     except Exception as e:
         print(f"Error fetching tech archive tickets: {e}")
         tickets = []
         buildings = []
         archives = []
+        closed_count = 0
     
     menu_context = await get_menu_context()
-    return templates.TemplateResponse("tech_tickets_archives.html", {
+    return templates.TemplateResponse("tech_tickets_list.html", {
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
@@ -496,6 +527,7 @@ async def tech_tickets_archives(
         "archives": archives,
         "selected_archive": selected_archive,
         "archive_info": archive_info,
+        "closed_count": closed_count,
         "current_datetime": datetime.now(),
         **menu_context
     })
@@ -503,10 +535,10 @@ async def tech_tickets_archives(
 @app.get("/tickets/maintenance/archives")
 async def maintenance_tickets_archives(
     request: Request,
-    archive_name: Optional[str] = None,
+    archive: Optional[str] = None,
     status_filter: Optional[str] = None
 ):
-    """Display archived maintenance tickets"""
+    """Display maintenance ticket archives using main template with archive selector"""
     try:
         # Get list of available archives
         archives = await tickets_service.get_maintenance_archives()
@@ -516,11 +548,11 @@ async def maintenance_tickets_archives(
         archive_info = {}
         
         # If an archive is selected, get its tickets
-        if archive_name:
-            archive_data = await tickets_service.get_maintenance_archive_tickets(archive_name, status_filter)
+        if archive:
+            archive_data = await tickets_service.get_maintenance_archive_tickets(archive, status_filter)
             tickets = archive_data.get("tickets", [])
-            selected_archive = archive_name
-            archive_info = next((a for a in archives if a["name"] == archive_name), {})
+            selected_archive = archive
+            archive_info = next((a for a in archives if a["name"] == archive), {})
             
             # Format dates for template display
             for ticket in tickets:
@@ -539,14 +571,25 @@ async def maintenance_tickets_archives(
                         ticket["updated_at"] = None
         
         buildings = await tickets_service.get_buildings()
+        
+        # Get closed tickets count for consistency
+        closed_count = 0
+        try:
+            closed_response = await tickets_service.get_closed_maintenance_tickets()
+            if isinstance(closed_response, dict) and "tickets" in closed_response:
+                closed_count = len(closed_response["tickets"])
+        except:
+            pass
+            
     except Exception as e:
         print(f"Error fetching maintenance archive tickets: {e}")
         tickets = []
         buildings = []
         archives = []
+        closed_count = 0
     
     menu_context = await get_menu_context()
-    return templates.TemplateResponse("maintenance_tickets_archives.html", {
+    return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
         "tickets": tickets,
         "buildings": buildings,
@@ -555,6 +598,7 @@ async def maintenance_tickets_archives(
         "archives": archives,
         "selected_archive": selected_archive,
         "archive_info": archive_info,
+        "closed_count": closed_count,
         "current_datetime": datetime.now(),
         **menu_context
     })

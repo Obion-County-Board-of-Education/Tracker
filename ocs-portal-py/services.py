@@ -338,6 +338,43 @@ class TicketsService:
             print(f"Error rolling maintenance database: {e}")
             return {"success": False, "message": str(e)}
 
+    async def export_tech_tickets_csv(self) -> str:
+        """Export tech tickets to CSV"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/tickets/tech/export")
+                response.raise_for_status()
+                return response.text
+        except Exception as e:
+            print(f"Error exporting tech tickets CSV: {e}")
+            raise
+
+    async def export_maintenance_tickets_csv(self) -> str:
+        """Export maintenance tickets to CSV"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/tickets/maintenance/export")
+                response.raise_for_status()
+                return response.text
+        except Exception as e:
+            print(f"Error exporting maintenance tickets CSV: {e}")
+            raise
+
+    async def import_tech_tickets_csv(self, file_content: str, operation: str) -> Dict:
+        """Import tech tickets from CSV"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/tickets/tech/import",
+                    data={"operation": operation},
+                    files={"file": ("tickets.csv", file_content, "text/csv")}
+                )
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error importing tech tickets CSV: {e}")
+            raise
+
 class InventoryService:
     """Service for interacting with the Inventory API"""
     

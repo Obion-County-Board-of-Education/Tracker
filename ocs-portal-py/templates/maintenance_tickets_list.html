@@ -37,12 +37,31 @@
                 </button>
             </div>
         </div>
-        
-        <div class="search-and-filters">
-            <div class="search-box">
-                <i class="fa fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search requests by title, building, or created by..." />
-            </div>
+          <div class="search-and-filters">
+            {% if status_filter == 'archived' %}
+                <!-- Archive Selector (replaces search bar for archives) -->
+                <div class="archive-selector-container">
+                    <form method="get" action="/tickets/maintenance/archives" id="archiveForm">
+                        <label for="archive-select">Select Archive:</label>
+                        <select name="archive" id="archive-select" class="archive-dropdown" onchange="this.form.submit()">
+                            <option value="">Choose an archive...</option>
+                            {% if archives %}
+                                {% for archive in archives %}
+                                    <option value="{{ archive.name }}" {% if selected_archive == archive.name %}selected{% endif %}>
+                                        {{ archive.name }} ({{ archive.ticket_count }} tickets)
+                                    </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </form>
+                </div>
+            {% else %}
+                <!-- Regular Search Bar -->
+                <div class="search-box">
+                    <i class="fa fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search requests by title, building, or created by..." />
+                </div>
+            {% endif %}
               <div class="filter-controls">
                 <select id="buildingFilter" class="filter-select">
                     <option value="">All Buildings</option>
@@ -492,6 +511,47 @@
 .search-box input:focus {
     outline: none;
     border-color: #28a745;
+}
+
+/* Archive selector styling */
+.archive-selector-container {
+    flex: 1;
+    min-width: 300px;
+}
+
+.archive-selector-container form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.archive-selector-container label {
+    font-weight: 500;
+    color: #495057;
+    white-space: nowrap;
+    font-size: 0.95rem;
+}
+
+.archive-dropdown {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: white;
+    color: #495057;
+    transition: border-color 0.2s;
+    cursor: pointer;
+}
+
+.archive-dropdown:focus {
+    outline: none;
+    border-color: #28a745;
+}
+
+.archive-dropdown option {
+    padding: 8px;
 }
 
 .filter-controls {
