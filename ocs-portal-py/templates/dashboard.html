@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - OCS Tracker{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Welcome, {{ user.name }}</h1>
+        <p class="last-login">Last login: {{ last_login }}</p>
+    </div>
+
+    <div class="dashboard-alerts">
+        {% if system_messages %}
+            {% for message in system_messages %}
+                <div class="alert alert-{{ message.level }}">
+                    <h3>{{ message.title }}</h3>
+                    <p>{{ message.content }}</p>
+                    {% if message.timestamp %}
+                        <div class="timestamp">Posted: {{ message.timestamp }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <div class="dashboard-grid">
+        {% if user_permissions.tickets > 0 %}
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-ticket"></i> Tickets</h2>
+                {% if ticket_stats %}
+                    <div class="stat-badge">{{ ticket_stats.total }}</div>
+                {% endif %}
+            </div>
+            <div class="card-content">
+                {% if ticket_stats %}
+                    <div class="stat-row">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ ticket_stats.open }}</div>
+                            <div class="stat-label">Open</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ ticket_stats.assigned }}</div>
+                            <div class="stat-label">Assigned</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ ticket_stats.closed }}</div>
+                            <div class="stat-label">Closed</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <p>No ticket data available</p>
+                {% endif %}
+                <div class="card-actions">
+                    <a href="/tickets/tech/new" class="btn btn-primary">New Ticket</a>
+                    <a href="/tickets/tech/open" class="btn btn-secondary">View Tickets</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user_permissions.inventory > 0 %}
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-boxes-stacked"></i> Inventory</h2>
+            </div>
+            <div class="card-content">
+                {% if inventory_stats %}
+                    <div class="stat-row">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ inventory_stats.total }}</div>
+                            <div class="stat-label">Total Items</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ inventory_stats.categories }}</div>
+                            <div class="stat-label">Categories</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <p>No inventory data available</p>
+                {% endif %}
+                <div class="card-actions">
+                    <a href="/inventory/view" class="btn btn-primary">Browse Inventory</a>
+                    {% if user_permissions.inventory >= 2 %}
+                        <a href="/inventory/add" class="btn btn-secondary">Add Items</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user_permissions.purchasing > 0 %}
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-shopping-cart"></i> Purchasing</h2>
+                {% if requisition_stats %}
+                    <div class="stat-badge">{{ requisition_stats.pending_approval }} Pending</div>
+                {% endif %}
+            </div>
+            <div class="card-content">
+                {% if requisition_stats %}
+                    <div class="stat-row">
+                        <div class="stat-item">
+                            <div class="stat-value">{{ requisition_stats.submitted }}</div>
+                            <div class="stat-label">Submitted</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ requisition_stats.approved }}</div>
+                            <div class="stat-label">Approved</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">{{ requisition_stats.rejected }}</div>
+                            <div class="stat-label">Rejected</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <p>No requisition data available</p>
+                {% endif %}
+                <div class="card-actions">
+                    <a href="/purchasing/requisitions" class="btn btn-primary">View Requisitions</a>
+                    {% if user_permissions.purchasing >= 3 %}
+                        <a href="/purchasing/purchase-orders" class="btn btn-secondary">Purchase Orders</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user_permissions.forms > 0 %}
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-clipboard-list"></i> Forms</h2>
+            </div>
+            <div class="card-content">
+                <p>Access common forms and submission processes.</p>
+                <div class="card-actions">
+                    <a href="/forms/time" class="btn btn-primary">Time Forms</a>
+                    <a href="/forms/fuel" class="btn btn-secondary">Fuel Tracking</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user_permissions.user_management >= 3 %}
+        <div class="dashboard-card admin-card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-user-gear"></i> Administration</h2>
+            </div>
+            <div class="card-content">
+                <p>Manage system users, roles, and settings.</p>
+                <div class="card-actions">
+                    <a href="/admin/auth/roles" class="btn btn-primary">Manage Roles</a>
+                    <a href="/users/list" class="btn btn-secondary">User Management</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        margin-bottom: 2em;
+    }
+
+    .dashboard-header h1 {
+        margin-bottom: 0.2em;
+        color: #333;
+    }
+
+    .last-login {
+        color: #666;
+        font-style: italic;
+    }
+
+    .dashboard-alerts {
+        margin-bottom: 2em;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5em;
+    }
+
+    .dashboard-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-top: 4px solid #6a1b9a;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+    }
+
+    .admin-card {
+        border-top-color: #d81b60;
+    }
+
+    .card-header {
+        background: #f9f9f9;
+        padding: 1.2em;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+    }
+
+    .card-header h2 {
+        margin: 0;
+        font-size: 1.3em;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+    }
+
+    .card-content {
+        padding: 1.5em;
+    }
+
+    .stat-row {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 1.5em;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #6a1b9a;
+    }
+
+    .stat-label {
+        font-size: 0.9em;
+        color: #666;
+        margin-top: 0.3em;
+    }
+
+    .stat-badge {
+        background: #6a1b9a;
+        color: white;
+        padding: 0.3em 0.8em;
+        border-radius: 1em;
+        font-size: 0.9em;
+        font-weight: bold;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 1em;
+        margin-top: 1em;
+    }
+
+    .btn {
+        text-decoration: none;
+        padding: 0.7em 1.2em;
+        border-radius: 4px;
+        font-weight: 500;
+        text-align: center;
+        transition: background-color 0.2s;
+        flex: 1;
+    }
+
+    .btn-primary {
+        background: #6a1b9a;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #8e24aa;
+    }
+
+    .btn-secondary {
+        background: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+        background: #eee;
+    }
+
+    .timestamp {
+        font-size: 0.8em;
+        color: #666;
+        margin-top: 0.5em;
+        text-align: right;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

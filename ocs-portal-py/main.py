@@ -11,10 +11,12 @@ from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, 
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
 from ocs_shared_models import User, Building, Room, SystemMessage
 from ocs_shared_models.timezone_utils import central_now, format_central_time
+from ocs_shared_models.auth_middleware import AuthMiddleware, get_current_user
 from database import get_db, init_database
 from services import tickets_service, purchasing_service
 from management_service import management_service
@@ -31,26 +33,90 @@ app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-async def get_menu_context():
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Update for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Add authentication middleware
+app.add_middleware(AuthMiddleware)
+
+# Import authentication routes
+from routes.auth_routes import router as auth_router
+from routes.admin_auth_routes import router as admin_auth_router
+from routes.user_routes import router as user_router
+from routes.dashboard_routes import router as dashboard_router
+
+# Include authentication route handlers
+app.include_router(auth_router)
+app.include_router(admin_auth_router)
+app.include_router(user_router)
+app.include_router(dashboard_router)
+
+async def get_menu_context(request: Request = None):
     """Get menu visibility context for templates"""
     try:
         menu_visibility = await health_checker.get_menu_visibility()
+        
+        # If we have a request with an authenticated user, use permissions to refine menu visibility
+        user_permissions = {}
+        if request and hasattr(request.state, "user"):
+            user = request.state.user
+            user_permissions = user.get("permissions", {})
+            
+            # Refine menu visibility based on permissions
+            if "tickets" in user_permissions and user_permissions["tickets"] < 1:
+                menu_visibility["tickets"] = False
+                
+            if "inventory" in user_permissions and user_permissions["inventory"] < 1:
+                menu_visibility["inventory"] = False
+                
+            if "purchasing" in user_permissions and user_permissions["purchasing"] < 1:
+                menu_visibility["purchasing"] = False
+                
+            # Admin menu requires admin access to user_management
+            if "user_management" not in user_permissions or user_permissions["user_management"] < 3:
+                menu_visibility["admin"] = False
+        
         print(f"🔍 Dynamic menu context: {menu_visibility}")
-        return {"menu_visibility": menu_visibility}
+        return {"menu_visibility": menu_visibility, "is_authenticated": bool(user_permissions)}
+        
     except Exception as e:
-        print(f"⚠️ Health checker failed, using fallback menu: {e}")        # Fallback to show all menus if health checker fails
+        print(f"⚠️ Health checker failed, using fallback menu: {e}")
+        # Fallback to show all menus if health checker fails
         return {"menu_visibility": {
             "tickets": True,
             "inventory": True,
             "purchasing": True,
             "manage": True,
             "forms": True,
-            "admin": True
-        }}
+            "admin": True if request and hasattr(request.state, "user") else False
+        }, "is_authenticated": request and hasattr(request.state, "user")}
 
 async def render_template(template_name: str, context: dict):
     """Helper function to render templates with menu context"""
-    menu_context = await get_menu_context()
+    # Get request object from context if available
+    request = context.get("request")
+    
+    # Pass request to get_menu_context to check authentication status
+    menu_context = await get_menu_context(request)
+    
+    # Add user info to template context if authenticated
+    if request and hasattr(request.state, "user"):
+        user = request.state.user
+        user_context = {
+            "user": {
+                "name": user.get("name"),
+                "email": user.get("email"),
+                "roles": user.get("roles", [])
+            }
+        }
+        return templates.TemplateResponse(template_name, {**context, **menu_context, **user_context})
+    
     return templates.TemplateResponse(template_name, {**context, **menu_context})
 
 # Import and setup user/building routes from separate module

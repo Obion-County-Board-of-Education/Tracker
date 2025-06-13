@@ -50,7 +50,14 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     display_name = Column(String)
     email = Column(String)
+    employee_id = Column(String, unique=True)
     roles = Column(String, default='basic')  # Comma-separated roles
+    is_building_admin = Column(Boolean, default=False)  # For building principals/administrators
+    is_director_of_schools = Column(Boolean, default=False)  # Identified via extensionAttribute10
+    is_district_level = Column(Boolean, default=False)  # For district-wide roles
+    building_assignment = Column(String)  # Based on officeLocation
+    extension_attribute_10 = Column(String)  # Raw value from Azure AD
+    office_location = Column(String)  # Raw value from Azure AD
     buildings = relationship("Building", secondary=user_buildings, back_populates="users")
     rooms = relationship("Room", secondary=user_rooms, back_populates="users")
 

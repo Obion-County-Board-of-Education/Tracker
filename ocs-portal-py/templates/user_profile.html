@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - OCS Tracker{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2><i class="fa-solid fa-id-card"></i> My Profile</h2>
+    
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <i class="fa-solid fa-user-circle fa-5x"></i>
+            </div>
+            <div class="profile-info">
+                <h3>{{ user.name }}</h3>
+                <p><i class="fa-solid fa-envelope"></i> {{ user.email }}</p>
+                <p><i class="fa-solid fa-id-badge"></i> ID: {{ user.id }}</p>
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <h4>Roles</h4>
+            <div class="tag-container">
+                {% for role in user.roles %}
+                <span class="tag">{{ role }}</span>
+                {% else %}
+                <p>No roles assigned</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <h4>System Permissions</h4>
+            <table class="permissions-table">
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Access Level</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service, level_value in user.permissions.items() %}
+                    <tr>
+                        <td>{{ service|capitalize }}</td>
+                        <td>
+                            {% if level_value == 4 %}
+                            <span class="access-badge super-admin">Super Admin</span>
+                            {% elif level_value == 3 %}
+                            <span class="access-badge admin">Admin</span>
+                            {% elif level_value == 2 %}
+                            <span class="access-badge write">Write</span>
+                            {% elif level_value == 1 %}
+                            <span class="access-badge read">Read</span>
+                            {% else %}
+                            <span class="access-badge none">No Access</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="2">No permissions defined</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="profile-section">
+            <h4>Session Information</h4>
+            <p><strong>Last Activity:</strong> {{ last_activity }}</p>
+            <p><strong>Session Expires:</strong> {{ session_expires }}</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .profile-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .profile-avatar {
+        margin-right: 20px;
+        color: #6a1b9a;
+    }
+    
+    .profile-info h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        color: #333;
+    }
+    
+    .profile-info p {
+        margin: 5px 0;
+        color: #666;
+    }
+    
+    .profile-section {
+        margin-bottom: 30px;
+    }
+    
+    .profile-section h4 {
+        border-bottom: 2px solid #eee;
+        padding-bottom: 8px;
+        margin-bottom: 15px;
+        color: #6a1b9a;
+    }
+    
+    .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .tag {
+        background-color: #e0e0e0;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .permissions-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .permissions-table th, 
+    .permissions-table td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+    }
+    
+    .permissions-table th {
+        background-color: #f5f5f5;
+    }
+    
+    .access-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .super-admin {
+        background-color: #d81b60; /* Dark pink */
+    }
+    
+    .admin {
+        background-color: #8e24aa; /* Purple */
+    }
+    
+    .write {
+        background-color: #1976d2; /* Blue */
+    }
+    
+    .read {
+        background-color: #388e3c; /* Green */
+    }
+    
+    .none {
+        background-color: #757575; /* Gray */
+        color: #eee;
+    }
+</style>
+{% endblock %}

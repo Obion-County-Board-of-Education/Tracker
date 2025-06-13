@@ -112,11 +112,9 @@ def list_all_groups(access_token):
     
     graph_url = "https://graph.microsoft.com/v1.0/groups?$top=999"  # Request maximum allowed in one page
     all_groups = []
-    
-    print("\nFetching all groups from Azure AD (with pagination)...")
+      print("\nFetching all groups from Azure AD (with pagination)...")
     print(f"Request URL: {graph_url}")
     print("Request Headers: Authorization: Bearer [REDACTED]")
-    
     try:
         # Continue fetching groups until there are no more pages
         while graph_url:
@@ -158,8 +156,13 @@ def list_all_groups(access_token):
             print(f"   {i}. {group.get('displayName')} (ID: {group.get('id')})")
             
         return all_groups
-    else:
-            print("❌ Failed to retrieve groups")
+    except Exception as e:
+        # Handle exceptions that might occur while fetching groups
+        print("❌ Failed to retrieve groups")
+        print(f"   Error: {str(e)}")
+        
+        # If we have a response object in the exception context, try to extract more info
+        if 'response' in locals():
             print(f"   Status code: {response.status_code}")
             print(f"   Response: {response.text}")
             
@@ -180,8 +183,8 @@ def list_all_groups(access_token):
                     print("   Note: The /me endpoint doesn't work with application permissions (only delegated)")
             except Exception as e:
                 print(f"   Error checking /me endpoint: {str(e)}")
-                
-            return []
+        
+        return []
     except Exception as e:
         print(f"❌ Exception while fetching groups: {str(e)}")
         return []

@@ -72,9 +72,25 @@
                     <div class="dropdown-content">
                         <a href="/users/list">Users</a>
                         <a href="/buildings/list">Buildings</a>
-                        <!-- You can add more admin options here -->
+                        <a href="/admin/auth/roles">Manage Roles</a>
                     </div>
                 </div>
+                {% endif %}
+                
+                <!-- User profile dropdown -->
+                {% if is_authenticated and request.state.user %}
+                <div class="dropdown user-dropdown">
+                    <a href="#" class="nav-link user-nav-link">
+                        <i class="fa-solid fa-user-circle"></i> 
+                        {{ request.state.user.name }} <i class="fa fa-caret-down"></i>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="/user/profile"><i class="fa-solid fa-id-card"></i> My Profile</a>
+                        <a href="/auth/logout"><i class="fa-solid fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+                {% else %}
+                <a href="/auth/login" class="nav-link"><i class="fa-solid fa-sign-in-alt"></i> Login</a>
                 {% endif %}
             </nav>
         </div>

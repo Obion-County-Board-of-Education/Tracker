@@ -43,17 +43,17 @@ The OCS Tracker authentication system integrates with **Microsoft Graph API** to
 
 ### **Azure AD Group Mapping**
 
-| Azure AD Group | OCS Role | Access Level | Description |
+| Azure AD Group or User Attribute | OCS Role | Access Level | Description |
 |---|---|---|---|
 | `Technology Department` | Super Admin | Full Access | Complete system administration and technical support |
-| `Director of Schools` | Super Admin | Full Access | Executive leadership with full administrative rights |
+| extensionAttribute10="Director of Schools" | Super Admin | Full Access | Executive leadership with full administrative rights |
 | `Finance` | Super Admin | Full Access | Financial administration with full system access |
 | `All_Staff` | Staff User | Limited Write | Submit tickets/requisitions, view own submissions |
 | `All_Students` | Student User | Basic Access | Submit and view own tickets only |
 
 ### **Permission Matrix**
 
-| Service | Technology Dept | Director of Schools | Finance | All_Staff | All_Student |
+| Service | Technology Dept | Director of Schools (Attr) | Finance | All_Staff | All_Student |
 |---|---|---|---|---|---|
 | **Tickets** | Admin | Admin | Admin | Create/View Own | Create/View Own |
 | **Inventory** | Admin | Admin | Admin | Read Only | None |

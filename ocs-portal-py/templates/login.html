@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Login - OCS Tracker{% endblock %}
+
+{% block head %}
+<style>
+    .login-container {
+        max-width: 500px;
+        margin: 50px auto;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        background: white;
+    }
+    
+    .login-logo {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .login-logo img {
+        max-width: 120px;
+    }
+    
+    .login-title {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #6a1b9a;
+    }
+    
+    .login-btn {
+        width: 100%;
+        padding: 12px;
+        background: #6a1b9a;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .login-btn:hover {
+        background: #8e24aa;
+    }
+    
+    .login-btn img {
+        height: 24px;
+        margin-right: 10px;
+    }
+    
+    .login-help {
+        text-align: center;
+        margin-top: 30px;
+        color: #666;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-logo">
+        <img src="/static/ocs-logo.png" alt="OCS Logo">
+    </div>
+    
+    <h2 class="login-title">Welcome to OCS Tracker</h2>
+    
+    <p>Please log in with your Obion County Schools account to access the portal.</p>
+    
+    <div style="margin: 30px 0;">
+        <a href="/auth/login" class="login-btn">
+            <img src="/static/ms-logo.png" alt="Microsoft Logo">
+            Sign in with Microsoft
+        </a>
+    </div>
+    
+    {% if error %}
+    <div class="alert alert-danger">
+        {{ error }}
+    </div>
+    {% endif %}
+    
+    <div class="login-help">
+        <p>Need help? Contact the Technology Department.</p>
+    </div>
+</div>
+{% endblock %}

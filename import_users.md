@@ -170,12 +170,13 @@ The system uses Azure AD properties to determine if a user is assigned to a spec
   - Example: "Assigned To District" marks user as district-level staff
   - If empty, defaults to district-level assignment
 
-### **Building Administrator Detection Logic**
-Building administrators (principals, assistant principals) are identified by:
+### **Administrator Detection Logic**
+Administrators are identified by:
 
-- **Extension Attribute 10**: Used to identify building administrators
+- **Extension Attribute 10**: Used to identify administrators:
   - Contains "Admin Principal" for building administrators
-  - Always used in combination with Office Location to determine their building
+  - Contains "Director of Schools" for the district superintendent
+  - Always used in combination with Office Location to determine assignment level
 
 ### **Organization Hierarchy Construction**
 The system creates a supervisor-employee relationship tree based on:
@@ -193,7 +194,7 @@ The system creates a supervisor-employee relationship tree based on:
 | John Davis | Assistant Principal | West High School | Admin Principal | Building Administrator |
 | Robert Jones | Technology Director | Assigned To District | (empty) | District Administrator |
 | Susan Miller | Teacher | East Elementary | (empty) | Building Staff |
-| Mark Wilson | Superintendent | Assigned To District | (empty) | District Administrator |
+| Mark Wilson | Superintendent | Assigned To District | Director of Schools | Director of Schools |
 
 ## 🔄 Synchronization Schedule
 

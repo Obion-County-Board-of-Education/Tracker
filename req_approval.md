@@ -100,7 +100,7 @@ flowchart TD
 - Approve/reject based on financial policies
 - Access to all financial reports and budget data
 
-### **Director of Schools (Director of Schools Group)**
+### **Director of Schools (identified by extensionAttribute10="Director of Schools")**
 **Permissions**: Executive Authorization
 - Final approval authority for all purchases
 - District-wide oversight and compliance
@@ -196,10 +196,10 @@ Notification tracking system
 
 ### **Azure AD Group Integration**
 
-| Azure AD Group | Approval Permissions | System Access |
+| Azure AD Group or Role | Approval Permissions | System Access |
 |----------------|---------------------|---------------|
 | `Technology Department` | All Stages (Admin Override) | Full system administration |
-| `Director of Schools` | Stage 3 (Final Approval) | Full administrative access |
+| extensionAttribute10="Director of Schools" | Stage 3 (Final Approval) | Full administrative access |
 | `Finance` | Stage 2 & 4 (Financial Review & PO Entry) | Full financial system access |
 | `All_Staff` | Submit Only | Limited to own submissions |
 | `All_Student` | No Access | No requisition privileges |
@@ -207,7 +207,7 @@ Notification tracking system
 ### **Permission Validation**
 - **Stage 1**: Only designated supervisor can approve (unless self-approval)
 - **Stage 2**: Only Finance Director group members can approve
-- **Stage 3**: Only Director of Schools group members can approve
+- **Stage 3**: Only user with extensionAttribute10="Director of Schools" can approve
 - **Stage 4**: Only Finance group members can create POs
 - **Admin Override**: Technology Department group can manage any stage
 

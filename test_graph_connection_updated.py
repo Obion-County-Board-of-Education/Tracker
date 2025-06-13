@@ -28,8 +28,13 @@ TARGET_GROUPS = {
     "All_Staff": "1a5462fc-7e89-4517-be54-2ce79b44e12a",  # Found exact match
     "All_Students": "f4ee1bf4-901c-43bb-a380-935540b0832d",  # This might need updating
     "Technology Department": "fb4e15be-e9ac-4072-adac-898c9697e4cc",  # Found exact match
-    "Director of Schools": "0874bbc2-4c51-435f-b034-59615c2a7351",  # Found exact match
     "Finance": "630591da-b07e-4bce-8b3f-90b8f46dcdeb"  # Found exact match
+}
+
+# Special user roles identified by extensionAttribute10
+EXTENSION_ATTRIBUTE_ROLES = {
+    "Director of Schools": "Director of Schools",  # Value in extensionAttribute10
+    "Admin Principal": "Building Administrator"    # Value in extensionAttribute10
 }
 
 def get_access_token():
@@ -232,6 +237,7 @@ def check_group_members(access_token, group_ids):
 def test_user_attributes(access_token):
     """
     Test access to user attributes including extensionAttribute10 and officeLocation.
+    Also search for Director of Schools based on extensionAttribute10 value or specific email.
     """
     print("\nChecking access to user attributes (extensionAttribute10 and officeLocation)...")
     
@@ -240,7 +246,7 @@ def test_user_attributes(access_token):
         'Content-Type': 'application/json'
     }
     
-    # Fetch one user to test attribute access
+    # First fetch one user to test general attribute access
     graph_url = "https://graph.microsoft.com/v1.0/users?$select=id,displayName,mail,jobTitle,officeLocation,department,accountEnabled,onPremisesExtensionAttributes&$top=1"
     
     response = requests.get(graph_url, headers=headers)
@@ -265,6 +271,110 @@ def test_user_attributes(access_token):
                 print(f"✅ Can access officeLocation: {user.get('officeLocation', 'Not set')}")
             else:
                 print("❌ Cannot access officeLocation")
+            
+            # Now look for the Director of Schools (twatkins@ocboe.com) and check their attributes
+            print("\nLooking for Director of Schools (twatkins@ocboe.com)...")
+            
+            # Get all users with the relevant attributes
+            all_users_url = "https://graph.microsoft.com/v1.0/users?$select=id,displayName,mail,userPrincipalName,jobTitle,officeLocation,department,onPremisesExtensionAttributes&$top=999"
+            
+            try:
+                all_users_response = requests.get(all_users_url, headers=headers)
+                
+                if all_users_response.status_code == 200:
+                    all_users_data = all_users_response.json()
+                    all_users = all_users_data.get('value', [])
+                    
+                    print(f"  Retrieved {len(all_users)} users to search")
+                      # Look for the Director of Schools by email
+                    director_email = "twatkins@ocboe.com"
+                    director_found = False
+                    
+                    for user in all_users:
+                        mail = user.get('mail', '')
+                        upn = user.get('userPrincipalName', '')
+                        
+                        # Safe comparison handling None values
+                        if (mail and mail.lower() == director_email.lower()) or (upn and upn.lower() == director_email.lower()):
+                            director_found = True
+                            print("✅ Found Director of Schools:")
+                            print(f"   Name: {user.get('displayName')}")
+                            print(f"   Email: {mail}")
+                            print(f"   Job Title: {user.get('jobTitle', 'Not set')}")
+                            print(f"   Office Location: {user.get('officeLocation', 'Not set')}")
+                            
+                            # Check extensionAttribute10
+                            ext_attrs = user.get('onPremisesExtensionAttributes', {})
+                            ext_attr10 = ext_attrs.get('extensionAttribute10', '')
+                            print(f"   extensionAttribute10: {ext_attr10 if ext_attr10 else 'Not set'}")
+                            
+                            if not ext_attr10 or "Director of Schools" not in ext_attr10:
+                                print("\n⚠️ The extensionAttribute10 does not contain 'Director of Schools'")
+                                print("   This attribute should be updated for the role to be detected properly")
+                            break
+                    
+                    if not director_found:
+                        print(f"❌ Could not find Director of Schools with email {director_email}")
+                          # Look for users with Director of Schools in their title
+                        print("\nSearching for possible Director of Schools based on job title or name...")
+                        possible_directors = []
+                        
+                        for user in all_users:
+                            job_title = user.get('jobTitle', '').lower() if user.get('jobTitle') else ''
+                            display_name = user.get('displayName', '').lower() if user.get('displayName') else ''
+                            user_email = user.get('mail', '').lower() if user.get('mail') else ''
+                            
+                            # Check if name or job title contains relevant keywords OR has extensionAttribute10 set
+                            ext_attrs = user.get('onPremisesExtensionAttributes', {})
+                            ext_attr10 = ext_attrs.get('extensionAttribute10', '') if ext_attrs else ''
+                            
+                            # Check for matches based on keywords OR the extensionAttribute10
+                            if (('director' in job_title and 'school' in job_title) or 
+                                ('superintendent' in job_title) or 
+                                ('tim' in display_name.lower() and 'watkins' in display_name.lower()) or 
+                                ('watkins' in user_email) or
+                                (ext_attr10 and 'director of schools' in ext_attr10.lower())):
+                                possible_directors.append(user)
+                        
+                        if possible_directors:
+                            print("Found potential matches based on job title, name, or extensionAttribute10:")
+                            for i, director in enumerate(possible_directors, 1):
+                                mail = director.get('mail', 'No email available')
+                                job_title = director.get('jobTitle', 'Not set')
+                                ext_attrs = director.get('onPremisesExtensionAttributes', {})
+                                ext_attr10 = ext_attrs.get('extensionAttribute10', 'Not set') if ext_attrs else 'Not set'
+                                
+                                print(f"   {i}. {director.get('displayName')} ({mail})")
+                                print(f"      Job Title: {job_title}")
+                                print(f"      extensionAttribute10: {ext_attr10}")
+                                
+                                # Flag if this is a strong match based on extensionAttribute10
+                                if ext_attr10 and 'director of schools' in ext_attr10.lower():
+                                    print(f"      ✅ STRONG MATCH: extensionAttribute10 indicates Director of Schools role")
+                        
+                        # Show some sample extensionAttribute10 values
+                        print("\nSample extensionAttribute10 values from users:")
+                        sample_count = 0
+                        
+                        for user in all_users:
+                            ext_attrs = user.get('onPremisesExtensionAttributes', {})
+                            ext_attr10 = ext_attrs.get('extensionAttribute10', '')
+                            
+                            if ext_attr10:
+                                print(f"   - {user.get('displayName')} ({user.get('mail')}): '{ext_attr10}'")
+                                sample_count += 1
+                            
+                            if sample_count >= 5:  # Show up to 5 examples
+                                break
+                        
+                        if sample_count == 0:
+                            print("   No users found with any value in extensionAttribute10")
+                else:
+                    print("❌ Failed to search for users")
+                    print(f"   Status code: {all_users_response.status_code}")
+                    print(f"   Response: {all_users_response.text}")
+            except Exception as e:
+                print(f"❌ Exception during Director of Schools search: {str(e)}")
         else:
             print("⚠️ No users found to check attributes")
     else:

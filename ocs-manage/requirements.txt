@@ -1,9 +1,13 @@
-fastapi
-uvicorn
-jinja2
-python-multipart
-httpx
-pydantic
-psycopg2-binary
-sqlalchemy
-python-dotenv
+# ocs-manage requirements.txt
+fastapi>=0.103.1
+uvicorn>=0.23.2
+jinja2>=3.1.2
+python-multipart>=0.0.6
+httpx>=0.25.0
+pydantic>=2.3.0
+psycopg2-binary>=2.9.7
+sqlalchemy>=2.0.20
+python-dotenv>=1.0.0
+pyjwt>=2.8.0
+cryptography>=41.0.3
+pytz>=2023.3
