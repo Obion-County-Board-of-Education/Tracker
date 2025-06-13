@@ -424,8 +424,7 @@ def clear_all_maintenance_tickets(db: Session = Depends(get_db)):
         db.execute(text("""
             INSERT INTO counter (name, value) VALUES ('closed_maintenance_tickets', 0)
             ON CONFLICT (name) DO UPDATE SET value = 0;
-        """))
-        
+        """))        
         db.commit()
         
         return {
@@ -433,10 +432,122 @@ def clear_all_maintenance_tickets(db: Session = Depends(get_db)):
             "message": f"Successfully cleared {count} maintenance tickets",
             "cleared_count": count
         }
-        
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error clearing maintenance tickets: {str(e)}")
+
+# Roll Database API - Must come before parameterized routes
+@app.post("/api/tickets/tech/roll-database")
+def roll_tech_database(archive_name: str, db: Session = Depends(get_db)):
+    """Archive current tech tickets and create a new table"""
+    try:
+        # Validate archive name (only allow alphanumeric and underscore)
+        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
+            raise HTTPException(status_code=400, detail="Invalid archive name. Only letters, numbers, and underscores are allowed.")
+            
+        # Check if an archive with this name already exists
+        archive_table = f"tech_tickets_archive_{archive_name}"
+        table_exists = db.execute(text(f"""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = '{archive_table}'
+            );
+        """)).scalar()
+        
+        if table_exists:
+            raise HTTPException(status_code=409, detail=f"An archive with the name '{archive_name}' already exists. Please choose a unique name.")
+        
+        # Create archive table as a copy of current tech_tickets
+        db.execute(text(f"""
+            CREATE TABLE {archive_table} AS
+            SELECT * FROM tech_tickets;
+        """))
+        
+        # Get the count of archived tickets
+        archive_count = db.execute(text(f"SELECT COUNT(*) FROM {archive_table}")).scalar()
+        
+        # Truncate the current tech_tickets table
+        db.execute(text("TRUNCATE TABLE tech_tickets RESTART IDENTITY CASCADE;"))
+        
+        # Reset the closed ticket counter
+        db.execute(text("""
+            INSERT INTO counter (name, value) VALUES ('closed_tech_tickets', 0)
+            ON CONFLICT (name) DO UPDATE SET value = 0;
+        """))
+        
+        # Commit the transaction
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Successfully archived {archive_count} tech tickets to '{archive_table}'",
+            "archive_name": archive_name,
+            "archive_table": archive_table,
+            "ticket_count": archive_count
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error rolling tech database: {str(e)}")
+
+@app.post("/api/tickets/maintenance/roll-database")
+def roll_maintenance_database(archive_name: str, db: Session = Depends(get_db)):
+    """Archive current maintenance tickets and create a new table"""
+    try:
+        # Validate archive name (only allow alphanumeric and underscore)
+        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
+            raise HTTPException(status_code=400, detail="Invalid archive name. Only letters, numbers, and underscores are allowed.")
+            
+        # Check if an archive with this name already exists
+        archive_table = f"maintenance_tickets_archive_{archive_name}"
+        table_exists = db.execute(text(f"""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = '{archive_table}'
+            );
+        """)).scalar()
+        
+        if table_exists:
+            raise HTTPException(status_code=409, detail=f"An archive with the name '{archive_name}' already exists. Please choose a unique name.")
+        
+        # Create archive table as a copy of current maintenance_tickets
+        db.execute(text(f"""
+            CREATE TABLE {archive_table} AS
+            SELECT * FROM maintenance_tickets;
+        """))
+        
+        # Get the count of archived tickets
+        archive_count = db.execute(text(f"SELECT COUNT(*) FROM {archive_table}")).scalar()
+        
+        # Truncate the current maintenance_tickets table
+        db.execute(text("TRUNCATE TABLE maintenance_tickets RESTART IDENTITY CASCADE;"))
+        
+        # Reset the closed ticket counter
+        db.execute(text("""
+            INSERT INTO counter (name, value) VALUES ('closed_maintenance_tickets', 0)
+            ON CONFLICT (name) DO UPDATE SET value = 0;
+        """))
+        
+        # Commit the transaction
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Successfully archived {archive_count} maintenance tickets to '{archive_table}'",
+            "archive_name": archive_name,
+            "archive_table": archive_table,
+            "ticket_count": archive_count
+        }
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error rolling maintenance database: {str(e)}")
 
 # CSV Import API
 @app.post("/api/tickets/tech/import")
@@ -1043,8 +1154,7 @@ def update_maintenance_ticket(
         # Update ticket status
         ticket.status = update_data.status
         ticket.updated_at = central_now()
-        
-        # Create update history entry
+          # Create update history entry
         ticket_update = TicketUpdate(
             ticket_type='maintenance',
             ticket_id=ticket_id,
@@ -1057,117 +1167,7 @@ def update_maintenance_ticket(
         db.add(ticket_update)
         db.commit()
         return {"message": f"Ticket {ticket_id} updated successfully"}
+        
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")
-
-# Roll Database API endpoints
-@app.post("/api/tickets/tech/roll-database")
-def roll_tech_database(archive_name: str, db: Session = Depends(get_db)):
-    """Archive current tech tickets and create a new table"""
-    try:
-        # Validate archive name (only allow alphanumeric and underscore)
-        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
-            raise HTTPException(status_code=400, detail="Invalid archive name. Only letters, numbers, and underscores are allowed.")
-            
-        # Check if an archive with this name already exists
-        archive_table = f"tech_tickets_archive_{archive_name}"
-        table_exists = db.execute(text(f"""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = '{archive_table}'
-            );
-        """)).scalar()
-        
-        if table_exists:
-            raise HTTPException(status_code=409, detail=f"An archive with the name '{archive_name}' already exists. Please choose a unique name.")
-        
-        # Create archive table as a copy of current tech_tickets
-        db.execute(text(f"""
-            CREATE TABLE {archive_table} AS
-            SELECT * FROM tech_tickets;
-        """))
-        
-        # Get the count of archived tickets
-        archive_count = db.execute(text(f"SELECT COUNT(*) FROM {archive_table}")).scalar()
-        
-        # Truncate the current tech_tickets table
-        db.execute(text("TRUNCATE TABLE tech_tickets RESTART IDENTITY CASCADE;"))
-          # Reset the closed ticket counter
-        db.execute(text("""
-            INSERT INTO counter (name, value) VALUES ('closed_tech_tickets', 0)
-            ON CONFLICT (name) DO UPDATE SET value = 0;
-        """))
-        
-        # Commit the transaction
-        db.commit()
-        
-        return {
-            "success": True,
-            "message": f"Successfully archived {archive_count} tech tickets to '{archive_table}'",
-            "archive_name": archive_name,
-            "archive_table": archive_table,
-            "ticket_count": archive_count
-        }
-        
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error rolling tech database: {str(e)}")
-
-@app.post("/api/tickets/maintenance/roll-database")
-def roll_maintenance_database(archive_name: str, db: Session = Depends(get_db)):
-    """Archive current maintenance tickets and create a new table"""
-    try:
-        # Validate archive name (only allow alphanumeric and underscore)
-        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
-            raise HTTPException(status_code=400, detail="Invalid archive name. Only letters, numbers, and underscores are allowed.")
-            
-        # Check if an archive with this name already exists
-        archive_table = f"maintenance_tickets_archive_{archive_name}"
-        table_exists = db.execute(text(f"""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = '{archive_table}'
-            );
-        """)).scalar()
-        
-        if table_exists:
-            raise HTTPException(status_code=409, detail=f"An archive with the name '{archive_name}' already exists. Please choose a unique name.")
-        
-        # Create archive table as a copy of current maintenance_tickets
-        db.execute(text(f"""
-            CREATE TABLE {archive_table} AS
-            SELECT * FROM maintenance_tickets;
-        """))
-        
-        # Get the count of archived tickets
-        archive_count = db.execute(text(f"SELECT COUNT(*) FROM {archive_table}")).scalar()
-        
-        # Truncate the current maintenance_tickets table
-        db.execute(text("TRUNCATE TABLE maintenance_tickets RESTART IDENTITY CASCADE;"))
-          # Reset the closed ticket counter
-        db.execute(text("""
-            INSERT INTO counter (name, value) VALUES ('closed_maintenance_tickets', 0)
-            ON CONFLICT (name) DO UPDATE SET value = 0;
-        """))
-        
-        # Commit the transaction
-        db.commit()
-        
-        return {
-            "success": True,
-            "message": f"Successfully archived {archive_count} maintenance tickets to '{archive_table}'",
-            "archive_name": archive_name,
-            "archive_table": archive_table,
-            "ticket_count": archive_count
-        }
-        
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error rolling maintenance database: {str(e)}")

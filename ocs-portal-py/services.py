@@ -315,8 +315,7 @@ class TicketsService:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.base_url}/api/tickets/tech/roll-database",
-                    data={"archive_name": archive_name}
+                    f"{self.base_url}/api/tickets/tech/roll-database?archive_name={archive_name}"
                 )
                 response.raise_for_status()
                 return response.json()
@@ -329,8 +328,7 @@ class TicketsService:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"{self.base_url}/api/tickets/maintenance/roll-database",
-                    data={"archive_name": archive_name}
+                    f"{self.base_url}/api/tickets/maintenance/roll-database?archive_name={archive_name}"
                 )
                 response.raise_for_status()
                 return response.json()
