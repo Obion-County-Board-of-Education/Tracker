@@ -1,18 +1,15 @@
 """
 Service layer for making API calls to other OCS microservices
 """
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 import httpx
+import os
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 # Service URLs - use environment variables in production
 TICKETS_API_URL = os.getenv("TICKETS_API_URL", "http://ocs-tickets-api:8000")
 INVENTORY_API_URL = os.getenv("INVENTORY_API_URL", "http://ocs-inventory-api:8000")
-PURCHASING_API_URL = os.getenv("PURCHASING_API_URL", "http://ocs-purchasing-api:8000")
+REQUISITION_API_URL = os.getenv("REQUISITION_API_URL", "http://ocs-requisition-api:8000")
 
 class TicketsService:
     """Service for interacting with the Tickets API"""
@@ -245,76 +242,6 @@ class TicketsService:
             print(f"Error fetching latest update message: {e}")
             return None
 
-    async def clear_all_tech_tickets(self) -> Dict[str, Any]:
-        """Clear all technology tickets"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.delete(f"{self.base_url}/api/tickets/tech/clear")
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            print(f"Error clearing tech tickets: {e}")
-            return {"success": False, "message": f"Error clearing tech tickets: {str(e)}"}
-
-    async def clear_all_maintenance_tickets(self) -> Dict[str, Any]:
-        """Clear all maintenance tickets"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.delete(f"{self.base_url}/api/tickets/maintenance/clear")
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            print(f"Error clearing maintenance tickets: {e}")
-            return {"success": False, "message": f"Error clearing maintenance tickets: {str(e)}"}
-
-    async def export_tech_tickets_csv(self) -> bytes:
-        """Export tech tickets to CSV and return file content"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/tech/export")
-                response.raise_for_status()
-                return response.content
-        except Exception as e:
-            print(f"Error exporting tech tickets: {e}")
-            raise Exception(f"Error exporting tech tickets: {str(e)}")
-
-    async def export_maintenance_tickets_csv(self) -> bytes:
-        """Export maintenance tickets to CSV and return file content"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/maintenance/export")
-                response.raise_for_status()
-                return response.content
-        except Exception as e:
-            print(f"Error exporting maintenance tickets: {e}")
-            raise Exception(f"Error exporting maintenance tickets: {str(e)}")
-
-    async def import_tech_tickets_csv(self, file_content: bytes, operation: str = "add") -> dict:
-        """Import tech tickets from CSV file"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                files = {"file": ("tickets.csv", file_content, "text/csv")}
-                data = {"operation": operation}
-                response = await client.post(f"{self.base_url}/api/tickets/tech/import", files=files, data=data)
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            print(f"Error importing tech tickets: {e}")
-            raise Exception(f"Error importing tech tickets: {str(e)}")
-
-    async def import_maintenance_tickets_csv(self, file_content: bytes, operation: str = "add") -> dict:
-        """Import maintenance tickets from CSV file"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                files = {"file": ("tickets.csv", file_content, "text/csv")}
-                data = {"operation": operation}
-                response = await client.post(f"{self.base_url}/api/tickets/maintenance/import", files=files, data=data)
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            print(f"Error importing maintenance tickets: {e}")
-            raise Exception(f"Error importing maintenance tickets: {str(e)}")
-    
     async def get_closed_tickets_count(self, ticket_type: str) -> int:
         """Get count of closed tickets for a specific type (tech or maintenance)"""
         try:
@@ -328,22 +255,112 @@ class TicketsService:
         except Exception as e:
             print(f"Error fetching closed {ticket_type} tickets count: {e}")
             return 0
-            
-# Create service instances
-tickets_service = TicketsService()
+
+    async def get_tech_archives(self) -> List:
+        """Get list of available tech ticket archives"""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{self.base_url}/api/tickets/tech/archives")
+                response.raise_for_status()
+                data = response.json()
+                return data.get("archives", [])
+        except Exception as e:
+            print(f"Error fetching tech archives: {e}")
+            return []
+    
+    async def get_tech_archive_tickets(self, archive_name: str, status_filter: Optional[str] = None) -> Dict:
+        """Get tickets from a specific tech ticket archive"""
+        try:
+            url = f"{self.base_url}/api/tickets/tech/archives/{archive_name}"
+            if status_filter:
+                url += f"?status_filter={status_filter}"
+                
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error fetching tech archive tickets: {e}")
+            return {"tickets": [], "archive_name": archive_name, "count": 0}
+    
+    async def get_maintenance_archives(self) -> List:
+        """Get list of available maintenance ticket archives"""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{self.base_url}/api/tickets/maintenance/archives")
+                response.raise_for_status()
+                data = response.json()
+                return data.get("archives", [])
+        except Exception as e:
+            print(f"Error fetching maintenance archives: {e}")
+            return []
+    
+    async def get_maintenance_archive_tickets(self, archive_name: str, status_filter: Optional[str] = None) -> Dict:
+        """Get tickets from a specific maintenance ticket archive"""
+        try:
+            url = f"{self.base_url}/api/tickets/maintenance/archives/{archive_name}"
+            if status_filter:
+                url += f"?status_filter={status_filter}"
+                
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error fetching maintenance archive tickets: {e}")
+            return {"tickets": [], "archive_name": archive_name, "count": 0}
+
+    async def roll_tech_database(self, archive_name: str) -> Dict:
+        """Roll tech database - archive current tickets and create new table"""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.base_url}/api/tickets/tech/roll-database",
+                    data={"archive_name": archive_name}
+                )
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error rolling tech database: {e}")
+            return {"success": False, "message": str(e)}
+    
+    async def roll_maintenance_database(self, archive_name: str) -> Dict:
+        """Roll maintenance database - archive current tickets and create new table"""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.base_url}/api/tickets/maintenance/roll-database",
+                    data={"archive_name": archive_name}
+                )
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error rolling maintenance database: {e}")
+            return {"success": False, "message": str(e)}
 
 class InventoryService:
     """Service for interacting with the Inventory API"""
     
     def __init__(self):
         self.base_url = INVENTORY_API_URL
-        self.timeout = 30.0    # TODO: Add inventory service methods when needed
+        self.timeout = 30.0
+
+    # TODO: Add inventory service methods when needed
+
+class RequisitionService:
+    """Service for interacting with the Requisition API"""
+    
+    def __init__(self):
+        self.base_url = REQUISITION_API_URL
+        self.timeout = 30.0
+
+    # TODO: Add requisition service methods when needed
 
 class PurchasingService:
     """Service for interacting with the Purchasing API"""
     
     def __init__(self):
-        self.base_url = PURCHASING_API_URL
+        self.base_url = os.getenv("PURCHASING_API_URL", "http://ocs-purchasing-api:8000")
         self.timeout = 30.0
 
     async def get_requisitions(self, status_filter: Optional[str] = None, department: Optional[str] = None, priority: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -368,45 +385,6 @@ class PurchasingService:
             print(f"Unexpected error fetching requisitions: {e}")
             return []
 
-    async def get_requisition(self, requisition_id: int) -> Optional[Dict[str, Any]]:
-        """Get a specific requisition"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/requisitions/{requisition_id}")
-                response.raise_for_status()
-                return response.json()
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
-                return None
-            print(f"Error fetching requisition {requisition_id}: {e}")
-            return None
-        except Exception as e:
-            print(f"Unexpected error fetching requisition {requisition_id}: {e}")
-            return None
-
-    async def create_requisition(self, requisition_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create a new requisition"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/api/requisitions", json=requisition_data)
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            print(f"Error creating requisition: {e}")
-            return None
-
-    async def approve_requisition(self, requisition_id: int, approved_by: str) -> bool:
-        """Approve a requisition"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                data = {"approved_by": approved_by}
-                response = await client.put(f"{self.base_url}/api/requisitions/{requisition_id}/approve", params=data)
-                response.raise_for_status()
-                return True
-        except Exception as e:
-            print(f"Error approving requisition: {e}")
-            return False
-
     async def get_purchase_orders(self, status_filter: Optional[str] = None, vendor: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get purchase orders with optional filtering"""
         try:
@@ -427,45 +405,6 @@ class PurchasingService:
             print(f"Unexpected error fetching purchase orders: {e}")
             return []
 
-    async def get_purchase_order(self, po_id: int) -> Optional[Dict[str, Any]]:
-        """Get a specific purchase order"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/purchase-orders/{po_id}")
-                response.raise_for_status()
-                return response.json()
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
-                return None
-            print(f"Error fetching purchase order {po_id}: {e}")
-            return None
-        except Exception as e:
-            print(f"Unexpected error fetching purchase order {po_id}: {e}")
-            return None
-
-    async def create_purchase_order(self, po_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create a new purchase order"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/api/purchase-orders", json=po_data)
-                response.raise_for_status()
-                return response.json()
-        except Exception as e:
-            print(f"Error creating purchase order: {e}")
-            return None
-
-    async def update_purchase_order_status(self, po_id: int, status: str, updated_by: str) -> bool:
-        """Update purchase order status"""
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                params = {"status": status, "updated_by": updated_by}
-                response = await client.put(f"{self.base_url}/api/purchase-orders/{po_id}/status", params=params)
-                response.raise_for_status()
-                return True
-        except Exception as e:
-            print(f"Error updating purchase order status: {e}")
-            return False
-
-# Create all service instances
+# Create service instances
+tickets_service = TicketsService()
 purchasing_service = PurchasingService()
-inventory_service = InventoryService()

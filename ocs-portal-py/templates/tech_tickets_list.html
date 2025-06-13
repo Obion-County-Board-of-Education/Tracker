@@ -15,13 +15,15 @@
 <div class="tickets-container">
     <!-- Filter and Search Section -->
     <div class="filters-section">
-        <div class="filter-tabs">
-            <div class="tab-navigation">
+        <div class="filter-tabs">            <div class="tab-navigation">
                 <a href="/tickets/tech/open" class="filter-tab {% if status_filter == 'open' %}active{% endif %}">
                     <i class="fa fa-clock"></i> Open Tickets
                 </a>
                 <a href="/tickets/tech/closed" class="filter-tab {% if status_filter == 'closed' %}active{% endif %}">
                     <i class="fa fa-check-circle"></i> Closed Tickets
+                </a>
+                <a href="/tickets/tech/archives" class="filter-tab {% if status_filter == 'archived' %}active{% endif %}">
+                    <i class="fa fa-archive"></i> Archives
                 </a>
             </div>
             <!-- DEBUG: Before action buttons -->            <div class="action-buttons">                <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
@@ -29,8 +31,7 @@
                 </button>
                 <a href="/tickets/tech/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export all tickets to CSV">
                     <i class="fa fa-download"></i> Export CSV
-                </a>
-                <button class="btn btn-warning btn-sm roll-database-btn" onclick="alert('Roll Database feature coming soon!')" title="Roll database (coming soon)">
+                </a>                <button class="btn btn-warning btn-sm roll-database-btn" onclick="showRollDatabaseModal('tech')" title="Archive current tickets and start fresh">
                     <i class="fa fa-refresh"></i> Roll Database
                 </button>
                 <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
@@ -219,6 +220,71 @@
         </button>
         <button type="submit" class="btn btn-primary" id="importBtn-tech">
           <i class="fa fa-upload"></i> Import Tickets
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Roll Database Modal -->
+<div id="rollDatabaseModal-tech" class="modal" style="display:none;">
+  <div class="modal-content roll-database-modal">
+    <div class="modal-header">
+      <h2><i class="fa fa-refresh"></i> Roll Technology Database</h2>
+      <span class="close" onclick="closeRollDatabaseModal('tech')" title="Close">&times;</span>
+    </div>
+    
+    <form method="post" action="/tickets/tech/roll-database">
+      <div class="modal-body">
+        <div class="warning-section">
+          <div class="warning-box">
+            <i class="fa fa-exclamation-triangle"></i>
+            <div class="warning-content">
+              <h4>⚠️ Warning: This action will:</h4>
+              <ul>
+                <li>Archive all current tickets (both open and closed)</li>
+                <li>Create a new empty tickets table</li>
+                <li>Reset the closed ticket counter to zero</li>
+                <li><strong>This cannot be undone!</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="archiveName-tech">
+            <i class="fa fa-tag"></i> Archive Table Name <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="archiveName-tech" 
+            name="archive_name" 
+            placeholder="e.g., 2024_fall_semester, q4_2024, december_archive"
+            pattern="[a-zA-Z0-9_]+"
+            title="Only letters, numbers, and underscores allowed"
+            required 
+          />
+          <div class="help-text">
+            <i class="fa fa-info-circle"></i>
+            This will create a table named: <code>tech_tickets_archive_<strong>[your_name]</strong></code>
+          </div>
+        </div>
+        
+        <div class="confirmation-section">
+          <label class="checkbox-label">
+            <input type="checkbox" id="confirmRoll-tech" required>
+            <span class="checkmark"></span>
+            I understand this will permanently archive all current tickets and cannot be undone
+          </label>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeRollDatabaseModal('tech')">
+          <i class="fa fa-times"></i> Cancel
+        </button>
+        <button type="submit" class="btn btn-warning" id="rollBtn-tech" disabled>
+          <i class="fa fa-refresh"></i> Roll Database
         </button>
       </div>
     </form>
@@ -964,6 +1030,77 @@
         justify-content: center;
     }
 }
+
+/* Roll Database Modal Styles */
+.roll-database-modal {
+  max-width: 500px;
+}
+
+.warning-section {
+  margin-bottom: 1.5rem;
+}
+
+.warning-box {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 8px;
+}
+
+.warning-box i {
+  font-size: 2rem;
+  color: #f0ad4e;
+}
+
+.warning-content h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #856404;
+}
+
+.warning-content ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #856404;
+}
+
+.confirmation-section {
+  margin-top: 1.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 0.25rem;
+}
+
+.required {
+  color: #dc3545;
+}
+
+.help-text {
+  margin-top: 0.5rem;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.help-text code {
+  background: #f8f9fa;
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  border: 1px solid #e9ecef;
+}
 </style>
 
 <script>
@@ -1046,7 +1183,7 @@ function showNotification(message, type = 'info') {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check for import success/error messages from URL parameters
+    // Check for import success/error messages and roll database messages from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     
     if (urlParams.get('import_success') === 'true') {
@@ -1063,6 +1200,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const message = urlParams.get('message') || 'Unknown error occurred during import';
         
         showNotification(`Import failed: ${message}`, 'error');
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+    } else if (urlParams.get('roll_success') === 'true') {
+        const archiveName = urlParams.get('archive_name') || 'unknown';
+        
+        showNotification(`Successfully archived all tickets to tech_tickets_archive_${archiveName}! The database has been rolled over to a fresh state.`, 'success');
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+    } else if (urlParams.get('roll_error') === 'true') {
+        const errorMessage = urlParams.get('message') || 'Unknown error occurred during database roll';
+        
+        showNotification(`Database roll failed: ${errorMessage}`, 'error');
         
         // Clean up URL parameters
         const cleanUrl = window.location.pathname + window.location.hash;
@@ -1315,10 +1468,94 @@ function resetImportModal(type) {
   }
 }
 
+function showRollDatabaseModal(type) {
+  document.getElementById('rollDatabaseModal-' + type).style.display = 'block';
+  
+  // Set up checkbox to enable/disable submit button
+  const confirmCheckbox = document.getElementById('confirmRoll-' + type);
+  const rollBtn = document.getElementById('rollBtn-' + type);
+  const archiveNameInput = document.getElementById('archiveName-' + type);
+  
+  confirmCheckbox.addEventListener('change', function() {
+    rollBtn.disabled = !this.checked || !archiveNameInput.value;
+  });
+  
+  archiveNameInput.addEventListener('input', function() {
+    rollBtn.disabled = !confirmCheckbox.checked || !this.value;
+  });
+  
+  // Form submission validation
+  document.querySelector('#rollDatabaseModal-' + type + ' form').addEventListener('submit', function(e) {
+    const archiveName = archiveNameInput.value;
+    const confirmCheckbox = document.getElementById('confirmRoll-' + type);
+    const rollBtn = document.getElementById('rollBtn-' + type);
+    
+    // Validate archive name format
+    if (!/^[a-zA-Z0-9_]+$/.test(archiveName)) {
+      e.preventDefault();
+      alert('Archive name can only contain letters, numbers, and underscores.');
+      return;
+    }
+    
+    if (!confirmCheckbox.checked) {
+      e.preventDefault();
+      alert('Please confirm that you understand this action cannot be undone.');
+      return;
+    }
+    
+    // Final confirmation
+    const confirmMsg = `Are you absolutely sure you want to roll the ${type} database?\n\n` +
+                      `This will:\n` +
+                      `• Archive all current tickets to: ${type}_tickets_archive_${archiveName}\n` +
+                      `• Create a new empty tickets table\n` +
+                      `• Reset the closed ticket counter\n\n` +
+                      `This action CANNOT be undone!`;
+    
+    if (!confirm(confirmMsg)) {
+      e.preventDefault();
+      return;
+    }
+    
+    // Show loading state
+    rollBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Rolling Database...';
+    rollBtn.disabled = true;
+  });
+}
+
+function closeRollDatabaseModal(type) {
+  document.getElementById('rollDatabaseModal-' + type).style.display = 'none';
+  resetRollDatabaseModal(type);
+}
+
+function resetRollDatabaseModal(type) {
+  const archiveNameInput = document.getElementById('archiveName-' + type);
+  const confirmCheckbox = document.getElementById('confirmRoll-' + type);
+  const rollBtn = document.getElementById('rollBtn-' + type);
+  
+  // Reset form
+  archiveNameInput.value = '';
+  confirmCheckbox.checked = false;
+  rollBtn.disabled = true;
+  rollBtn.innerHTML = '<i class="fa fa-refresh"></i> Roll Database';
+  
+  // Clear any custom validity
+  archiveNameInput.setCustomValidity('');
+}
+
+// Update window.onclick to close modal on outside click
 window.onclick = function(event) {
   ['tech','maintenance'].forEach(function(type) {
-    var modal = document.getElementById('importCsvModal-' + type);
-    if (modal && event.target === modal) modal.style.display = 'none';
+    var importModal = document.getElementById('importCsvModal-' + type);
+    var rollModal = document.getElementById('rollDatabaseModal-' + type);
+    
+    if (importModal && event.target === importModal) {
+      importModal.style.display = 'none';
+    }
+    
+    if (rollModal && event.target === rollModal) {
+      rollModal.style.display = 'none';
+      resetRollDatabaseModal(type);
+    }
   });
 };
 </script>

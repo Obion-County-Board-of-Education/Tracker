@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from datetime import datetime
+from typing import Optional
 from ocs_shared_models import User, Building, Room, SystemMessage
 from ocs_shared_models.timezone_utils import central_now, format_central_time
 from database import get_db, init_database
@@ -439,6 +440,125 @@ async def import_tech_tickets(request: Request, file: UploadFile = File(...), op
         error_msg = str(e).replace("'", "").replace('"', "")[:100]  # Sanitize and limit length
         return RedirectResponse(f"/tickets/tech/open?import_error=true&message={error_msg}", status_code=303)
 
+# Archive routes must come before parameterized routes
+@app.get("/tickets/tech/archives")
+async def tech_tickets_archives(
+    request: Request,
+    archive_name: Optional[str] = None,
+    status_filter: Optional[str] = None
+):
+    """Display archived technology tickets"""
+    try:
+        # Get list of available archives
+        archives = await tickets_service.get_tech_archives()
+        
+        tickets = []
+        selected_archive = None
+        archive_info = {}
+        
+        # If an archive is selected, get its tickets
+        if archive_name:
+            archive_data = await tickets_service.get_tech_archive_tickets(archive_name, status_filter)
+            tickets = archive_data.get("tickets", [])
+            selected_archive = archive_name
+            archive_info = next((a for a in archives if a["name"] == archive_name), {})
+            
+            # Format dates for template display
+            for ticket in tickets:
+                if ticket.get("created_at"):
+                    try:
+                        created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
+                        ticket["created_at"] = created_at
+                    except:
+                        ticket["created_at"] = None
+                        
+                if ticket.get("updated_at"):
+                    try:
+                        updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
+                        ticket["updated_at"] = updated_at
+                    except:
+                        ticket["updated_at"] = None
+        
+        buildings = await tickets_service.get_buildings()
+    except Exception as e:
+        print(f"Error fetching tech archive tickets: {e}")
+        tickets = []
+        buildings = []
+        archives = []
+    
+    menu_context = await get_menu_context()
+    return templates.TemplateResponse("tech_tickets_archives.html", {
+        "request": request,
+        "tickets": tickets,
+        "buildings": buildings,
+        "page_title": "Technology Ticket Archives",
+        "status_filter": "archived",
+        "archives": archives,
+        "selected_archive": selected_archive,
+        "archive_info": archive_info,
+        "current_datetime": datetime.now(),
+        **menu_context
+    })
+
+@app.get("/tickets/maintenance/archives")
+async def maintenance_tickets_archives(
+    request: Request,
+    archive_name: Optional[str] = None,
+    status_filter: Optional[str] = None
+):
+    """Display archived maintenance tickets"""
+    try:
+        # Get list of available archives
+        archives = await tickets_service.get_maintenance_archives()
+        
+        tickets = []
+        selected_archive = None
+        archive_info = {}
+        
+        # If an archive is selected, get its tickets
+        if archive_name:
+            archive_data = await tickets_service.get_maintenance_archive_tickets(archive_name, status_filter)
+            tickets = archive_data.get("tickets", [])
+            selected_archive = archive_name
+            archive_info = next((a for a in archives if a["name"] == archive_name), {})
+            
+            # Format dates for template display
+            for ticket in tickets:
+                if ticket.get("created_at"):
+                    try:
+                        created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
+                        ticket["created_at"] = created_at
+                    except:
+                        ticket["created_at"] = None
+                        
+                if ticket.get("updated_at"):
+                    try:
+                        updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
+                        ticket["updated_at"] = updated_at
+                    except:
+                        ticket["updated_at"] = None
+        
+        buildings = await tickets_service.get_buildings()
+    except Exception as e:
+        print(f"Error fetching maintenance archive tickets: {e}")
+        tickets = []
+        buildings = []
+        archives = []
+    
+    menu_context = await get_menu_context()
+    return templates.TemplateResponse("maintenance_tickets_archives.html", {
+        "request": request,
+        "tickets": tickets,
+        "buildings": buildings,
+        "page_title": "Maintenance Ticket Archives",
+        "status_filter": "archived",
+        "archives": archives,
+        "selected_archive": selected_archive,
+        "archive_info": archive_info,
+        "current_datetime": datetime.now(),
+        **menu_context
+    })
+
 @app.get("/tickets/tech/{ticket_id}")
 async def view_tech_ticket(request: Request, ticket_id: int):
     """View individual technology ticket details"""
@@ -681,98 +801,46 @@ async def maintenance_tickets_closed(request: Request):
     menu_context = await get_menu_context()
     return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
-        "tickets": tickets,
-        "buildings": buildings,
-        "page_title": "Closed Maintenance Requests",        "status_filter": "closed",
+        "tickets": tickets,        "buildings": buildings,
+        "page_title": "Closed Maintenance Requests",
+        "status_filter": "closed",
         "current_datetime": datetime.now(),
         **menu_context
     })
 
-@app.get("/tickets/tech/archive")
-async def tech_tickets_archive(request: Request):
-    """Display archived technology tickets"""
+# Roll Database Routes
+@app.post("/tickets/tech/roll-database")
+async def roll_tech_database(request: Request, archive_name: str = Form(...)):
+    """Roll the tech database - archive current tickets and create new empty table"""
     try:
-        tickets = await tickets_service.get_tech_tickets("closed")
-        buildings = await tickets_service.get_buildings()
-        
-        # Format dates for template display
-        for ticket in tickets:
-            if ticket.get("created_at"):
-                try:
-                    created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
-                    ticket["created_at"] = created_at
-                except:
-                    ticket["created_at"] = None
-                    
-            if ticket.get("updated_at"):
-                try:
-                    updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
-                    ticket["updated_at"] = updated_at
-                except:
-                    ticket["updated_at"] = None
+        result = await tickets_service.roll_tech_database(archive_name)
+        if result.get("success"):
+            redirect_url = "/tickets/tech/open?roll_success=true&archive_name=" + archive_name
+        else:
+            error_message = result.get("message", "Unknown error")
+            redirect_url = f"/tickets/tech/open?roll_error=true&message={error_message}"
+        return RedirectResponse(redirect_url, status_code=303)
     except Exception as e:
-        print(f"Error fetching tickets: {e}")
-        tickets = []
-        buildings = []
+        print(f"Error rolling tech database: {e}")
+        return RedirectResponse(
+            f"/tickets/tech/open?roll_error=true&message={str(e)}", 
+            status_code=303
+        )
 
-    menu_context = await get_menu_context()
-    return templates.TemplateResponse("tech_tickets_list.html", {
-        "request": request,
-        "tickets": tickets,
-        "buildings": buildings,
-        "page_title": "Archived Technology Tickets",
-        "status_filter": "archived",
-        "current_datetime": datetime.now(),
-        **menu_context
-    })
-
-@app.get("/tickets/maintenance/archive")
-async def maintenance_tickets_archive(request: Request):
-    """Display archived maintenance tickets"""
+@app.post("/tickets/maintenance/roll-database")
+async def roll_maintenance_database(request: Request, archive_name: str = Form(...)):
+    """Roll the maintenance database - archive current tickets and create new empty table"""
     try:
-        tickets = await tickets_service.get_maintenance_tickets("closed")
-        buildings = await tickets_service.get_buildings()
-        
-        # Format dates for template display  
-        for ticket in tickets:
-            if ticket.get("created_at"):
-                try:
-                    date_str = ticket["created_at"]
-                    if len(date_str) == 16 and 'T' in date_str:
-                        date_str += ":00"
-                    date_str = date_str.replace('Z', '+00:00')
-                    created_at = datetime.fromisoformat(date_str)
-                    ticket["created_at"] = created_at
-                except Exception as e:
-                    ticket["created_at"] = datetime.now()
-            else:
-                ticket["created_at"] = datetime.now()
-                    
-            if ticket.get("updated_at"):
-                try:
-                    date_str = ticket["updated_at"]
-                    if len(date_str) == 16 and 'T' in date_str:
-                        date_str += ":00"
-                    date_str = date_str.replace('Z', '+00:00')
-                    updated_at = datetime.fromisoformat(date_str)
-                    ticket["updated_at"] = updated_at
-                except Exception as e:
-                    ticket["updated_at"] = None
-            else:
-                ticket["updated_at"] = None
-        
+        result = await tickets_service.roll_maintenance_database(archive_name)
+        if result.get("success"):
+            redirect_url = "/tickets/maintenance/open?roll_success=true&archive_name=" + archive_name
+        else:
+            error_message = result.get("message", "Unknown error")
+            redirect_url = f"/tickets/maintenance/open?roll_error=true&message={error_message}"
+        return RedirectResponse(redirect_url, status_code=303)
     except Exception as e:
-        print(f"Error fetching tickets: {e}")
-        tickets = []
-        buildings = []
-        
-    menu_context = await get_menu_context()
-    return templates.TemplateResponse("maintenance_tickets_list.html", {
-        "request": request,
-        "tickets": tickets,
-        "buildings": buildings,
-        "page_title": "Archived Maintenance Requests", 
-        "status_filter": "archived",
-        "current_datetime": datetime.now(),
-        **menu_context
-    })
+        print(f"Error rolling maintenance database: {e}")
+        return RedirectResponse(
+            f"/tickets/maintenance/open?roll_error=true&message={str(e)}", 
+            status_code=303
+        )

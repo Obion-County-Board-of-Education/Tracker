@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="content-header">
+    <div class="header-content">
+        <h1><i class="fa-solid fa-archive"></i> Technology Ticket Archives</h1>
+        <p class="header-subtitle">View archived technology support tickets</p>
+    </div>
+    <div class="header-actions">
+        <a href="/tickets/tech/new" class="btn btn-primary">
+            <i class="fa fa-plus"></i> New Tech Ticket
+        </a>
+    </div>
+</div>
+
+<div class="tickets-container">
+    <!-- Filter and Search Section -->
+    <div class="filters-section">
+        <div class="filter-tabs">
+            <div class="tab-navigation">
+                <a href="/tickets/tech/open" class="filter-tab">
+                    <i class="fa fa-clock"></i> Open Tickets
+                </a>
+                <a href="/tickets/tech/closed" class="filter-tab">
+                    <i class="fa fa-check-circle"></i> Closed Tickets
+                </a>
+                <a href="/tickets/tech/archives" class="filter-tab active">
+                    <i class="fa fa-archive"></i> Archives
+                </a>
+            </div>
+            <div class="action-buttons">
+                <a href="/tickets/tech/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export all tickets to CSV">
+                    <i class="fa fa-download"></i> Export CSV
+                </a>
+            </div>
+        </div>
+          
+        <div class="search-and-filters">
+            <div class="archive-selector-box">
+                <i class="fa fa-archive"></i>
+                <form action="/tickets/tech/archives" method="get" class="archive-form" style="display: inline-flex; align-items: center; gap: 10px; width: 100%;">
+                    <select id="archiveSelect" name="archive_name" class="archive-select" onchange="this.form.submit()">
+                        <option value="">-- Select Archive to View --</option>
+                        {% if archives %}
+                            {% for archive in archives %}
+                                <option value="{{ archive.name }}" {% if selected_archive == archive.name %}selected{% endif %}>
+                                    {{ archive.name }} ({{ archive.ticket_count }} tickets)
+                                </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </form>
+            </div>
+            
+            {% if selected_archive %}
+            <div class="filter-controls">
+                <select id="buildingFilter" class="filter-select">
+                    <option value="">All Buildings</option>
+                    {% if buildings %}
+                        {% for building in buildings %}
+                        <option value="{{ building.name }}">{{ building.name }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+                
+                <select id="statusFilter" class="filter-select">
+                    <option value="">All Status</option>
+                    <option value="new">New</option>
+                    <option value="open">Open</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="closed">Closed</option>
+                </select>
+                
+                <input type="text" id="searchInput" class="search-input" placeholder="Search tickets by title, school, or created by..." />
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Archive Info (only shown when archive is selected) -->
+        {% if selected_archive %}
+        <div class="archive-info-banner">
+            <div class="archive-info-content">
+                <div class="archive-details">
+                    <h4><i class="fa fa-database"></i> Viewing Archive: {{ selected_archive }}</h4>
+                    <div class="archive-stats">
+                        <span class="stat-item">
+                            <i class="fa fa-ticket-alt"></i>
+                            <strong>{{ archive_info.ticket_count or tickets|length }}</strong> tickets
+                        </span>
+                        {% if archive_info.date_range %}
+                        <span class="stat-item">
+                            <i class="fa fa-calendar-alt"></i>
+                            {{ archive_info.date_range.oldest }} to {{ archive_info.date_range.newest }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tickets List -->
+    <div class="tickets-list">
+        {% if selected_archive and tickets %}
+            {% for ticket in tickets %}
+            <div class="ticket-card" data-building="{{ ticket.school }}" data-status="{{ ticket.status }}">
+                <div class="ticket-header">
+                    <div class="ticket-info">
+                        <h3 class="ticket-title">{{ ticket.title }}</h3>
+                        <div class="ticket-meta">
+                            <span class="ticket-id">#{{ ticket.id }}</span>
+                            <span class="ticket-type">
+                                {% if ticket.issue_type == 'hardware' %}🖥️ Hardware
+                                {% elif ticket.issue_type == 'software' %}💻 Software
+                                {% elif ticket.issue_type == 'network' %}🌐 Network
+                                {% elif ticket.issue_type == 'networking' %}🌐 Networking
+                                {% elif ticket.issue_type == 'account' %}👤 Account
+                                {% elif ticket.issue_type == 'email' %}📧 Email
+                                {% else %}❓ Other{% endif %}
+                            </span>
+                            <span class="ticket-location">
+                                <i class="fa fa-map-marker-alt"></i> {{ ticket.school }} - {{ ticket.room }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="ticket-badges">
+                        <span class="status-badge status-{{ ticket.status }}">
+                            {% if ticket.status == 'open' %}📂 Open
+                            {% elif ticket.status == 'new' %}🆕 New
+                            {% elif ticket.status == 'assigned' %}👤 Assigned
+                            {% elif ticket.status == 'in_progress' %}⚙️ In Progress
+                            {% elif ticket.status == 'closed' %}🔒 Closed
+                            {% else %}📝 {{ ticket.status.title() }}{% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="ticket-content">
+                    <p class="ticket-description">{{ ticket.description[:200] }}{% if ticket.description|length > 200 %}...{% endif %}</p>
+                    
+                    <div class="ticket-details">
+                        <div class="detail-item">
+                            <i class="fa fa-tag"></i>
+                            <span>Asset Tag: {{ ticket.tag if ticket.tag else 'N/A' }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fa fa-user"></i>
+                            <span>Created by: {{ ticket.created_by }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fa fa-calendar"></i>
+                            <span>Created: {{ ticket.created_at.strftime('%B %d, %Y at %I:%M %p') if ticket.created_at else 'Unknown' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% elif selected_archive %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fa fa-search"></i>
+                </div>
+                <h2>No Tickets Found</h2>
+                <p>This archive contains no tickets. Try selecting a different archive.</p>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fa fa-archive"></i>
+                </div>
+                <h2>Select an Archive</h2>
+                <p>Please select an archive from the dropdown menu to view archived tickets.</p>
+                
+                {% if not archives or archives|length == 0 %}
+                <div class="alert alert-info mt-3">
+                    <p>No archives have been created yet. Use the "Roll Database" feature to create an archive of current tickets.</p>
+                    <a href="/tickets/tech/open" class="btn btn-primary mt-2">Go to Open Tickets</a>
+                </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.archive-selector-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    min-width: 300px;
+}
+
+.archive-selector-box i {
+    color: #6c757d;
+    font-size: 1.1rem;
+}
+
+.archive-form {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.archive-select {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    color: #495057;
+    outline: none;
+    min-width: 250px;
+}
+
+.archive-select:focus {
+    outline: none;
+}
+
+.search-input {
+    flex: 1;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    min-width: 250px;
+}
+
+.archive-info-banner {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border: 1px solid #90caf9;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.archive-info-content {
+    padding: 1rem 1.25rem;
+}
+
+.archive-details h4 {
+    margin: 0 0 0.75rem 0;
+    color: #1565c0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.archive-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #424242;
+    font-size: 0.9rem;
+}
+
+.stat-item i {
+    color: #1976d2;
+    font-size: 1rem;
+}
+
+.stat-item strong {
+    font-weight: 600;
+    color: #1565c0;
+}
+
+/* Make sure filter controls align properly */
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    min-width: 150px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .search-and-filters {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .archive-selector-box {
+        min-width: 100%;
+    }
+    
+    .filter-controls {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .filter-select,
+    .search-input {
+        min-width: 100px;
+        flex: 1;
+    }
+    
+    .archive-stats {
+        gap: 1rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    const searchInput = document.getElementById('searchInput');
+    const buildingFilter = document.getElementById('buildingFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const ticketCards = document.querySelectorAll('.ticket-card');
+
+    function filterTickets() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const building = buildingFilter.value;
+        const status = statusFilter.value;
+        
+        ticketCards.forEach(card => {
+            const cardTitle = card.querySelector('.ticket-title').textContent.toLowerCase();
+            const cardBuilding = card.dataset.building;
+            const cardStatus = card.dataset.status;
+            const cardCreator = card.querySelector('.detail-item:nth-child(2) span').textContent.toLowerCase();
+            
+            const matchesSearch = cardTitle.includes(searchTerm) || 
+                                cardBuilding.toLowerCase().includes(searchTerm) ||
+                                cardCreator.includes(searchTerm);
+                                
+            const matchesBuilding = building === '' || cardBuilding === building;
+            const matchesStatus = status === '' || cardStatus === status;
+            
+            if (matchesSearch && matchesBuilding && matchesStatus) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    if (searchInput) searchInput.addEventListener('input', filterTickets);
+    if (buildingFilter) buildingFilter.addEventListener('change', filterTickets);
+    if (statusFilter) statusFilter.addEventListener('change', filterTickets);
+});
+</script>
+{% endblock %}
