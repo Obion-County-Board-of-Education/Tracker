@@ -1,6 +1,5 @@
 version: '3.8'
-services:
-  db:
+services:  db:
     image: postgres:15
     restart: always
     environment:
@@ -26,18 +25,8 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_tickets
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=ocs_user
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "./healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
+      - db
   ocs-inventory-api:
     build:
       context: .
@@ -46,17 +35,8 @@ services:
       - "8001:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_inventory
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=ocs_user
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "./healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - db
 
   ocs-purchasing-api:
     build:
@@ -66,17 +46,8 @@ services:
       - "8002:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_purchasing
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=ocs_user
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "./healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - db
 
   ocs-portal-py:
     build:
@@ -86,18 +57,8 @@ services:
       - "8003:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_portal
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=ocs_user
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "./healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
+      - db
   ocs-manage-api:
     build:
       context: .
@@ -106,18 +67,8 @@ services:
       - "8004:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_manage
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=ocs_user
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "./healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
+      - db
   ocs-forms-api:
     build:
       context: .
@@ -126,17 +77,8 @@ services:
       - "8005:8000"
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_forms
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=ocs_user
     depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "./healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - db
 
 volumes:
   pgdata:
