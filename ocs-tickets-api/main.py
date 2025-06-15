@@ -743,9 +743,45 @@ async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation
 
 # Archive API endpoints - these must come before parameterized routes
 @app.get("/api/tickets/tech/archives")
-def get_tech_archives(db: Session = Depends(get_db)):
-    """Get list of available tech ticket archives"""
+def get_tech_archives(
+    delete_archive: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get list of available tech ticket archives, or delete one if specified"""
     try:
+        # If delete_archive is specified, delete the archive
+        if delete_archive:
+            # Validate the archive name to prevent SQL injection
+            if not delete_archive.isalnum() and not all(c.isalnum() or c == '_' for c in delete_archive):
+                raise HTTPException(status_code=400, detail="Invalid archive name")
+            
+            # Check if the archive table exists
+            table_name = f"tech_tickets_archive_{delete_archive}"
+            table_exists = db.execute(text(f"""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = '{table_name}'
+                );
+            """)).scalar()
+            
+            if not table_exists:
+                raise HTTPException(status_code=404, detail=f"Archive '{delete_archive}' not found")
+            
+            # Get the count of tickets before deletion for confirmation
+            ticket_count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+            
+            # Drop the archive table
+            db.execute(text(f"DROP TABLE {table_name}"))
+            db.commit()
+            
+            return {
+                "success": True,
+                "message": f"Archive '{delete_archive}' deleted successfully",
+                "deleted_tickets": ticket_count,
+                "archive_name": delete_archive
+            }
+        
+        # Otherwise, return the list of archives
         # Query all tables that match the tech tickets archive pattern
         result = db.execute(text("""
             SELECT table_name, to_char(current_timestamp, 'YYYY-MM-DD') as created_date 
@@ -789,6 +825,49 @@ def get_tech_archives(db: Session = Depends(get_db)):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving tech archives: {str(e)}")
+
+@app.get("/api/tickets/tech/archives/delete/{archive_name}")
+def delete_tech_archive_ordered(
+    archive_name: str,
+    db: Session = Depends(get_db)
+):
+    """Delete a tech ticket archive table - placed before {archive_name} route"""
+    try:
+        # Validate the archive name to prevent SQL injection
+        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
+            raise HTTPException(status_code=400, detail="Invalid archive name")
+        
+        # Check if the archive table exists
+        table_name = f"tech_tickets_archive_{archive_name}"
+        table_exists = db.execute(text(f"""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = '{table_name}'
+            );
+        """)).scalar()
+        
+        if not table_exists:
+            raise HTTPException(status_code=404, detail=f"Archive '{archive_name}' not found")
+        
+        # Get the count of tickets before deletion for confirmation
+        ticket_count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+        
+        # Drop the archive table
+        db.execute(text(f"DROP TABLE {table_name}"))
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Archive '{archive_name}' deleted successfully",
+            "deleted_tickets": ticket_count,
+            "archive_name": archive_name
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error deleting tech archive: {str(e)}")
 
 @app.get("/api/tickets/tech/archives/{archive_name}")
 def get_tech_archive_tickets(
@@ -834,8 +913,7 @@ def get_tech_archive_tickets(
                 if col_name in ('created_at', 'updated_at') and row[i]:
                     # Convert datetime objects to ISO format strings
                     ticket[col_name] = row[i].isoformat()
-                else:
-                    ticket[col_name] = row[i]
+                else:                    ticket[col_name] = row[i]
             tickets.append(ticket)
             
         return {
@@ -844,16 +922,53 @@ def get_tech_archive_tickets(
             "tickets": tickets,
             "count": len(tickets)
         }
-        
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving tech archive tickets: {str(e)}")
 
+# Maintenance Archives API Endpoints
+
 @app.get("/api/tickets/maintenance/archives")
-def get_maintenance_archives(db: Session = Depends(get_db)):
-    """Get list of available maintenance ticket archives"""
+def get_maintenance_archives(
+    delete_archive: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get list of available maintenance ticket archives, or delete one if specified"""
     try:
+        # If delete_archive is specified, delete the archive
+        if delete_archive:
+            # Validate the archive name to prevent SQL injection
+            if not delete_archive.isalnum() and not all(c.isalnum() or c == '_' for c in delete_archive):
+                raise HTTPException(status_code=400, detail="Invalid archive name")
+            
+            # Check if the archive table exists
+            table_name = f"maintenance_tickets_archive_{delete_archive}"
+            table_exists = db.execute(text(f"""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = '{table_name}'
+                );
+            """)).scalar()
+            
+            if not table_exists:
+                raise HTTPException(status_code=404, detail=f"Archive '{delete_archive}' not found")
+            
+            # Get the count of tickets before deletion for confirmation
+            ticket_count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+            
+            # Drop the archive table
+            db.execute(text(f"DROP TABLE {table_name}"))
+            db.commit()
+            
+            return {
+                "success": True,
+                "message": f"Archive '{delete_archive}' deleted successfully",
+                "deleted_tickets": ticket_count,
+                "archive_name": delete_archive
+            }
+        
+        # Otherwise, return the list of archives
         # Query all tables that match the maintenance tickets archive pattern
         result = db.execute(text("""
             SELECT table_name, to_char(current_timestamp, 'YYYY-MM-DD') as created_date 
@@ -868,33 +983,18 @@ def get_maintenance_archives(db: Session = Depends(get_db)):
             table_name = row[0]
             archive_name = table_name.replace('maintenance_tickets_archive_', '')
             
-            # Get the count of tickets in this archive
-            count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
-            
-            # Get the date range of tickets in this archive
-            date_range = db.execute(text(f"""
-                SELECT 
-                    to_char(MIN(created_at), 'YYYY-MM-DD') as oldest,
-                    to_char(MAX(created_at), 'YYYY-MM-DD') as newest
-                FROM {table_name}
-            """)).first()
+            # Get ticket count for this archive
+            ticket_count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
             
             archives.append({
                 "name": archive_name,
                 "table_name": table_name,
-                "ticket_count": count,
-                "created_date": row[1],
-                "date_range": {
-                    "oldest": date_range[0] if date_range and date_range[0] else None,
-                    "newest": date_range[1] if date_range and date_range[1] else None
-                }
+                "ticket_count": ticket_count,
+                "created_date": row[1]
             })
+            
+        return {"archives": archives}
         
-        return {
-            "archives": archives,
-            "count": len(archives)
-        }
-    
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving maintenance archives: {str(e)}")
 
@@ -947,7 +1047,8 @@ def get_maintenance_archive_tickets(
             tickets.append(ticket)
             
         return {
-            "archive_name": archive_name,            "table_name": table_name,
+            "archive_name": archive_name,
+            "table_name": table_name,
             "tickets": tickets,
             "count": len(tickets)
         }
@@ -957,217 +1058,178 @@ def get_maintenance_archive_tickets(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving maintenance archive tickets: {str(e)}")
 
-@app.get("/api/tickets/tech/{ticket_id}", response_model=TechTicketResponse)
-def get_tech_ticket(ticket_id: int, db: Session = Depends(get_db)):
-    """Get a specific technology ticket"""
-    ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    return ticket
-
-@app.post("/api/tickets/tech", response_model=TechTicketResponse)
-def create_tech_ticket(ticket_data: TicketCreateRequest, db: Session = Depends(get_db)):
-    """Create a new technology ticket"""
-    try:
-        new_ticket = TechTicket(
-            title=ticket_data.title,
-            description=ticket_data.description,
-            status='new',
-            school=ticket_data.building_name,
-            room=ticket_data.room_name,
-            tag=ticket_data.tag,
-            issue_type=ticket_data.issue_type,
-            created_by=ticket_data.created_by
-        )
-        db.add(new_ticket)
-        db.commit()
-        db.refresh(new_ticket)
-        return new_ticket
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error creating ticket: {str(e)}")
-
-@app.put("/api/tickets/tech/{ticket_id}/status")
-def update_tech_ticket_status(
-    ticket_id: int, 
-    status: str = Form(...), 
+@app.post("/api/tickets/maintenance/archives/{archive_name}/delete")
+def delete_maintenance_archive(
+    archive_name: str,
     db: Session = Depends(get_db)
 ):
-    """Update technology ticket status"""
-    ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    """Delete a maintenance ticket archive table"""
     try:
-        ticket.status = status
-        ticket.updated_at = central_now()
+        # Validate the archive name to prevent SQL injection
+        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
+            raise HTTPException(status_code=400, detail="Invalid archive name")
+        
+        # Check if the archive table exists
+        table_name = f"maintenance_tickets_archive_{archive_name}"
+        table_exists = db.execute(text(f"""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = '{table_name}'
+            );
+        """)).scalar()
+        
+        if not table_exists:
+            raise HTTPException(status_code=404, detail=f"Archive '{archive_name}' not found")
+        
+        # Get the count of tickets before deletion for confirmation
+        ticket_count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+        
+        # Drop the archive table
+        db.execute(text(f"DROP TABLE {table_name}"))
         db.commit()
-        return {"message": f"Ticket {ticket_id} status updated to {status}"}
+        
+        return {
+            "success": True,
+            "message": f"Archive '{archive_name}' deleted successfully",
+            "deleted_tickets": ticket_count,
+            "archive_name": archive_name
+        }
+        
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting maintenance archive: {str(e)}")
 
-@app.put("/api/tickets/tech/{ticket_id}")
-def update_tech_ticket(
-    ticket_id: int, 
-    update_data: TicketUpdateRequest, 
+@app.post("/api/tickets/tech/archives/{archive_name}/delete")
+def delete_tech_archive(
+    archive_name: str,
     db: Session = Depends(get_db)
 ):
-    """Update technology ticket with status and message"""
-    ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    """Delete a tech ticket archive table"""
     try:
-        # Store previous status for update history
-        previous_status = ticket.status
+        # Validate the archive name to prevent SQL injection
+        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
+            raise HTTPException(status_code=400, detail="Invalid archive name")
         
-        # Update ticket status
-        ticket.status = update_data.status
-        ticket.updated_at = central_now()
+        # Check if the archive table exists
+        table_name = f"tech_tickets_archive_{archive_name}"
+        table_exists = db.execute(text(f"""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = '{table_name}'
+            );
+        """)).scalar()
         
-        # Create update history entry
-        ticket_update = TicketUpdate(
-            ticket_type='tech',
-            ticket_id=ticket_id,
-            status_from=previous_status,
-            status_to=update_data.status,
-            update_message=update_data.update_message,
-            updated_by=update_data.updated_by
-        )
+        if not table_exists:
+            raise HTTPException(status_code=404, detail=f"Archive '{archive_name}' not found")
         
-        db.add(ticket_update)
+        # Get the count of tickets before deletion for confirmation
+        ticket_count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+        
+        # Drop the archive table
+        db.execute(text(f"DROP TABLE {table_name}"))
         db.commit()
-        return {"message": f"Ticket {ticket_id} updated successfully"}
+        
+        return {
+            "success": True,
+            "message": f"Archive '{archive_name}' deleted successfully",
+            "deleted_tickets": ticket_count,
+            "archive_name": archive_name
+        }
+        
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting tech archive: {str(e)}")
 
-# Ticket Updates API
-@app.get("/api/tickets/{ticket_type}/{ticket_id}/updates")
-def get_ticket_updates(ticket_type: str, ticket_id: int, db: Session = Depends(get_db)):
-    """Get update history for a ticket"""
-    try:
-        updates = db.query(TicketUpdate).filter(
-            TicketUpdate.ticket_type == ticket_type,
-            TicketUpdate.ticket_id == ticket_id
-        ).order_by(TicketUpdate.created_at.desc()).all()
-        
-        return [{
-            "id": update.id,
-            "status_from": update.status_from,
-            "status_to": update.status_to,
-            "update_message": update.update_message,
-            "updated_by": update.updated_by,
-            "created_at": update.created_at.isoformat()
-        } for update in updates]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching updates: {str(e)}")
-
-# Maintenance Tickets API
-@app.get("/api/tickets/maintenance", response_model=List[MaintenanceTicketResponse])
-def get_maintenance_tickets(
-    status_filter: Optional[str] = None,
+@app.get("/api/tickets/maintenance/archives/delete/{archive_name}")
+def delete_maintenance_archive_ordered(
+    archive_name: str,
     db: Session = Depends(get_db)
 ):
-    """Get maintenance tickets with optional status filtering"""
+    """Delete a maintenance ticket archive table - placed before {archive_name} route"""
     try:
-        query = db.query(MaintenanceTicket)
+        # Validate the archive name to prevent SQL injection
+        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
+            raise HTTPException(status_code=400, detail="Invalid archive name")
         
-        if status_filter == "open":
-            query = query.filter(MaintenanceTicket.status.in_(['new', 'open', 'assigned', 'in_progress']))
-        elif status_filter == "closed":
-            query = query.filter(MaintenanceTicket.status == 'closed')
-        elif status_filter:
-            query = query.filter(MaintenanceTicket.status == status_filter)
-            
-        tickets = query.order_by(desc(MaintenanceTicket.created_at)).all()
-        return tickets
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
-@app.get("/api/tickets/maintenance/{ticket_id}", response_model=MaintenanceTicketResponse)
-def get_maintenance_ticket(ticket_id: int, db: Session = Depends(get_db)):
-    """Get a specific maintenance ticket"""
-    ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    return ticket
-
-@app.post("/api/tickets/maintenance", response_model=MaintenanceTicketResponse)
-def create_maintenance_ticket(ticket_data: TicketCreateRequest, db: Session = Depends(get_db)):
-    """Create a new maintenance ticket"""
-    try:
-        new_ticket = MaintenanceTicket(
-            title=ticket_data.title,
-            description=ticket_data.description,
-            status='new',
-            school=ticket_data.building_name,
-            room=ticket_data.room_name,
-            tag=ticket_data.issue_type,  # Using tag field for issue type
-            issue_type=ticket_data.issue_type,
-            created_by=ticket_data.created_by
-        )
-        db.add(new_ticket)
+        # Check if the archive table exists
+        table_name = f"maintenance_tickets_archive_{archive_name}"
+        table_exists = db.execute(text(f"""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = '{table_name}'
+            );
+        """)).scalar()
+        
+        if not table_exists:
+            raise HTTPException(status_code=404, detail=f"Archive '{archive_name}' not found")
+        
+        # Get the count of tickets before deletion for confirmation
+        ticket_count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+        
+        # Drop the archive table
+        db.execute(text(f"DROP TABLE {table_name}"))
         db.commit()
-        db.refresh(new_ticket)
-        return new_ticket
+        
+        return {
+            "success": True,
+            "message": f"Archive '{archive_name}' deleted successfully",
+            "deleted_tickets": ticket_count,
+            "archive_name": archive_name
+        }
+        
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error creating ticket: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting maintenance archive: {str(e)}")
 
-@app.put("/api/tickets/maintenance/{ticket_id}/status")
-def update_maintenance_ticket_status(
-    ticket_id: int, 
-    status: str = Form(...), 
+@app.get("/api/tickets/tech/archives/delete/{archive_name}")
+def delete_tech_archive_direct(
+    archive_name: str,
     db: Session = Depends(get_db)
 ):
-    """Update maintenance ticket status"""
-    ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    """Delete a tech ticket archive table directly"""
     try:
-        ticket.status = status
-        ticket.updated_at = central_now()
+        # Validate the archive name to prevent SQL injection
+        if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
+            raise HTTPException(status_code=400, detail="Invalid archive name")
+        
+        # Check if the archive table exists
+        table_name = f"tech_tickets_archive_{archive_name}"
+        table_exists = db.execute(text(f"""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = '{table_name}'
+            );
+        """)).scalar()
+        
+        if not table_exists:
+            raise HTTPException(status_code=404, detail=f"Archive '{archive_name}' not found")
+        
+        # Get the count of tickets before deletion for confirmation
+        ticket_count = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+        
+        # Drop the archive table
+        db.execute(text(f"DROP TABLE {table_name}"))
         db.commit()
-        return {"message": f"Ticket {ticket_id} status updated to {status}"}
+        
+        return {
+            "success": True,
+            "message": f"Archive '{archive_name}' deleted successfully",
+            "deleted_tickets": ticket_count,
+            "archive_name": archive_name
+        }
+        
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting tech archive: {str(e)}")
 
-@app.put("/api/tickets/maintenance/{ticket_id}")
-def update_maintenance_ticket(
-    ticket_id: int, 
-    update_data: TicketUpdateRequest, 
-    db: Session = Depends(get_db)
-):
-    """Update maintenance ticket with status and message"""
-    ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
-    try:
-        # Store previous status for update history
-        previous_status = ticket.status
-        
-        # Update ticket status
-        ticket.status = update_data.status
-        ticket.updated_at = central_now()
-          # Create update history entry
-        ticket_update = TicketUpdate(
-            ticket_type='maintenance',
-            ticket_id=ticket_id,
-            status_from=previous_status,
-            status_to=update_data.status,
-            update_message=update_data.update_message,
-            updated_by=update_data.updated_by
-        )
-        
-        db.add(ticket_update)
-        db.commit()
-        return {"message": f"Ticket {ticket_id} updated successfully"}
-        
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error updating ticket: {str(e)}")
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

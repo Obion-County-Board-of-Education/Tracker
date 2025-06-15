@@ -922,3 +922,21 @@ async def roll_maintenance_database(request: Request, archive_name: str = Form(.
             f"/tickets/maintenance/open?roll_error=true&message={str(e)}", 
             status_code=303
         )
+
+@app.get("/tickets/tech/archives/{archive_name}/delete")
+async def delete_tech_archive(archive_name: str):
+    """Delete a tech ticket archive"""
+    try:
+        result = await tickets_service.delete_tech_archive(archive_name)
+        return result
+    except Exception as e:
+        return {"success": False, "message": f"Error deleting archive: {str(e)}"}
+
+@app.get("/tickets/maintenance/archives/{archive_name}/delete")
+async def delete_maintenance_archive(archive_name: str):
+    """Delete a maintenance ticket archive"""
+    try:
+        result = await tickets_service.delete_maintenance_archive(archive_name)
+        return result
+    except Exception as e:
+        return {"success": False, "message": f"Error deleting archive: {str(e)}"}

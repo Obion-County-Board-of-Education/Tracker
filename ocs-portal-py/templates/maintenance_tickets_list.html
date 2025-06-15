@@ -61,8 +61,7 @@
                     <i class="fa fa-search"></i>
                     <input type="text" id="searchInput" placeholder="Search requests by title, building, or created by..." />
                 </div>
-            {% endif %}
-              <div class="filter-controls">
+            {% endif %}              <div class="filter-controls">
                 <select id="buildingFilter" class="filter-select">
                     <option value="">All Buildings</option>
                     {% if buildings %}
@@ -71,6 +70,15 @@
                         {% endfor %}
                     {% endif %}
                 </select>
+                
+                {% if status_filter == 'archived' and selected_archive %}
+                    <!-- Delete Archive Button -->
+                    <button class="btn btn-danger btn-sm delete-archive-btn" 
+                            onclick="deleteArchive('{{ selected_archive }}', 'maintenance')" 
+                            title="Delete this archive permanently">
+                        <i class="fa fa-trash"></i> Delete Archive
+                    </button>
+                {% endif %}
             </div>
         </div>
         
@@ -1408,6 +1416,57 @@ function resetRollDatabaseModal(type) {
   if (rollBtn) {
     rollBtn.disabled = true;
     rollBtn.innerHTML = '<i class="fa fa-refresh"></i> Roll Database';
+  }
+}
+
+// Delete archive function
+function deleteArchive(archiveName, ticketType) {
+  if (!archiveName) {
+    showNotification('No archive selected for deletion', 'error');
+    return;
+  }
+  
+  const confirmation = confirm(`Are you sure you want to permanently delete the archive "${archiveName}"?\n\nThis action cannot be undone and will remove all tickets in this archive.`);
+  
+  if (confirmation) {
+    // Show loading state
+    const deleteBtn = document.querySelector('.delete-archive-btn');
+    if (deleteBtn) {
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Deleting...';
+    }    // Make GET request to delete via query parameter
+    fetch(`/tickets/${ticketType}/archives/${archiveName}/delete`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showNotification(`Archive "${archiveName}" deleted successfully`, 'success');
+        // Redirect to archives page without selected archive
+        setTimeout(() => {
+          window.location.href = `/tickets/${ticketType}/archives`;
+        }, 1500);
+      } else {
+        showNotification(`Error deleting archive: ${data.message}`, 'error');
+        // Reset button state
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.innerHTML = '<i class="fa fa-trash"></i> Delete Archive';
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error deleting archive:', error);
+      showNotification('Error deleting archive. Please try again.', 'error');
+      // Reset button state
+      if (deleteBtn) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="fa fa-trash"></i> Delete Archive';
+      }
+    });
   }
 }
 
