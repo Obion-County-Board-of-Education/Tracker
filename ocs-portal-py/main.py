@@ -15,6 +15,7 @@ from database import get_db, init_database
 from services import tickets_service, purchasing_service
 from management_service import management_service
 from service_health import health_checker
+from health_router import router as health_router
 
 # Initialize database on startup
 try:
@@ -26,6 +27,9 @@ except Exception as e:
 app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Include health router
+app.include_router(health_router)
 
 async def get_menu_context():
     """Get menu visibility context for templates"""
@@ -101,8 +105,7 @@ async def home(request: Request, db: Session = Depends(get_db)):
         }
     
     # Get menu visibility context
-    menu_context = await get_menu_context()
-    
+    menu_context = await get_menu_context()    
     return templates.TemplateResponse("index.html", {
         "request": request,
         "homepage_message": homepage_message,
