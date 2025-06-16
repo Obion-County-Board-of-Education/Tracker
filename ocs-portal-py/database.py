@@ -1,30 +1,32 @@
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-<<<<<<< HEAD
+from pathlib import Path
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from ocs_shared_models import Base, SystemMessage, User, Building, Room
+# Add parent directory to path for shared models access
+parent_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(parent_dir))
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://ocs_user:ocs_pass@db:5432/ocs_portal")
-=======
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
+from contextlib import contextmanager
+
+# Import shared models with proper fallback handling
 try:
-    from ocs_shared_models import Base, SystemMessage, User, Building, Room
+    from ocs_shared_models.models import Base, SystemMessage, User, Building, Room
 except ImportError:
-    # Fallback for direct execution
-    sys.path.insert(0, '../ocs_shared_models')
-    from models import Base, SystemMessage, User, Building, Room
+    try:
+        from ocs_shared_models import Base, SystemMessage, User, Building, Room
+    except ImportError:
+        # Final fallback for development
+        sys.path.insert(0, '../ocs_shared_models')
+        from models import Base, SystemMessage, User, Building, Room
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://ocs_user:ocs_pass@localhost:5433/ocs_portal")
->>>>>>> 2fd8c62 (add auth with graph)
 
 # Create engine with connection timeout and error handling
 try:
@@ -38,13 +40,12 @@ try:
     print(f"✅ Database engine created successfully")
 except Exception as e:
     print(f"⚠️ Database connection issue: {e}")
-    # Fallback for development without database
-    from sqlalchemy import create_engine
+    # Create fallback engine
     engine = create_engine("sqlite:///./fallback.db")
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     print("📁 Using SQLite fallback database")
 
-def get_db():
+def get_db() -> Session:
     """Database dependency for FastAPI"""
     db = SessionLocal()
     try:
@@ -52,7 +53,19 @@ def get_db():
     finally:
         db.close()
 
-# Create tables only for portal-specific models and shared reference data
+@contextmanager
+def get_db_session():
+    """Context manager for database sessions"""
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
 def init_database():
     """Initialize database tables - only portal-specific and reference data"""
     try:
@@ -62,10 +75,7 @@ def init_database():
         
         # Only create tables for portal-specific models and shared reference data
         # Tickets are handled by the Tickets API service
-        SystemMessage.metadata.create_all(bind=engine)
-        User.metadata.create_all(bind=engine)
-        Building.metadata.create_all(bind=engine)
-        Room.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
         print("✅ Database tables initialized successfully")
         
     except Exception as e:

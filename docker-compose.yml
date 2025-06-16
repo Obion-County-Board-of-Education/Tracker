@@ -76,10 +76,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-<<<<<<< HEAD
-=======
-
->>>>>>> 2fd8c62 (add auth with graph)
   ocs-portal-py:
     build:
       context: .
@@ -91,8 +87,6 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=ocs_user
-<<<<<<< HEAD
-=======
       # Azure AD Configuration
       - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
       - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
@@ -106,9 +100,20 @@ services:
       - DEBUG=${DEBUG}
       - HOST=${HOST}
       - PORT=${PORT}
->>>>>>> 2fd8c62 (add auth with graph)
+      # Microservice URLs for integration
+      - TICKETS_API_URL=http://ocs-tickets-api:8000
+      - INVENTORY_API_URL=http://ocs-inventory-api:8000
+      - PURCHASING_API_URL=http://ocs-purchasing-api:8000
+      - MANAGE_API_URL=http://ocs-manage-api:8000
+      - FORMS_API_URL=http://ocs-forms-api:8000
     depends_on:
       db:
+        condition: service_healthy
+      ocs-tickets-api:
+        condition: service_healthy
+      ocs-inventory-api:
+        condition: service_healthy
+      ocs-purchasing-api:
         condition: service_healthy
 
   ocs-manage-api:

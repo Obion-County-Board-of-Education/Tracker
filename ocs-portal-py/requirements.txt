@@ -3,10 +3,9 @@ uvicorn
 jinja2
 python-multipart
 httpx
-<<<<<<< HEAD
--e ./ocs_shared_models
-=======
 itsdangerous
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
 -e ./ocs_shared_models
 
 # Authentication dependencies
@@ -15,4 +14,3 @@ python-jose[cryptography]
 python-dotenv
 passlib[bcrypt]
 requests
->>>>>>> 2fd8c62 (add auth with graph)

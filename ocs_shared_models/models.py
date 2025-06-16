@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text, Boolean
-from sqlalchemy.orm import relationship, declarative_base
-from datetime import datetime
-import enum
-from .timezone_utils import central_now
-=======
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text, Boolean, JSON
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
@@ -13,7 +6,6 @@ try:
     from .timezone_utils import central_now
 except ImportError:
     from timezone_utils import central_now
->>>>>>> 2fd8c62 (add auth with graph)
 
 Base = declarative_base()
 
@@ -22,15 +14,11 @@ class UserRole(enum.Enum):
     ADMIN = "admin"
     TECHNICIAN = "technician"
 
-<<<<<<< HEAD
-=======
 class AccessLevel(enum.Enum):
     STUDENT = "student"
     STAFF = "staff" 
     ADMIN = "admin"
     SUPER_ADMIN = "super_admin"
-
->>>>>>> 2fd8c62 (add auth with graph)
 class CheckoutType(enum.Enum):
     LOCATION = "location"
     USER = "user"
@@ -219,8 +207,6 @@ class InventoryCheckout(Base):
     
     created_at = Column(DateTime, default=central_now)
     updated_at = Column(DateTime, default=central_now, onupdate=central_now)
-<<<<<<< HEAD
-=======
 
 # Authentication and Authorization Tables
 class GroupRole(Base):
@@ -267,4 +253,3 @@ class AuditLog(Base):
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
     timestamp = Column(DateTime, default=central_now, nullable=False)
->>>>>>> 2fd8c62 (add auth with graph)

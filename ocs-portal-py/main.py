@@ -1,21 +1,21 @@
-<<<<<<< HEAD
-=======
 """
 OCS Tracker Portal with Azure AD Authentication
 """
->>>>>>> 2fd8c62 (add auth with graph)
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-<<<<<<< HEAD
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional
+import httpx
+import json
 from ocs_shared_models import User, Building, Room, SystemMessage
 from ocs_shared_models.timezone_utils import central_now, format_central_time
 from database import get_db, init_database
@@ -30,22 +30,19 @@ try:
 except Exception as e:
     print(f"⚠️ Database initialization failed: {e}")
     print("🔄 Starting application without database connection")
-=======
-from fastapi import FastAPI, Request, Depends, HTTPException
-from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from starlette.middleware.sessions import SessionMiddleware
-from sqlalchemy.orm import Session
-from datetime import datetime
-from typing import Optional
->>>>>>> 2fd8c62 (add auth with graph)
 
 # Import authentication components
 from auth_config import AuthConfig
 from auth_middleware import AuthenticationMiddleware, get_current_user
 from auth_routes import auth_router
 from database import get_db
+
+# Service URLs - get from environment or use defaults
+TICKETS_API_URL = os.getenv("TICKETS_API_URL", "http://ocs-tickets-api:8000")
+INVENTORY_API_URL = os.getenv("INVENTORY_API_URL", "http://ocs-inventory-api:8000") 
+PURCHASING_API_URL = os.getenv("PURCHASING_API_URL", "http://ocs-purchasing-api:8000")
+MANAGE_API_URL = os.getenv("MANAGE_API_URL", "http://ocs-manage-api:8000")
+FORMS_API_URL = os.getenv("FORMS_API_URL", "http://ocs-forms-api:8000")
 
 # Import existing components
 try:
@@ -81,7 +78,12 @@ app.add_middleware(
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-<<<<<<< HEAD
+# Setup templates
+templates = Jinja2Templates(directory="templates")
+
+# Include authentication routes
+app.include_router(auth_router)
+
 # Include health router
 app.include_router(health_router)
 
@@ -994,40 +996,8 @@ async def delete_maintenance_archive(archive_name: str):
         return result
     except Exception as e:
         return {"success": False, "message": f"Error deleting archive: {str(e)}"}
-=======
-# Setup templates
-templates = Jinja2Templates(directory="templates")
 
-# Include authentication routes
-app.include_router(auth_router)
-
-# Simple login redirect for root path
-@app.get("/")
-async def root_redirect(request: Request, db: Session = Depends(get_db)):
-    """Root path - redirect to dashboard if authenticated, login if not"""
-    # Manually check authentication since this path is excluded from middleware
-    session_token = request.cookies.get("session_token")
-    
-    if session_token:
-        try:
-            from auth_service import AuthenticationService
-            auth_service = AuthenticationService(db)
-            user_info = auth_service.validate_token(session_token)
-            
-            if user_info:
-                print(f"DEBUG: Root route - authenticated user: {user_info.get('email')}")
-                return RedirectResponse(url="/dashboard", status_code=302)
-            else:
-                print("DEBUG: Root route - invalid token, redirecting to login")
-        except Exception as e:
-            print(f"DEBUG: Root route - auth error: {str(e)}")
-    else:
-        print("DEBUG: Root route - no session token, redirecting to login")
-    
-    return RedirectResponse(url="/login", status_code=302)
-
-# Login page (accessible without authentication)
-@app.get("/login")
+# User management dashboard functions
 async def login_page(request: Request):
     """Display login page"""
     return templates.TemplateResponse("login.html", {"request": request})
@@ -1157,10 +1127,10 @@ async def get_current_user_info(request: Request):
         "permissions": user.get("permissions", {})
     }
 
-# Placeholder routes for services (to be implemented)
+# Microservice integration routes
 @app.get("/tickets")
-async def tickets_placeholder(request: Request):
-    """Tickets service placeholder"""
+async def tickets_service_integration(request: Request):
+    """Integrate with ocs-tickets-api service"""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login")
@@ -1170,16 +1140,12 @@ async def tickets_placeholder(request: Request):
     if permissions.get('tickets_access', 'none') == 'none':
         raise HTTPException(status_code=403, detail="Access denied: No tickets permission")
     
-    return templates.TemplateResponse("coming_soon.html", {
-        "request": request,
-        "user": user,
-        "service_name": "Technology Tickets",
-        "description": "Submit and manage technology support requests"
-    })
+    # Redirect to tickets API
+    return RedirectResponse(url=f"{TICKETS_API_URL}/", status_code=302)
 
-@app.get("/maintenance") 
-async def maintenance_placeholder(request: Request):
-    """Maintenance service placeholder"""
+@app.get("/tickets/tech/new")
+async def new_tech_ticket_integration(request: Request):
+    """Integrate with ocs-tickets-api for new tech tickets"""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login")
@@ -1188,16 +1154,40 @@ async def maintenance_placeholder(request: Request):
     if permissions.get('tickets_access', 'none') == 'none':
         raise HTTPException(status_code=403, detail="Access denied: No tickets permission")
     
-    return templates.TemplateResponse("coming_soon.html", {
-        "request": request,
-        "user": user, 
-        "service_name": "Maintenance Tickets",
-        "description": "Submit and track maintenance requests"
-    })
+    # Redirect to tickets API new ticket form
+    return RedirectResponse(url=f"{TICKETS_API_URL}/new-ticket", status_code=302)
+
+@app.get("/tickets/maintenance/new") 
+async def new_maintenance_ticket_integration(request: Request):
+    """Integrate with ocs-tickets-api for new maintenance tickets"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('tickets_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No tickets permission")
+    
+    # Redirect to tickets API maintenance form
+    return RedirectResponse(url=f"{TICKETS_API_URL}/new-maintenance-ticket", status_code=302)
+
+@app.get("/maintenance")
+async def maintenance_service_integration(request: Request):
+    """Integrate with maintenance tickets in ocs-tickets-api"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('tickets_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No tickets permission")
+    
+    # Redirect to tickets API maintenance section
+    return RedirectResponse(url=f"{TICKETS_API_URL}/maintenance", status_code=302)
 
 @app.get("/inventory")
-async def inventory_placeholder(request: Request):
-    """Inventory service placeholder"""
+async def inventory_service_integration(request: Request):
+    """Integrate with ocs-inventory-api service"""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login")
@@ -1206,16 +1196,12 @@ async def inventory_placeholder(request: Request):
     if permissions.get('inventory_access', 'none') == 'none':
         raise HTTPException(status_code=403, detail="Access denied: No inventory permission")
     
-    return templates.TemplateResponse("coming_soon.html", {
-        "request": request,
-        "user": user,
-        "service_name": "Inventory Management", 
-        "description": "View and manage school district inventory"
-    })
+    # Redirect to inventory API
+    return RedirectResponse(url=f"{INVENTORY_API_URL}/", status_code=302)
 
 @app.get("/purchasing")
-async def purchasing_placeholder(request: Request):
-    """Purchasing service placeholder"""
+async def purchasing_service_integration(request: Request):
+    """Integrate with ocs-purchasing-api service"""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login")
@@ -1224,16 +1210,12 @@ async def purchasing_placeholder(request: Request):
     if permissions.get('purchasing_access', 'none') == 'none':
         raise HTTPException(status_code=403, detail="Access denied: No purchasing permission")
     
-    return templates.TemplateResponse("coming_soon.html", {
-        "request": request,
-        "user": user,
-        "service_name": "Purchase Requisitions",
-        "description": "Submit and track purchase requests" 
-    })
+    # Redirect to purchasing API
+    return RedirectResponse(url=f"{PURCHASING_API_URL}/", status_code=302)
 
 @app.get("/forms")
-async def forms_placeholder(request: Request):
-    """Forms service placeholder"""
+async def forms_service_integration(request: Request):
+    """Integrate with ocs-forms-api service"""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/login")
@@ -1242,14 +1224,70 @@ async def forms_placeholder(request: Request):
     if permissions.get('forms_access', 'none') == 'none':
         raise HTTPException(status_code=403, detail="Access denied: No forms permission")
     
-    return templates.TemplateResponse("coming_soon.html", {
-        "request": request,
-        "user": user,
-        "service_name": "Forms & Documents",
-        "description": "Access district forms and documentation"
+    # Redirect to forms API
+    return RedirectResponse(url=f"{FORMS_API_URL}/", status_code=302)
+
+# Admin routes for Super Admin users
+@app.get("/admin/users")
+async def admin_users(request: Request):
+    """Admin user management - redirect to portal's user management"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    if user.get('access_level') not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Access denied: Admin access required")
+    
+    # Use the existing user management functionality in portal
+    return RedirectResponse(url="/users/list", status_code=302)
+
+@app.get("/admin/system")
+async def admin_system(request: Request):
+    """System administration dashboard"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    if user.get('access_level') not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Access denied: Admin access required")
+    
+    # Check health of all microservices
+    services_health = {}
+    service_urls = {
+        "Tickets API": TICKETS_API_URL,
+        "Inventory API": INVENTORY_API_URL,
+        "Purchasing API": PURCHASING_API_URL,
+        "Manage API": MANAGE_API_URL,
+        "Forms API": FORMS_API_URL
+    }
+    
+    for service_name, url in service_urls.items():
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{url}/health", timeout=5.0)
+                services_health[service_name] = {
+                    "status": "healthy" if response.status_code == 200 else "unhealthy",
+                    "response_time": response.elapsed.total_seconds() if hasattr(response, 'elapsed') else 0,
+                    "url": url
+                }
+        except Exception as e:
+            services_health[service_name] = {
+                "status": "error", 
+                "error": str(e),
+                "url": url
+            }
+    
+    return templates.TemplateResponse("admin_system.html", {
+        "request": request,        "user": user,
+        "services": services_health
     })
+
+# Login redirect for convenience
+@app.get("/login")
+async def login_redirect():
+    """Redirect /login to /auth/login"""
+    return RedirectResponse(url="/auth/login", status_code=302)
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8003)
->>>>>>> 2fd8c62 (add auth with graph)

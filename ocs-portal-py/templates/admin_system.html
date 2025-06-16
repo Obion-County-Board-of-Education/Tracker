@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCS Tracker - System Administration</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .admin-header {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .service-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .service-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+        
+        .status-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-unhealthy {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .service-details {
+            font-size: 0.875rem;
+            color: #666;
+        }
+        
+        .response-time {
+            margin-top: 0.5rem;
+        }
+        
+        .nav-links {
+            margin-bottom: 2rem;
+        }
+        
+        .nav-links a {
+            display: inline-block;
+            margin-right: 1rem;
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        .nav-links a:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>🔧 System Administration</h1>
+            <p>Welcome, {{ user.display_name }}! Monitor and manage OCS Tracker microservices.</p>
+            
+            <div class="nav-links">
+                <a href="/dashboard">🏠 Dashboard</a>
+                <a href="/admin/users">👥 User Management</a>
+                <a href="/users/list">📋 User List</a>
+            </div>
+        </div>
+        
+        <h3>Microservice Health Status</h3>
+        <div class="services-grid">
+            {% for service_name, health in services.items() %}
+            <div class="service-card">
+                <div class="service-status">
+                    <h4>{{ service_name }}</h4>
+                    <span class="status-badge status-{{ health.status }}">
+                        {% if health.status == 'healthy' %}
+                            ✅ Healthy
+                        {% elif health.status == 'unhealthy' %}
+                            ⚠️ Unhealthy
+                        {% else %}
+                            ❌ Error
+                        {% endif %}
+                    </span>
+                </div>
+                
+                <div class="service-details">
+                    <p><strong>URL:</strong> {{ health.url }}</p>
+                    
+                    {% if health.response_time %}
+                    <div class="response-time">
+                        <strong>Response Time:</strong> {{ "%.3f"|format(health.response_time) }}s
+                    </div>
+                    {% endif %}
+                    
+                    {% if health.error %}
+                    <div style="color: #dc3545; margin-top: 0.5rem;">
+                        <strong>Error:</strong> {{ health.error }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not services %}
+        <div class="service-card" style="text-align: center;">
+            <h4>No Service Data Available</h4>
+            <p>Unable to retrieve microservice health information.</p>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 2rem; text-align: center;">
+            <a href="/dashboard" style="display: inline-block; padding: 1rem 2rem; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">
+                ← Return to Dashboard
+            </a>
+        </div>
+    </div>
+</body>
+</html>
