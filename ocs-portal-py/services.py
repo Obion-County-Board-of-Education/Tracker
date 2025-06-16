@@ -388,24 +388,28 @@ class TicketsService:
             print(f"Error exporting maintenance tickets CSV: {e}")
             return ""
 
-    async def import_tech_tickets_csv(self, file_content: str, operation: str) -> Dict:
+    async def import_tech_tickets_csv(self, file_content: bytes, operation: str) -> Dict:
         """Import tech tickets from CSV"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                data = {"file_content": file_content, "operation": operation}
-                response = await client.post(f"{self.base_url}/api/tickets/tech/import", json=data)
+                # Create multipart form data
+                files = {"file": ("imported_tickets.csv", file_content, "text/csv")}
+                data = {"operation": operation}
+                response = await client.post(f"{self.base_url}/api/tickets/tech/import", files=files, data=data)
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
             print(f"Error importing tech tickets CSV: {e}")
             return {"success": False, "message": f"Import failed: {str(e)}"}
 
-    async def import_maintenance_tickets_csv(self, file_content: str, operation: str) -> Dict:
+    async def import_maintenance_tickets_csv(self, file_content: bytes, operation: str) -> Dict:
         """Import maintenance tickets from CSV"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                data = {"file_content": file_content, "operation": operation}
-                response = await client.post(f"{self.base_url}/api/tickets/maintenance/import", json=data)
+                # Create multipart form data
+                files = {"file": ("imported_tickets.csv", file_content, "text/csv")}
+                data = {"operation": operation}
+                response = await client.post(f"{self.base_url}/api/tickets/maintenance/import", files=files, data=data)
                 response.raise_for_status()
                 return response.json()
         except Exception as e:

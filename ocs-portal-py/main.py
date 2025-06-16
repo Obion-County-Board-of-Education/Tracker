@@ -462,6 +462,33 @@ async def import_tech_tickets(request: Request, file: UploadFile = File(...), op
         error_msg = str(e).replace("'", "").replace('"', "")[:100]  # Sanitize and limit length
         return RedirectResponse(f"/tickets/tech/open?import_error=true&message={error_msg}", status_code=303)
 
+@app.post("/tickets/maintenance/import")
+async def import_maintenance_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
+    """Import maintenance tickets from CSV"""
+    try:
+        # Read file content
+        file_content = await file.read()
+        
+        # Call the import service
+        result = await tickets_service.import_maintenance_tickets_csv(file_content, operation)
+        
+        print(f"✅ Maintenance tickets import successful: {result}")
+        
+        # Parse the result to get import count
+        import_count = "unknown"
+        if result and "imported" in str(result).lower():
+            # Try to extract the number from the result
+            import re
+            match = re.search(r'(\d+)', str(result))
+            if match:
+                import_count = match.group(1)
+        
+        return RedirectResponse(f"/tickets/maintenance/open?import_success=true&count={import_count}&mode={operation}", status_code=303)
+    except Exception as e:
+        print(f"❌ Error importing maintenance tickets: {e}")
+        error_msg = str(e).replace("'", "").replace('"', "")[:100]  # Sanitize and limit length
+        return RedirectResponse(f"/tickets/maintenance/open?import_error=true&message={error_msg}", status_code=303)
+
 # Archive routes must come before parameterized routes
 @app.get("/tickets/tech/archives")
 async def tech_tickets_archives(
