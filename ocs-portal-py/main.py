@@ -1012,7 +1012,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     
     user = get_current_user(request)
     print(f"DEBUG: get_current_user returned: {user}")
-      if not user:
+    if not user:
         print("DEBUG: Dashboard - no user found, redirecting to login")
         return RedirectResponse(url="/auth/login", status_code=302)
     
