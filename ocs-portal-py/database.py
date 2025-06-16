@@ -67,7 +67,7 @@ def get_db_session():
         db.close()
 
 def init_database():
-    """Initialize database tables - only portal-specific and reference data"""
+    """Initialize database tables and essential data"""
     try:
         # Test database connection first
         with engine.connect() as connection:
@@ -78,6 +78,106 @@ def init_database():
         Base.metadata.create_all(bind=engine)
         print("✅ Database tables initialized successfully")
         
+        # Setup essential GroupRole mappings
+        setup_essential_group_roles()
+        
     except Exception as e:
         print(f"⚠️ Database initialization failed: {e}")
         print("🔄 Application will continue but database features may be limited")
+
+def setup_essential_group_roles():
+    """Set up essential group role mappings if they don't exist"""
+    from ocs_shared_models.models import GroupRole
+    
+    try:
+        db = SessionLocal()
+        
+        # Check if group roles already exist
+        existing_roles = db.query(GroupRole).count()
+        if existing_roles > 0:
+            print(f"✅ Group roles already exist ({existing_roles} roles found)")
+            return
+            
+        print("🔧 Setting up essential group role mappings...")
+        
+        # Define essential group roles
+        essential_roles = [
+            # All Staff - Limited access to tickets and purchasing only
+            GroupRole(
+                group_name='All_Staff',
+                access_level='staff',
+                tickets_access='write',
+                inventory_access='none',
+                purchasing_access='write',
+                forms_access='none',
+                allowed_departments=[]
+            ),
+            
+            # All Students - Very limited access, tickets only
+            GroupRole(
+                group_name='All_Students',
+                access_level='student',
+                tickets_access='write',
+                inventory_access='none',
+                purchasing_access='none',
+                forms_access='none',
+                allowed_departments=[]
+            ),
+            
+            # Technology Department - Full admin access
+            GroupRole(
+                group_name='Technology Department',
+                access_level='super_admin',
+                tickets_access='admin',
+                inventory_access='admin',
+                purchasing_access='admin',
+                forms_access='admin',
+                allowed_departments=['Technology']
+            ),
+            
+            # Finance - Admin access to purchasing, tickets, and forms
+            GroupRole(
+                group_name='Finance',
+                access_level='admin',
+                tickets_access='read',
+                inventory_access='read',
+                purchasing_access='admin',
+                forms_access='admin',
+                allowed_departments=['Finance']
+            ),
+            
+            # Special role for Director of Schools (via extensionAttribute10)
+            GroupRole(
+                group_name='Director of Schools',
+                azure_user_attribute='extensionAttribute10',
+                azure_user_attribute_value='Director of Schools',
+                access_level='super_admin',
+                tickets_access='admin',
+                inventory_access='admin',
+                purchasing_access='admin',
+                forms_access='admin',
+                allowed_departments=['Administration']
+            )
+        ]
+        
+        # Add all essential roles
+        for role in essential_roles:
+            db.add(role)
+        
+        # Commit changes
+        db.commit()
+        
+        print("✅ Essential group roles setup complete!")
+        print("   - All_Staff: staff access")
+        print("   - All_Students: student access") 
+        print("   - Technology Department: super_admin access")
+        print("   - Finance: admin access")
+        print("   - Director of Schools: super_admin access (via extensionAttribute10)")
+            
+    except Exception as e:
+        print(f"⚠️ Error setting up group roles: {e}")
+        if 'db' in locals():
+            db.rollback()
+    finally:
+        if 'db' in locals():
+            db.close()
