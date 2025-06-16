@@ -1240,3 +1240,47 @@ async def admin_users(request: Request):
     # Use the existing user management functionality in portal
     return RedirectResponse(url="/users/list", status_code=302)
 
+@app.get("/admin/system")
+async def admin_system(request: Request):
+    """System administration dashboard"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    
+    if user.get('access_level') not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Access denied: Admin access required")
+    
+    # Check health of all microservices
+    services_health = {}
+    service_urls = {
+        "Tickets API": TICKETS_API_URL,
+        "Inventory API": INVENTORY_API_URL,
+        "Purchasing API": PURCHASING_API_URL,
+        "Manage API": MANAGE_API_URL,
+        "Forms API": FORMS_API_URL
+    }
+    for service_name, url in service_urls.items():
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{url}/health", timeout=5.0)
+                services_health[service_name] = {
+                    "status": "healthy" if response.status_code == 200 else "unhealthy",
+                    "response_time": response.elapsed.total_seconds() if hasattr(response, 'elapsed') else 0,
+                    "url": url
+                }
+        except Exception as e:
+            services_health[service_name] = {
+                "status": "error", 
+                "error": str(e),
+                "url": url
+            }
+    
+    return templates.TemplateResponse("admin_system.html", {
+        "request": request,
+        "user": user,
+        "services": services_health
+    })
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8003)
