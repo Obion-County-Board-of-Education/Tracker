@@ -5,25 +5,60 @@ import httpx
 import os
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from fastapi import Request
 
 # Service URLs - use environment variables in production
 TICKETS_API_URL = os.getenv("TICKETS_API_URL", "http://ocs-tickets-api:8000")
 INVENTORY_API_URL = os.getenv("INVENTORY_API_URL", "http://ocs-inventory-api:8000")
-REQUISITION_API_URL = os.getenv("REQUISITION_API_URL", "http://ocs-requisition-api:8000")
+PURCHASING_API_URL = os.getenv("PURCHASING_API_URL", "http://ocs-purchasing-api:8000")
+FORMS_API_URL = os.getenv("FORMS_API_URL", "http://ocs-forms-api:8000")
+MANAGE_API_URL = os.getenv("MANAGE_API_URL", "http://ocs-manage-api:8000")
+
+def get_service_for_request(request: Request):
+    """Factory function to create service instances with authentication token"""
+    # Get session token from cookie
+    session_token = request.cookies.get("session_token")
+    
+    # Create service instances with the token
+    tickets = TicketsService(auth_token=session_token)
+    purchasing = PurchasingService(auth_token=session_token)
+    inventory = InventoryService(auth_token=session_token)
+    forms = FormsService(auth_token=session_token)
+    management = ManagementService(auth_token=session_token)
+    
+    return {
+        "tickets": tickets,
+        "purchasing": purchasing,
+        "inventory": inventory,
+        "forms": forms,
+        "management": management
+    }
 
 class TicketsService:
     """Service for interacting with the Tickets API"""
     
-    def __init__(self):
+    def __init__(self, auth_token: str = None):
         self.base_url = TICKETS_API_URL
         self.timeout = 30.0
+        self.auth_token = auth_token
+        
+    def _get_headers(self):
+        """Get headers with auth token if available"""
+        headers = {}
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        return headers
 
     async def get_tech_tickets(self, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get technology tickets with latest update messages"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 params = {"status_filter": status_filter} if status_filter else {}
-                response = await client.get(f"{self.base_url}/api/tickets/tech", params=params)
+                response = await client.get(
+                    f"{self.base_url}/api/tickets/tech", 
+                    params=params,
+                    headers=self._get_headers()
+                )
                 response.raise_for_status()
                 tickets = response.json()
                 
@@ -44,7 +79,7 @@ class TicketsService:
         """Get a specific technology ticket"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/tech/{ticket_id}")
+                response = await client.get(f"{self.base_url}/api/tickets/tech/{ticket_id}", headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except httpx.HTTPStatusError as e:
@@ -60,7 +95,7 @@ class TicketsService:
         """Create a new technology ticket"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/api/tickets/tech", json=ticket_data)
+                response = await client.post(f"{self.base_url}/api/tickets/tech", json=ticket_data, headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -72,7 +107,7 @@ class TicketsService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 data = {"status": status}
-                response = await client.put(f"{self.base_url}/api/tickets/tech/{ticket_id}/status", data=data)
+                response = await client.put(f"{self.base_url}/api/tickets/tech/{ticket_id}/status", data=data, headers=self._get_headers())
                 response.raise_for_status()
                 return True
         except Exception as e:
@@ -83,7 +118,7 @@ class TicketsService:
         """Update technology ticket with status and message"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.put(f"{self.base_url}/api/tickets/tech/{ticket_id}", json=update_data)
+                response = await client.put(f"{self.base_url}/api/tickets/tech/{ticket_id}", json=update_data, headers=self._get_headers())
                 response.raise_for_status()
                 return True
         except Exception as e:
@@ -95,7 +130,7 @@ class TicketsService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 params = {"status_filter": status_filter} if status_filter else {}
-                response = await client.get(f"{self.base_url}/api/tickets/maintenance", params=params)
+                response = await client.get(f"{self.base_url}/api/tickets/maintenance", params=params, headers=self._get_headers())
                 response.raise_for_status()
                 tickets = response.json()
                 
@@ -116,7 +151,7 @@ class TicketsService:
         """Get a specific maintenance ticket"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/maintenance/{ticket_id}")
+                response = await client.get(f"{self.base_url}/api/tickets/maintenance/{ticket_id}", headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except httpx.HTTPStatusError as e:
@@ -132,7 +167,7 @@ class TicketsService:
         """Create a new maintenance ticket"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/api/tickets/maintenance", json=ticket_data)
+                response = await client.post(f"{self.base_url}/api/tickets/maintenance", json=ticket_data, headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -144,7 +179,7 @@ class TicketsService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 data = {"status": status}
-                response = await client.put(f"{self.base_url}/api/tickets/maintenance/{ticket_id}/status", data=data)
+                response = await client.put(f"{self.base_url}/api/tickets/maintenance/{ticket_id}/status", data=data, headers=self._get_headers())
                 response.raise_for_status()
                 return True
         except Exception as e:
@@ -155,7 +190,7 @@ class TicketsService:
         """Update maintenance ticket with status and message"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.put(f"{self.base_url}/api/tickets/maintenance/{ticket_id}", json=update_data)
+                response = await client.put(f"{self.base_url}/api/tickets/maintenance/{ticket_id}", json=update_data, headers=self._get_headers())
                 response.raise_for_status()
                 return True
         except Exception as e:
@@ -221,7 +256,7 @@ class TicketsService:
         """Get update history for a ticket"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/{ticket_type}/{ticket_id}/updates")
+                response = await client.get(f"{self.base_url}/api/tickets/{ticket_type}/{ticket_id}/updates", headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -246,7 +281,7 @@ class TicketsService:
         """Get list of available tech ticket archives"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/tech/archives")
+                response = await client.get(f"{self.base_url}/api/tickets/tech/archives", headers=self._get_headers())
                 response.raise_for_status()
                 data = response.json()
                 return data.get("archives", [])
@@ -262,7 +297,7 @@ class TicketsService:
                 url += f"?status_filter={status_filter}"
                 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(url)
+                response = await client.get(url, headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -273,7 +308,7 @@ class TicketsService:
         """Delete a tech ticket archive"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/tech/archives/delete/{archive_name}")
+                response = await client.get(f"{self.base_url}/api/tickets/tech/archives/delete/{archive_name}", headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -284,7 +319,7 @@ class TicketsService:
         """Get list of available maintenance ticket archives"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/maintenance/archives")
+                response = await client.get(f"{self.base_url}/api/tickets/maintenance/archives", headers=self._get_headers())
                 response.raise_for_status()
                 data = response.json()
                 return data.get("archives", [])
@@ -300,7 +335,7 @@ class TicketsService:
                 url += f"?status_filter={status_filter}"
                 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(url)
+                response = await client.get(url, headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -311,7 +346,7 @@ class TicketsService:
         """Delete a maintenance ticket archive"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/maintenance/archives/delete/{archive_name}")
+                response = await client.get(f"{self.base_url}/api/tickets/maintenance/archives/delete/{archive_name}", headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -322,7 +357,7 @@ class TicketsService:
         """Roll tech database - archive current tickets and create new table"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/api/tickets/tech/roll-database?archive_name={archive_name}")
+                response = await client.post(f"{self.base_url}/api/tickets/tech/roll-database?archive_name={archive_name}", headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -333,7 +368,7 @@ class TicketsService:
         """Roll maintenance database - archive current tickets and create new table"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.base_url}/api/tickets/maintenance/roll-database?archive_name={archive_name}")
+                response = await client.post(f"{self.base_url}/api/tickets/maintenance/roll-database?archive_name={archive_name}", headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -345,7 +380,7 @@ class TicketsService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 url = f"{self.base_url}/api/tickets/{ticket_type}?status_filter={status}"
-                response = await client.get(url)
+                response = await client.get(url, headers=self._get_headers())
                 response.raise_for_status()
                 tickets = response.json()
                 return len(tickets)
@@ -358,7 +393,7 @@ class TicketsService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 url = f"{self.base_url}/api/tickets/{ticket_type}?status_filter=closed"
-                response = await client.get(url)
+                response = await client.get(url, headers=self._get_headers())
                 response.raise_for_status()
                 tickets = response.json()
                 return len(tickets)
@@ -370,7 +405,7 @@ class TicketsService:
         """Export tech tickets to CSV format"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/tech/export")
+                response = await client.get(f"{self.base_url}/api/tickets/tech/export", headers=self._get_headers())
                 response.raise_for_status()
                 return response.text
         except Exception as e:
@@ -381,7 +416,7 @@ class TicketsService:
         """Export maintenance tickets to CSV format"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.get(f"{self.base_url}/api/tickets/maintenance/export")
+                response = await client.get(f"{self.base_url}/api/tickets/maintenance/export", headers=self._get_headers())
                 response.raise_for_status()
                 return response.text
         except Exception as e:
@@ -393,7 +428,7 @@ class TicketsService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 data = {"file_content": file_content, "operation": operation}
-                response = await client.post(f"{self.base_url}/api/tickets/tech/import", json=data)
+                response = await client.post(f"{self.base_url}/api/tickets/tech/import", json=data, headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
@@ -405,42 +440,85 @@ class TicketsService:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 data = {"file_content": file_content, "operation": operation}
-                response = await client.post(f"{self.base_url}/api/tickets/maintenance/import", json=data)
+                response = await client.post(f"{self.base_url}/api/tickets/maintenance/import", json=data, headers=self._get_headers())
                 response.raise_for_status()
                 return response.json()
         except Exception as e:
             print(f"Error importing maintenance tickets CSV: {e}")
             return {"success": False, "message": f"Import failed: {str(e)}"}
 
-# Create service instances
-tickets_service = TicketsService()
-
 class InventoryService:
     """Service for interacting with the Inventory API"""
     
-    def __init__(self):
+    def __init__(self, auth_token: str = None):
         self.base_url = INVENTORY_API_URL
         self.timeout = 30.0
+        self.auth_token = auth_token
+        
+    def _get_headers(self):
+        """Get headers with auth token if available"""
+        headers = {}
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        return headers
 
     # TODO: Add inventory service methods when needed
-
-class RequisitionService:
-    """Service for interacting with the Requisition API"""
-    
-    def __init__(self):
-        self.base_url = REQUISITION_API_URL
-        self.timeout = 30.0
-
-    # TODO: Add requisition service methods when needed
 
 class PurchasingService:
     """Service for interacting with the Purchasing API"""
     
-    def __init__(self):
-        self.base_url = os.getenv("PURCHASING_API_URL", "http://ocs-purchasing-api:8000")
+    def __init__(self, auth_token: str = None):
+        self.base_url = PURCHASING_API_URL
         self.timeout = 30.0
+        self.auth_token = auth_token
+        
+    def _get_headers(self):
+        """Get headers with auth token if available"""
+        headers = {}
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        return headers
 
     # TODO: Add purchasing service methods when needed
 
-# Create service instances
+class FormsService:
+    """Service for interacting with the Forms API"""
+    
+    def __init__(self, auth_token: str = None):
+        self.base_url = FORMS_API_URL
+        self.timeout = 30.0
+        self.auth_token = auth_token
+        
+    def _get_headers(self):
+        """Get headers with auth token if available"""
+        headers = {}
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        return headers
+
+    # TODO: Add forms service methods when needed
+
+class ManagementService:
+    """Service for interacting with the Management API"""
+    
+    def __init__(self, auth_token: str = None):
+        self.base_url = MANAGE_API_URL
+        self.timeout = 30.0
+        self.auth_token = auth_token
+        
+    def _get_headers(self):
+        """Get headers with auth token if available"""
+        headers = {}
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        return headers
+
+    # TODO: Add management service methods when needed
+
+# Create default service instances (without authentication)
+# These will be used for routes that don't require authentication
+tickets_service = TicketsService()
 purchasing_service = PurchasingService()
+inventory_service = InventoryService()
+forms_service = FormsService()
+management_service = ManagementService()

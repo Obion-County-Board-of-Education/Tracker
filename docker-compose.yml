@@ -16,7 +16,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
   ocs-tickets-api:
     build:
       context: .
@@ -28,6 +27,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=ocs_user
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       db:
         condition: service_healthy
@@ -36,7 +36,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
   ocs-inventory-api:
     build:
       context: .
@@ -48,6 +47,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=ocs_user
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       db:
         condition: service_healthy
@@ -56,7 +56,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
   ocs-purchasing-api:
     build:
       context: .
@@ -68,6 +67,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=ocs_user
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       db:
         condition: service_healthy
@@ -115,7 +115,6 @@ services:
         condition: service_healthy
       ocs-purchasing-api:
         condition: service_healthy
-
   ocs-manage-api:
     build:
       context: .
@@ -127,6 +126,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=ocs_user
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       db:
         condition: service_healthy
@@ -135,7 +135,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
   ocs-forms-api:
     build:
       context: .
@@ -147,6 +146,7 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=ocs_user
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       db:
         condition: service_healthy

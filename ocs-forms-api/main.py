@@ -15,11 +15,27 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ocs_shared_models import User, Building, Room
 from ocs_shared_models.timezone_utils import central_now, format_central_time
 from database import get_db, init_database
+from auth_middleware import AuthMiddleware, get_current_user, has_permission
 
 # Initialize database on startup
 init_database()
 
 app = FastAPI(title="OCS Forms API")
+
+# Add authentication middleware with excluded paths
+app.add_middleware(
+    AuthMiddleware,
+    exclude_paths=[
+        "/",
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc",
+        # Allow public form submissions without auth
+        "/time/entries/public",
+        "/fuel/entries/public"
+    ]
+)
 
 # Health check endpoint
 @app.get("/health")

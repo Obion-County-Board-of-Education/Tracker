@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -13,6 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ocs_shared_models import User, Building, Room, Requisition, PurchaseOrder
 from ocs_shared_models.timezone_utils import central_now, format_central_time
 from database import get_db, init_database
+from auth_middleware import AuthMiddleware, get_current_user, has_permission
 
 # Initialize database on startup
 init_database()
@@ -30,6 +31,18 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Add authentication middleware with excluded paths
+app.add_middleware(
+    AuthMiddleware,
+    exclude_paths=[
+        "/",
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc"
+    ]
 )
 
 # Pydantic models for API requests/responses

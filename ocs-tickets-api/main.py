@@ -16,6 +16,8 @@ import atexit
 from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket, TicketUpdate
 from ocs_shared_models.timezone_utils import central_now
 from database import get_db, init_database
+# Import the authentication middleware
+from auth_middleware import AuthMiddleware, get_current_user, has_permission
 
 # Initialize database on startup
 init_database()
@@ -153,6 +155,19 @@ scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
 app = FastAPI(title="OCS Tickets API")
+
+# Add authentication middleware
+app.add_middleware(
+    AuthMiddleware,
+    exclude_paths=[
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc",
+        "/tickets/tech/new-form",  # Public form for creating tech tickets
+        "/tickets/maintenance/new-form"  # Public form for creating maintenance tickets
+    ]
+)
 
 # Pydantic models for API responses
 class TicketBase(BaseModel):
@@ -1229,6 +1244,9 @@ def delete_tech_archive_direct(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error deleting tech archive: {str(e)}")
+
+# Add the authentication middleware to the app
+app.add_middleware(AuthMiddleware)
 
 if __name__ == "__main__":
     import uvicorn

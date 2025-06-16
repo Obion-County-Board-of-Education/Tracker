@@ -19,7 +19,7 @@ import json
 from ocs_shared_models import User, Building, Room, SystemMessage
 from ocs_shared_models.timezone_utils import central_now, format_central_time
 from database import get_db, init_database
-from services import tickets_service, purchasing_service
+from services import get_service_for_request
 from management_service import management_service
 from service_health import health_checker
 from health_router import router as health_router
@@ -87,10 +87,15 @@ app.include_router(auth_router)
 # Include health router
 app.include_router(health_router)
 
-async def get_menu_context():
+async def get_menu_context(request: Request = None):
     """Get menu visibility context for templates"""
     try:
-        menu_visibility = await health_checker.get_menu_visibility()
+        # Get auth token if request is provided
+        auth_token = None
+        if request:
+            auth_token = request.cookies.get("session_token")
+            
+        menu_visibility = await health_checker.get_menu_visibility(auth_token)
         print(f"🔍 Dynamic menu context: {menu_visibility}")
         return {"menu_visibility": menu_visibility}
     except Exception as e:
@@ -106,7 +111,9 @@ async def get_menu_context():
 
 async def render_template(template_name: str, context: dict):
     """Helper function to render templates with menu context"""
-    menu_context = await get_menu_context()
+    # Get request object from context if available
+    request = context.get("request")
+    menu_context = await get_menu_context(request)
     return templates.TemplateResponse(template_name, {**context, **menu_context})
 
 # Import and setup user/building routes from separate module
@@ -148,7 +155,7 @@ async def home(request: Request, db: Session = Depends(get_db)):
         })()
       # Gather dashboard data
     try:
-        dashboard_data = await get_dashboard_data(db)
+        dashboard_data = await get_dashboard_data(db, request)
     except Exception as e:
         print(f"Error getting dashboard data: {e}")
         # Provide fallback dashboard data
@@ -159,9 +166,8 @@ async def home(request: Request, db: Session = Depends(get_db)):
             "recent_activity": [],
             "service_health": {}
         }
-    
-    # Get menu visibility context
-    menu_context = await get_menu_context()    
+      # Get menu visibility context
+    menu_context = await get_menu_context(request)    
     return templates.TemplateResponse("index.html", {
         "request": request,
         "homepage_message": homepage_message,
@@ -169,9 +175,13 @@ async def home(request: Request, db: Session = Depends(get_db)):
         **menu_context
     })
 
-async def get_dashboard_data(db: Session):
+async def get_dashboard_data(db: Session, request: Request):
     """Gather data for dashboard charts"""
     try:
+        # Get authenticated service instances for this request
+        services = get_service_for_request(request)
+        tickets_svc = services["tickets"]
+        
         dashboard = {
             "tickets": {
                 "tech_open": 0,
@@ -198,10 +208,10 @@ async def get_dashboard_data(db: Session):
         
         # Get ticket data from APIs
         try:
-            tech_open = await tickets_service.get_tech_tickets("open")
-            tech_closed = await tickets_service.get_tech_tickets("closed")
-            maintenance_open = await tickets_service.get_maintenance_tickets("open")
-            maintenance_closed = await tickets_service.get_maintenance_tickets("closed")
+            tech_open = await tickets_svc.get_tech_tickets("open")
+            tech_closed = await tickets_svc.get_tech_tickets("closed")
+            maintenance_open = await tickets_svc.get_maintenance_tickets("open")
+            maintenance_closed = await tickets_svc.get_maintenance_tickets("closed")
             
             dashboard["tickets"]["tech_open"] = len(tech_open) if tech_open else 0
             dashboard["tickets"]["tech_closed"] = len(tech_closed) if tech_closed else 0
@@ -257,10 +267,11 @@ async def get_dashboard_data(db: Session):
             
         except Exception as e:
             print(f"Error fetching user data for dashboard: {e}")
-        
-        # Get service health
+          # Get service health
         try:
-            dashboard["service_health"] = await health_checker.get_service_health()
+            # Pass the auth token to health checker if applicable
+            session_token = request.cookies.get("session_token")
+            dashboard["service_health"] = await health_checker.get_service_health(auth_token=session_token)
         except Exception as e:
             print(f"Error fetching service health for dashboard: {e}")
             dashboard["service_health"] = {}
@@ -315,12 +326,14 @@ def update_homepage_message(
 async def new_tech_ticket(request: Request):
     """Display new technology ticket form"""
     try:
-        buildings = await tickets_service.get_buildings()
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        buildings = await services["tickets"].get_buildings()
     except Exception as e:
         print(f"Error fetching buildings: {e}")
         buildings = []    
-    # Get menu context
-    menu_context = await get_menu_context()
+    # Get menu context with session token
+    menu_context = await get_menu_context(request)
     
     return templates.TemplateResponse("new_tech_ticket.html", {
         "request": request, 
@@ -336,15 +349,19 @@ async def new_tech_ticket_submit(
     building: int = Form(...),
     room: int = Form(...),
     tag: str = Form(...),
-    description: str = Form(...)
+    description: str = Form(...),
+    current_user: User = Depends(get_current_user)
 ):
     """Process technology ticket submission via Tickets API"""
     try:
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
         # Get building and room names
-        buildings = await tickets_service.get_buildings()
+        buildings = await services["tickets"].get_buildings()
         building_obj = next((b for b in buildings if b["id"] == building), None)
         
-        rooms = await tickets_service.get_building_rooms(building)
+        rooms = await services["tickets"].get_building_rooms(building)
         room_obj = next((r for r in rooms if r["id"] == room), None)
         
         ticket_data = {
@@ -354,10 +371,10 @@ async def new_tech_ticket_submit(
             "building_name": building_obj["name"] if building_obj else "Unknown",
             "room_name": room_obj["name"] if room_obj else "Unknown",
             "tag": tag,
-            "created_by": "System User"  # Will be replaced with actual user when authentication is implemented
+            "created_by": f"{current_user.first_name} {current_user.last_name}"
         }
         
-        result = await tickets_service.create_tech_ticket(ticket_data)
+        result = await services["tickets"].create_tech_ticket(ticket_data)
         if result:
             print(f"Tech ticket created: {title}")
         else:
@@ -372,9 +389,13 @@ async def new_tech_ticket_submit(
 async def tech_tickets_open(request: Request):
     """Display open technology tickets"""
     try:
-        tickets = await tickets_service.get_tech_tickets("open")
-        buildings = await tickets_service.get_buildings()
-        closed_count = await tickets_service.get_closed_tickets_count("tech")
+        # Get authenticated service instance for this request
+        services = get_service_for_request(request)
+        tickets_svc = services["tickets"]
+        
+        tickets = await tickets_svc.get_tech_tickets("open")
+        buildings = await tickets_svc.get_buildings()
+        closed_count = await tickets_svc.get_closed_tickets_count("tech")
         
         # Format dates for template display
         for ticket in tickets:
@@ -397,9 +418,8 @@ async def tech_tickets_open(request: Request):
         tickets = []
         buildings = []
         closed_count = 0
-    
-    # Get menu context
-    menu_context = await get_menu_context()
+      # Get menu context
+    menu_context = await get_menu_context(request)
     
     return templates.TemplateResponse("tech_tickets_list.html", {
         "request": request,
@@ -416,8 +436,11 @@ async def tech_tickets_open(request: Request):
 async def tech_tickets_closed(request: Request):
     """Display closed technology tickets"""
     try:
-        tickets = await tickets_service.get_tech_tickets("closed")
-        buildings = await tickets_service.get_buildings()
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        tickets = await services["tickets"].get_tech_tickets("closed")
+        buildings = await services["tickets"].get_buildings()
         
         # Format dates for template display
         for ticket in tickets:
@@ -439,7 +462,7 @@ async def tech_tickets_closed(request: Request):
         tickets = []
         buildings = []
     
-    menu_context = await get_menu_context()
+    menu_context = await get_menu_context(request)
     return templates.TemplateResponse("tech_tickets_list.html", {
         "request": request,
         "tickets": tickets,
@@ -455,7 +478,10 @@ async def tech_tickets_closed(request: Request):
 async def export_tech_tickets(request: Request):
     """Export tech tickets to CSV"""
     try:
-        csv_content = await tickets_service.export_tech_tickets_csv()
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        csv_content = await services["tickets"].export_tech_tickets_csv()
         
         # Generate filename with current date
         current_date = datetime.now().strftime('%Y-%m-%d')
@@ -475,7 +501,10 @@ async def export_tech_tickets(request: Request):
 async def export_maintenance_tickets(request: Request):
     """Export maintenance tickets to CSV"""
     try:
-        csv_content = await tickets_service.export_maintenance_tickets_csv()
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        csv_content = await services["tickets"].export_maintenance_tickets_csv()
         
         # Generate filename with current date
         current_date = datetime.now().strftime('%Y-%m-%d')
@@ -495,11 +524,14 @@ async def export_maintenance_tickets(request: Request):
 async def import_tech_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
     """Import tech tickets from CSV"""
     try:
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
         # Read file content
         file_content = await file.read()
         
         # Call the import service
-        result = await tickets_service.import_tech_tickets_csv(file_content, operation)
+        result = await services["tickets"].import_tech_tickets_csv(file_content, operation)
         
         print(f"✅ Tech tickets import successful: {result}")
         
@@ -527,8 +559,11 @@ async def tech_tickets_archives(
 ):
     """Display tech ticket archives using main template with archive selector"""
     try:
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
         # Get list of available archives
-        archives = await tickets_service.get_tech_archives()
+        archives = await services["tickets"].get_tech_archives()
         
         tickets = []
         selected_archive = None
@@ -536,7 +571,7 @@ async def tech_tickets_archives(
         
         # If an archive is selected, get its tickets
         if archive:
-            archive_data = await tickets_service.get_tech_archive_tickets(archive, status_filter)
+            archive_data = await services["tickets"].get_tech_archive_tickets(archive, status_filter)
             tickets = archive_data.get("tickets", [])
             selected_archive = archive
             archive_info = next((a for a in archives if a["name"] == archive), {})
@@ -557,12 +592,12 @@ async def tech_tickets_archives(
                     except:
                         ticket["updated_at"] = None
         
-        buildings = await tickets_service.get_buildings()
+        buildings = await services["tickets"].get_buildings()
         
         # Get closed tickets count for consistency
         closed_count = 0
         try:
-            closed_response = await tickets_service.get_closed_tech_tickets()
+            closed_response = await services["tickets"].get_closed_tech_tickets()
             if isinstance(closed_response, dict) and "tickets" in closed_response:
                 closed_count = len(closed_response["tickets"])
         except:
@@ -575,7 +610,7 @@ async def tech_tickets_archives(
         archives = []
         closed_count = 0
     
-    menu_context = await get_menu_context()
+    menu_context = await get_menu_context(request)
     return templates.TemplateResponse("tech_tickets_list.html", {
         "request": request,
         "tickets": tickets,
@@ -598,16 +633,21 @@ async def maintenance_tickets_archives(
 ):
     """Display maintenance ticket archives using main template with archive selector"""
     try:
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
         # Get list of available archives
-        archives = await tickets_service.get_maintenance_archives()
+        archives = await services["tickets"].get_maintenance_archives()
         
         tickets = []
         selected_archive = None
         archive_info = {}
+        buildings = []
+        closed_count = 0
         
         # If an archive is selected, get its tickets
         if archive:
-            archive_data = await tickets_service.get_maintenance_archive_tickets(archive, status_filter)
+            archive_data = await services["tickets"].get_maintenance_archive_tickets(archive, status_filter)
             tickets = archive_data.get("tickets", [])
             selected_archive = archive
             archive_info = next((a for a in archives if a["name"] == archive), {})
@@ -628,12 +668,11 @@ async def maintenance_tickets_archives(
                     except:
                         ticket["updated_at"] = None
         
-        buildings = await tickets_service.get_buildings()
+        buildings = await services["tickets"].get_buildings()
         
         # Get closed tickets count for consistency
-        closed_count = 0
         try:
-            closed_response = await tickets_service.get_closed_maintenance_tickets()
+            closed_response = await services["tickets"].get_closed_maintenance_tickets()
             if isinstance(closed_response, dict) and "tickets" in closed_response:
                 closed_count = len(closed_response["tickets"])
         except:
@@ -646,7 +685,7 @@ async def maintenance_tickets_archives(
         archives = []
         closed_count = 0
     
-    menu_context = await get_menu_context()
+    menu_context = await get_menu_context(request)
     return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
         "tickets": tickets,
@@ -666,7 +705,10 @@ async def maintenance_tickets_archives(
 async def clear_tech_tickets(request: Request):
     """Clear all tech tickets"""
     try:
-        result = await tickets_service.clear_all_tech_tickets()
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        result = await services["tickets"].clear_all_tech_tickets()
         print(f"✅ Tech tickets cleared: {result}")
         
         # Redirect back to tech tickets page with success message
@@ -681,7 +723,10 @@ async def clear_tech_tickets(request: Request):
 async def clear_maintenance_tickets(request: Request):
     """Clear all maintenance tickets"""
     try:
-        result = await tickets_service.clear_all_maintenance_tickets()
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        result = await services["tickets"].clear_all_maintenance_tickets()
         print(f"✅ Maintenance tickets cleared: {result}")
         
         # Redirect back to maintenance tickets page with success message
@@ -697,12 +742,16 @@ async def clear_maintenance_tickets(request: Request):
 async def view_tech_ticket(request: Request, ticket_id: int):
     """View individual technology ticket details"""
     try:
-        ticket = await tickets_service.get_tech_ticket(ticket_id)
+        # Get authenticated service instance for this request
+        services = get_service_for_request(request)
+        tickets_svc = services["tickets"]
+        
+        ticket = await tickets_svc.get_tech_ticket(ticket_id)
         if not ticket:
             return RedirectResponse("/tickets/tech/open", status_code=303)
         
         # Get ticket update history
-        updates = await tickets_service.get_ticket_updates("tech", ticket_id)
+        updates = await tickets_svc.get_ticket_updates("tech", ticket_id)
         
         # Format dates for display
         if ticket.get("created_at"):
@@ -730,8 +779,7 @@ async def view_tech_ticket(request: Request, ticket_id: int):
     except Exception as e:
         print(f"Error fetching ticket: {e}")
         return RedirectResponse("/tickets/tech/open", status_code=303)
-    
-    menu_context = await get_menu_context()
+    menu_context = await get_menu_context(request)
     return templates.TemplateResponse("tech_ticket_detail.html", {
         "request": request,
         "ticket": ticket,
@@ -741,21 +789,25 @@ async def view_tech_ticket(request: Request, ticket_id: int):
 
 @app.post("/tickets/tech/{ticket_id}/update")
 async def update_tech_ticket_status(
-    ticket_id: int,
-    status: str = Form(...),
-    update_message: str = Form(default="")
+    request: Request,
+    ticket_id: int,status: str = Form(...),
+    update_message: str = Form(default=""),
+    current_user: User = Depends(get_current_user)
 ):
     """Update technology ticket status and add update message via Tickets API"""
     try:
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
         if update_message.strip():
             update_data = {
                 "status": status,
                 "update_message": update_message.strip(),
-                "updated_by": "System User"  # Replace with actual user when auth is implemented
+                "updated_by": f"{current_user.first_name} {current_user.last_name}"
             }
-            success = await tickets_service.update_tech_ticket_comprehensive(ticket_id, update_data)
+            success = await services["tickets"].update_tech_ticket_comprehensive(ticket_id, update_data)
         else:
-            success = await tickets_service.update_tech_ticket_status(ticket_id, status)
+            success = await services["tickets"].update_tech_ticket_status(ticket_id, status)
         if success:
             print(f"Tech ticket {ticket_id} updated - Status: {status}")
         else:
@@ -769,13 +821,16 @@ async def update_tech_ticket_status(
 async def new_maintenance_ticket(request: Request):
     """Display new maintenance ticket form"""
     try:
-        buildings = await tickets_service.get_buildings()
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        buildings = await services["tickets"].get_buildings()
     except Exception as e:
         print(f"Error fetching buildings: {e}")
         buildings = []
     
     # Get menu context
-    menu_context = await get_menu_context()
+    menu_context = await get_menu_context(request)
     
     return templates.TemplateResponse("new_maintenance_ticket.html", {
         "request": request,
@@ -790,28 +845,31 @@ async def new_maintenance_ticket_submit(
     issue_type: str = Form(...),
     building: int = Form(...),
     room: int = Form(...),
-    description: str = Form(...)
+    description: str = Form(...),
+    current_user: User = Depends(get_current_user)
 ):
     """Process maintenance ticket submission via Tickets API"""
     try:
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
         # Get building and room names
-        buildings = await tickets_service.get_buildings()
+        buildings = await services["tickets"].get_buildings()
         building_obj = next((b for b in buildings if b["id"] == building), None)
         
-        rooms = await tickets_service.get_building_rooms(building)
-        room_obj = next((r for r in rooms if r["id"] == room), None)
-          # Combine room and specific location for better context
+        rooms = await services["tickets"].get_building_rooms(building)
+        room_obj = next((r for r in rooms if r["id"] == room), None)          # Combine room and specific location for better context
         location_details = room_obj["name"] if room_obj else "Unknown"
         
         ticket_data = {
             "title": title,
-            "description": description,            "issue_type": issue_type,
+            "description": description,
+            "issue_type": issue_type,
             "building_name": building_obj["name"] if building_obj else "Unknown",
             "room_name": location_details,
-            "created_by": "System User"  # Default user until authentication is implemented
-        }
+            "created_by": f"{current_user.first_name} {current_user.last_name}"        }
         
-        result = await tickets_service.create_maintenance_ticket(ticket_data)
+        result = await services["tickets"].create_maintenance_ticket(ticket_data)
         if result:
             print(f"Maintenance ticket created: {title}")
         else:
@@ -826,9 +884,13 @@ async def new_maintenance_ticket_submit(
 async def maintenance_tickets_open(request: Request):
     """Display open maintenance tickets"""
     try:
-        tickets = await tickets_service.get_maintenance_tickets("open")
-        buildings = await tickets_service.get_buildings()
-        closed_count = await tickets_service.get_closed_tickets_count("maintenance")
+        # Get authenticated service instance for this request
+        services = get_service_for_request(request)
+        tickets_svc = services["tickets"]
+        
+        tickets = await tickets_svc.get_maintenance_tickets("open")
+        buildings = await tickets_svc.get_buildings()
+        closed_count = await tickets_svc.get_closed_tickets_count("maintenance")
         
         # Format dates for template display
         for ticket in tickets:
@@ -872,9 +934,8 @@ async def maintenance_tickets_open(request: Request):
         tickets = []
         buildings = []
         closed_count = 0
-        
-    # Get menu context
-    menu_context = await get_menu_context()
+          # Get menu context
+    menu_context = await get_menu_context(request)
     
     return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
@@ -891,8 +952,11 @@ async def maintenance_tickets_open(request: Request):
 async def maintenance_tickets_closed(request: Request):
     """Display closed maintenance tickets"""
     try:
-        tickets = await tickets_service.get_maintenance_tickets("closed")
-        buildings = await tickets_service.get_buildings()
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        tickets = await services["tickets"].get_maintenance_tickets("closed")
+        buildings = await services["tickets"].get_buildings()
         
         # Format dates for template display
         for ticket in tickets:
@@ -931,11 +995,12 @@ async def maintenance_tickets_closed(request: Request):
         print(f"Error fetching tickets: {e}")
         tickets = []
         buildings = []
-    
-    menu_context = await get_menu_context()
+        closed_count = 0
+    menu_context = await get_menu_context(request)
     return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
-        "tickets": tickets,        "buildings": buildings,
+        "tickets": tickets,
+        "buildings": buildings,
         "page_title": "Closed Maintenance Requests",
         "status_filter": "closed",
         "current_datetime": datetime.now(),
@@ -947,7 +1012,10 @@ async def maintenance_tickets_closed(request: Request):
 async def roll_tech_database(request: Request, archive_name: str = Form(...)):
     """Roll the tech database - archive current tickets and create new empty table"""
     try:
-        result = await tickets_service.roll_tech_database(archive_name)
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        result = await services["tickets"].roll_tech_database(archive_name)
         if result.get("success"):
             redirect_url = "/tickets/tech/open?roll_success=true&archive_name=" + archive_name
         else:
@@ -965,7 +1033,10 @@ async def roll_tech_database(request: Request, archive_name: str = Form(...)):
 async def roll_maintenance_database(request: Request, archive_name: str = Form(...)):
     """Roll the maintenance database - archive current tickets and create new empty table"""
     try:
-        result = await tickets_service.roll_maintenance_database(archive_name)
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        result = await services["tickets"].roll_maintenance_database(archive_name)
         if result.get("success"):
             redirect_url = "/tickets/maintenance/open?roll_success=true&archive_name=" + archive_name
         else:
@@ -980,19 +1051,25 @@ async def roll_maintenance_database(request: Request, archive_name: str = Form(.
         )
 
 @app.get("/tickets/tech/archives/{archive_name}/delete")
-async def delete_tech_archive(archive_name: str):
+async def delete_tech_archive(request: Request, archive_name: str):
     """Delete a tech ticket archive"""
     try:
-        result = await tickets_service.delete_tech_archive(archive_name)
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        result = await services["tickets"].delete_tech_archive(archive_name)
         return result
     except Exception as e:
         return {"success": False, "message": f"Error deleting archive: {str(e)}"}
 
 @app.get("/tickets/maintenance/archives/{archive_name}/delete")
-async def delete_maintenance_archive(archive_name: str):
+async def delete_maintenance_archive(request: Request, archive_name: str):
     """Delete a maintenance ticket archive"""
     try:
-        result = await tickets_service.delete_maintenance_archive(archive_name)
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
+        result = await services["tickets"].delete_maintenance_archive(archive_name)
         return result
     except Exception as e:
         return {"success": False, "message": f"Error deleting archive: {str(e)}"}
@@ -1259,6 +1336,7 @@ async def admin_system(request: Request):
         "Manage API": MANAGE_API_URL,
         "Forms API": FORMS_API_URL
     }
+    
     for service_name, url in service_urls.items():
         try:
             async with httpx.AsyncClient() as client:

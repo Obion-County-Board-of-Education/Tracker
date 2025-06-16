@@ -5,4 +5,5 @@ python-multipart
 httpx
 pydantic
 apscheduler
+PyJWT
 -e ./ocs_shared_models
