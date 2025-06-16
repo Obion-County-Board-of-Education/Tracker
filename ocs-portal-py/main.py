@@ -64,7 +64,7 @@ app.add_middleware(
     AuthenticationMiddleware,
     exclude_paths=[
         "/",
-        "/login", 
+        "/auth/login", 
         "/auth/microsoft", 
         "/auth/callback",
         "/auth/status",
@@ -1012,10 +1012,9 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     
     user = get_current_user(request)
     print(f"DEBUG: get_current_user returned: {user}")
-    
-    if not user:
+      if not user:
         print("DEBUG: Dashboard - no user found, redirecting to login")
-        return RedirectResponse(url="/login", status_code=302)
+        return RedirectResponse(url="/auth/login", status_code=302)
     
     print(f"DEBUG: Dashboard - user {user.get('email')} has access")
     
@@ -1133,7 +1132,7 @@ async def tickets_service_integration(request: Request):
     """Integrate with ocs-tickets-api service"""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/auth/login")
     
     # Check permissions
     permissions = user.get('permissions', {})
@@ -1148,7 +1147,7 @@ async def new_tech_ticket_integration(request: Request):
     """Integrate with ocs-tickets-api for new tech tickets"""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/auth/login")
     
     permissions = user.get('permissions', {})
     if permissions.get('tickets_access', 'none') == 'none':
@@ -1162,7 +1161,7 @@ async def new_maintenance_ticket_integration(request: Request):
     """Integrate with ocs-tickets-api for new maintenance tickets"""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/auth/login")
     
     permissions = user.get('permissions', {})
     if permissions.get('tickets_access', 'none') == 'none':
@@ -1176,7 +1175,7 @@ async def maintenance_service_integration(request: Request):
     """Integrate with maintenance tickets in ocs-tickets-api"""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/auth/login")
     
     permissions = user.get('permissions', {})
     if permissions.get('tickets_access', 'none') == 'none':
@@ -1190,7 +1189,7 @@ async def inventory_service_integration(request: Request):
     """Integrate with ocs-inventory-api service"""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/auth/login")
     
     permissions = user.get('permissions', {})
     if permissions.get('inventory_access', 'none') == 'none':
@@ -1204,7 +1203,7 @@ async def purchasing_service_integration(request: Request):
     """Integrate with ocs-purchasing-api service"""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/auth/login")
     
     permissions = user.get('permissions', {})
     if permissions.get('purchasing_access', 'none') == 'none':
@@ -1218,7 +1217,7 @@ async def forms_service_integration(request: Request):
     """Integrate with ocs-forms-api service"""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/auth/login")
     
     permissions = user.get('permissions', {})
     if permissions.get('forms_access', 'none') == 'none':
@@ -1233,7 +1232,7 @@ async def admin_users(request: Request):
     """Admin user management - redirect to portal's user management"""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse(url="/login")
+        return RedirectResponse(url="/auth/login")
     
     if user.get('access_level') not in ['admin', 'super_admin']:
         raise HTTPException(status_code=403, detail="Access denied: Admin access required")
@@ -1241,53 +1240,3 @@ async def admin_users(request: Request):
     # Use the existing user management functionality in portal
     return RedirectResponse(url="/users/list", status_code=302)
 
-@app.get("/admin/system")
-async def admin_system(request: Request):
-    """System administration dashboard"""
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse(url="/login")
-    
-    if user.get('access_level') not in ['admin', 'super_admin']:
-        raise HTTPException(status_code=403, detail="Access denied: Admin access required")
-    
-    # Check health of all microservices
-    services_health = {}
-    service_urls = {
-        "Tickets API": TICKETS_API_URL,
-        "Inventory API": INVENTORY_API_URL,
-        "Purchasing API": PURCHASING_API_URL,
-        "Manage API": MANAGE_API_URL,
-        "Forms API": FORMS_API_URL
-    }
-    
-    for service_name, url in service_urls.items():
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(f"{url}/health", timeout=5.0)
-                services_health[service_name] = {
-                    "status": "healthy" if response.status_code == 200 else "unhealthy",
-                    "response_time": response.elapsed.total_seconds() if hasattr(response, 'elapsed') else 0,
-                    "url": url
-                }
-        except Exception as e:
-            services_health[service_name] = {
-                "status": "error", 
-                "error": str(e),
-                "url": url
-            }
-    
-    return templates.TemplateResponse("admin_system.html", {
-        "request": request,        "user": user,
-        "services": services_health
-    })
-
-# Login redirect for convenience
-@app.get("/login")
-async def login_redirect():
-    """Redirect /login to /auth/login"""
-    return RedirectResponse(url="/auth/login", status_code=302)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8003)

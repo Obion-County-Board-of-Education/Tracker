@@ -14,14 +14,15 @@ from database import get_db
 
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     """Middleware to handle authentication for protected routes"""
-    
-    def __init__(self, app, exclude_paths: list = None):
+      def __init__(self, app, exclude_paths: list = None):
         super().__init__(app)
         self.exclude_paths = exclude_paths or [
             "/", 
-            "/login", 
+            "/auth/login", 
             "/auth/microsoft", 
-            "/auth/callback",            "/static",            "/health",
+            "/auth/callback",
+            "/static",
+            "/health",
             "/auth/status"
         ]
     
@@ -52,11 +53,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         
         # Get session token from cookie
         session_token = request.cookies.get("session_token")
-        
-        if not session_token:
+          if not session_token:
             # No token, redirect to login
             print(f"DEBUG: No session token found for {request.url.path}")
-            return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
         
         # Validate token
         db = next(get_db())
@@ -64,11 +64,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         
         try:
             print(f"DEBUG: Validating token for {request.url.path}")
-            user_info = auth_service.validate_token(session_token)
-            if not user_info:
+            user_info = auth_service.validate_token(session_token)            if not user_info:
                 # Invalid token, redirect to login
                 print(f"DEBUG: Invalid token for {request.url.path}")
-                response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+                response = RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
                 response.delete_cookie("session_token")
                 return response
             
@@ -82,11 +81,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             
             # Update session activity (handled in auth service)
             return response
-            
-        except Exception as e:
+              except Exception as e:
             # Authentication error, redirect to login
             print(f"DEBUG: Auth error for {request.url.path}: {str(e)}")
-            response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+            response = RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
             response.delete_cookie("session_token")
             return response
         finally:
