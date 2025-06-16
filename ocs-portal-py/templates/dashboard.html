@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCS Tracker - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .user-welcome {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .service-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .service-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .service-name {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .service-description {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .logout-btn:hover {
+            background: #c82333;
+        }
+        
+        .permissions-info {
+            background: #f8f9fa;
+            border-left: 4px solid #6a1b9a;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo {
+            width: 50px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <div class="logo-section">
+                <img src="{{ url_for('static', path='/ocs-logo.png') }}" alt="OCS Logo" class="logo">
+                <h1>OCS Tracker Dashboard</h1>
+            </div>
+            <form action="/auth/logout" method="post" style="display: inline;">
+                <button type="submit" class="logout-btn">🚪 Logout</button>
+            </form>
+        </div>
+        
+        <div class="user-welcome">
+            <div class="user-info">
+                <div>
+                    <h2>Welcome, {{ user.display_name }}!</h2>
+                    <p>Email: {{ user.email }}</p>
+                    <p>Access Level: <strong>{{ user.access_level.title() }}</strong></p>
+                </div>
+            </div>
+            
+            {% if homepage_message %}
+            <div class="homepage-message">
+                <p>{{ homepage_message.content }}</p>
+                {% if homepage_message.updated_at %}
+                <small>Last updated: {{ homepage_message.updated_at.strftime('%Y-%m-%d %I:%M %p') }}</small>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div class="permissions-info">
+                <h4>🔐 Your Permissions</h4>
+                <ul>
+                    {% if permissions.tickets_access != 'none' %}
+                    <li>✅ Tickets: {{ permissions.tickets_access.title() }} access</li>
+                    {% endif %}
+                    {% if permissions.inventory_access != 'none' %}
+                    <li>✅ Inventory: {{ permissions.inventory_access.title() }} access</li>
+                    {% endif %}
+                    {% if permissions.purchasing_access != 'none' %}
+                    <li>✅ Purchasing: {{ permissions.purchasing_access.title() }} access</li>
+                    {% endif %}
+                    {% if permissions.forms_access != 'none' %}
+                    <li>✅ Forms: {{ permissions.forms_access.title() }} access</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        
+        <h3>Available Services</h3>
+        <div class="services-grid">
+            {% for service in available_services %}
+            <a href="{{ service.url }}" class="service-card">
+                <div class="service-icon">{{ service.icon }}</div>
+                <div class="service-name">{{ service.name }}</div>
+                <div class="service-description">{{ service.description }}</div>
+            </a>
+            {% endfor %}
+        </div>
+        
+        {% if not available_services %}
+        <div class="service-card" style="text-align: center; margin-top: 2rem;">
+            <div class="service-icon">🚫</div>
+            <div class="service-name">No Services Available</div>
+            <div class="service-description">
+                You don't have access to any services yet. Please contact your administrator 
+                to be added to the appropriate Azure AD groups.
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

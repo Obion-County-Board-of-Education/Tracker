@@ -1,8 +1,19 @@
+<<<<<<< HEAD
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 import enum
 from .timezone_utils import central_now
+=======
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text, Boolean, JSON
+from sqlalchemy.orm import relationship, declarative_base
+from datetime import datetime
+import enum
+try:
+    from .timezone_utils import central_now
+except ImportError:
+    from timezone_utils import central_now
+>>>>>>> 2fd8c62 (add auth with graph)
 
 Base = declarative_base()
 
@@ -11,6 +22,15 @@ class UserRole(enum.Enum):
     ADMIN = "admin"
     TECHNICIAN = "technician"
 
+<<<<<<< HEAD
+=======
+class AccessLevel(enum.Enum):
+    STUDENT = "student"
+    STAFF = "staff" 
+    ADMIN = "admin"
+    SUPER_ADMIN = "super_admin"
+
+>>>>>>> 2fd8c62 (add auth with graph)
 class CheckoutType(enum.Enum):
     LOCATION = "location"
     USER = "user"
@@ -199,3 +219,52 @@ class InventoryCheckout(Base):
     
     created_at = Column(DateTime, default=central_now)
     updated_at = Column(DateTime, default=central_now, onupdate=central_now)
+<<<<<<< HEAD
+=======
+
+# Authentication and Authorization Tables
+class GroupRole(Base):
+    __tablename__ = 'group_roles'
+    id = Column(Integer, primary_key=True, index=True)
+    azure_group_id = Column(String, unique=True, nullable=True)  # Azure AD Group Object ID
+    azure_user_attribute = Column(String, nullable=True)  # For extensionAttribute mappings
+    azure_user_attribute_value = Column(String, nullable=True)  # Value to match
+    group_name = Column(String, nullable=False)  # Display Name
+    access_level = Column(String, nullable=False)  # student, staff, admin, super_admin
+    
+    # Service-specific permissions
+    tickets_access = Column(String, default='none')  # none, read, write, admin
+    inventory_access = Column(String, default='none')
+    purchasing_access = Column(String, default='none')
+    forms_access = Column(String, default='none')
+    
+    allowed_departments = Column(JSON, nullable=True)  # JSON array of department names
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
+
+class UserSession(Base):
+    __tablename__ = 'user_sessions'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False)  # Azure AD User ID
+    email = Column(String, nullable=False)
+    display_name = Column(String, nullable=False)
+    access_level = Column(String, nullable=False)
+    azure_groups = Column(JSON, nullable=True)  # JSON array of Azure AD groups
+    effective_permissions = Column(JSON, nullable=True)  # JSON object with computed permissions
+    session_token = Column(String, nullable=False, index=True)  # JWT token
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=central_now)
+    last_activity = Column(DateTime, default=central_now, onupdate=central_now)
+
+class AuditLog(Base):
+    __tablename__ = 'audit_log'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False)  # Azure AD User ID
+    action_type = Column(String, nullable=False)  # create, read, update, delete, login, logout
+    resource_type = Column(String, nullable=False)  # ticket, inventory, user, etc.
+    resource_id = Column(String, nullable=True)  # ID of the affected resource
+    details = Column(JSON, nullable=True)  # JSON object with action details
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    timestamp = Column(DateTime, default=central_now, nullable=False)
+>>>>>>> 2fd8c62 (add auth with graph)

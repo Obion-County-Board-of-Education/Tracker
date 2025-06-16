@@ -3,4 +3,16 @@ uvicorn
 jinja2
 python-multipart
 httpx
+<<<<<<< HEAD
 -e ./ocs_shared_models
+=======
+itsdangerous
+-e ./ocs_shared_models
+
+# Authentication dependencies
+msal>=1.24.0
+python-jose[cryptography]
+python-dotenv
+passlib[bcrypt]
+requests
+>>>>>>> 2fd8c62 (add auth with graph)

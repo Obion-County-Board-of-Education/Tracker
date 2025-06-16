@@ -1,7 +1,14 @@
+<<<<<<< HEAD
+=======
+"""
+OCS Tracker Portal with Azure AD Authentication
+"""
+>>>>>>> 2fd8c62 (add auth with graph)
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+<<<<<<< HEAD
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
@@ -23,11 +30,58 @@ try:
 except Exception as e:
     print(f"⚠️ Database initialization failed: {e}")
     print("🔄 Starting application without database connection")
+=======
+from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Optional
+>>>>>>> 2fd8c62 (add auth with graph)
 
-app = FastAPI(title="OCS Portal (Python)")
-templates = Jinja2Templates(directory="templates")
+# Import authentication components
+from auth_config import AuthConfig
+from auth_middleware import AuthenticationMiddleware, get_current_user
+from auth_routes import auth_router
+from database import get_db
+
+# Import existing components
+try:
+    from ocs_shared_models import User, Building, Room, SystemMessage
+    from ocs_shared_models.timezone_utils import central_now, format_central_time
+except ImportError:
+    sys.path.insert(0, '../ocs_shared_models')
+    from models import User, Building, Room, SystemMessage
+    from timezone_utils import central_now, format_central_time
+
+# Initialize FastAPI app
+app = FastAPI(title="OCS Tracker Portal", description="Obion County Schools Management Portal")
+
+# Add session middleware for OAuth state management
+app.add_middleware(SessionMiddleware, secret_key=AuthConfig.JWT_SECRET)
+
+# Add authentication middleware (but exclude auth routes)
+app.add_middleware(
+    AuthenticationMiddleware,
+    exclude_paths=[
+        "/",
+        "/login", 
+        "/auth/microsoft", 
+        "/auth/callback",
+        "/auth/status",
+        "/static",
+        "/health",
+        "/docs",
+        "/openapi.json"
+    ]
+)
+
+# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+<<<<<<< HEAD
 # Include health router
 app.include_router(health_router)
 
@@ -940,3 +994,262 @@ async def delete_maintenance_archive(archive_name: str):
         return result
     except Exception as e:
         return {"success": False, "message": f"Error deleting archive: {str(e)}"}
+=======
+# Setup templates
+templates = Jinja2Templates(directory="templates")
+
+# Include authentication routes
+app.include_router(auth_router)
+
+# Simple login redirect for root path
+@app.get("/")
+async def root_redirect(request: Request, db: Session = Depends(get_db)):
+    """Root path - redirect to dashboard if authenticated, login if not"""
+    # Manually check authentication since this path is excluded from middleware
+    session_token = request.cookies.get("session_token")
+    
+    if session_token:
+        try:
+            from auth_service import AuthenticationService
+            auth_service = AuthenticationService(db)
+            user_info = auth_service.validate_token(session_token)
+            
+            if user_info:
+                print(f"DEBUG: Root route - authenticated user: {user_info.get('email')}")
+                return RedirectResponse(url="/dashboard", status_code=302)
+            else:
+                print("DEBUG: Root route - invalid token, redirecting to login")
+        except Exception as e:
+            print(f"DEBUG: Root route - auth error: {str(e)}")
+    else:
+        print("DEBUG: Root route - no session token, redirecting to login")
+    
+    return RedirectResponse(url="/login", status_code=302)
+
+# Login page (accessible without authentication)
+@app.get("/login")
+async def login_page(request: Request):
+    """Display login page"""
+    return templates.TemplateResponse("login.html", {"request": request})
+
+# Dashboard (requires authentication)
+@app.get("/dashboard")
+async def dashboard(request: Request, db: Session = Depends(get_db)):
+    """Main dashboard page - requires authentication"""
+    print(f"DEBUG: Dashboard route called")
+    print(f"DEBUG: Request state user exists: {hasattr(request.state, 'user')}")
+    print(f"DEBUG: Session token cookie: {request.cookies.get('session_token', 'None')}")
+    
+    user = get_current_user(request)
+    print(f"DEBUG: get_current_user returned: {user}")
+    
+    if not user:
+        print("DEBUG: Dashboard - no user found, redirecting to login")
+        return RedirectResponse(url="/login", status_code=302)
+    
+    print(f"DEBUG: Dashboard - user {user.get('email')} has access")
+    
+    try:
+        # Get homepage message
+        homepage_message = db.query(SystemMessage).filter(
+            SystemMessage.message_type == 'homepage'
+        ).first()
+        
+        if not homepage_message:
+            default_message = "Welcome to the OCS Tracker Portal. Use the navigation menu to access the available services based on your permissions."
+            homepage_message = SystemMessage(
+                message_type='homepage',
+                content=default_message,
+                created_by='System'
+            )
+            db.add(homepage_message)
+            db.commit()
+            db.refresh(homepage_message)
+        
+        # Determine available services based on user permissions
+        permissions = user.get('permissions', {})
+        available_services = []
+        
+        if permissions.get('tickets_access', 'none') != 'none':
+            available_services.append({
+                'name': 'Technology Tickets',
+                'description': 'Submit and manage technology support requests',
+                'url': '/tickets',
+                'icon': '🖥️'
+            })
+            available_services.append({
+                'name': 'Maintenance Tickets', 
+                'description': 'Submit and track maintenance requests',
+                'url': '/maintenance',
+                'icon': '🔧'
+            })
+        
+        if permissions.get('inventory_access', 'none') != 'none':
+            available_services.append({
+                'name': 'Inventory Management',
+                'description': 'View and manage school district inventory',
+                'url': '/inventory',
+                'icon': '📦'
+            })
+        
+        if permissions.get('purchasing_access', 'none') != 'none':
+            available_services.append({
+                'name': 'Purchase Requisitions',
+                'description': 'Submit and track purchase requests',
+                'url': '/purchasing',
+                'icon': '🛒'
+            })
+        
+        if permissions.get('forms_access', 'none') != 'none':
+            available_services.append({
+                'name': 'Forms & Documents',
+                'description': 'Access district forms and documentation',
+                'url': '/forms',
+                'icon': '📋'
+            })
+        
+        # Admin services for elevated users
+        if user.get('access_level') in ['admin', 'super_admin']:
+            available_services.append({
+                'name': 'User Management',
+                'description': 'Manage users and permissions',
+                'url': '/admin/users',
+                'icon': '👥'
+            })
+            available_services.append({
+                'name': 'System Administration',
+                'description': 'System configuration and management',
+                'url': '/admin/system',
+                'icon': '⚙️'
+            })
+        
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            "user": user,
+            "homepage_message": homepage_message,
+            "available_services": available_services,
+            "permissions": permissions
+        })
+        
+    except Exception as e:
+        print(f"Dashboard error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Dashboard loading error")
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "ocs-portal", "authentication": "enabled"}
+
+# API endpoint to get current user info
+@app.get("/api/user")
+async def get_current_user_info(request: Request):
+    """Get current authenticated user information"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    return {
+        "user_id": user.get("user_id"),
+        "email": user.get("email"),
+        "display_name": user.get("display_name"),
+        "access_level": user.get("access_level"),
+        "permissions": user.get("permissions", {})
+    }
+
+# Placeholder routes for services (to be implemented)
+@app.get("/tickets")
+async def tickets_placeholder(request: Request):
+    """Tickets service placeholder"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    # Check permissions
+    permissions = user.get('permissions', {})
+    if permissions.get('tickets_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No tickets permission")
+    
+    return templates.TemplateResponse("coming_soon.html", {
+        "request": request,
+        "user": user,
+        "service_name": "Technology Tickets",
+        "description": "Submit and manage technology support requests"
+    })
+
+@app.get("/maintenance") 
+async def maintenance_placeholder(request: Request):
+    """Maintenance service placeholder"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('tickets_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No tickets permission")
+    
+    return templates.TemplateResponse("coming_soon.html", {
+        "request": request,
+        "user": user, 
+        "service_name": "Maintenance Tickets",
+        "description": "Submit and track maintenance requests"
+    })
+
+@app.get("/inventory")
+async def inventory_placeholder(request: Request):
+    """Inventory service placeholder"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('inventory_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No inventory permission")
+    
+    return templates.TemplateResponse("coming_soon.html", {
+        "request": request,
+        "user": user,
+        "service_name": "Inventory Management", 
+        "description": "View and manage school district inventory"
+    })
+
+@app.get("/purchasing")
+async def purchasing_placeholder(request: Request):
+    """Purchasing service placeholder"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('purchasing_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No purchasing permission")
+    
+    return templates.TemplateResponse("coming_soon.html", {
+        "request": request,
+        "user": user,
+        "service_name": "Purchase Requisitions",
+        "description": "Submit and track purchase requests" 
+    })
+
+@app.get("/forms")
+async def forms_placeholder(request: Request):
+    """Forms service placeholder"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('forms_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No forms permission")
+    
+    return templates.TemplateResponse("coming_soon.html", {
+        "request": request,
+        "user": user,
+        "service_name": "Forms & Documents",
+        "description": "Access district forms and documentation"
+    })
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8003)
+>>>>>>> 2fd8c62 (add auth with graph)

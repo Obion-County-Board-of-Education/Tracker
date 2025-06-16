@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCS Tracker - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+    <style>
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .logo {
+            width: 100px;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+        
+        .login-title {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+        
+        .login-subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+        
+        .microsoft-login-btn {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .microsoft-login-btn:hover {
+            background: #106ebe;
+        }
+        
+        .microsoft-login-btn:before {
+            content: "🔐 ";
+            margin-right: 8px;
+        }
+        
+        .security-notice {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-left: 4px solid #6a1b9a;
+            border-radius: 5px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        
+        .security-notice h4 {
+            margin: 0 0 0.5rem 0;
+            color: #6a1b9a;
+        }
+        
+        .features {
+            margin-top: 2rem;
+            text-align: left;
+        }
+        
+        .features h4 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .features ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .features li {
+            padding: 0.25rem 0;
+            color: #666;
+        }
+        
+        .features li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <img src="{{ url_for('static', path='/ocs-logo.png') }}" alt="OCS Logo" class="logo">
+            
+            <h1 class="login-title">OCS Tracker</h1>
+            <p class="login-subtitle">Obion County Schools Management Portal</p>
+            
+            <a href="/auth/microsoft" class="microsoft-login-btn">
+                Sign in with Microsoft
+            </a>
+            
+            <div class="features">
+                <h4>Available Services:</h4>
+                <ul>
+                    <li>Technology Support Tickets</li>
+                    <li>Maintenance Requests</li>
+                    <li>Inventory Management</li>
+                    <li>Purchase Requisitions</li>
+                    <li>Forms and Documentation</li>
+                </ul>
+            </div>
+            
+            <div class="security-notice">
+                <h4>🔒 Secure Access</h4>
+                <p>
+                    This portal uses your existing OCS Microsoft account for secure access. 
+                    Your permissions are automatically assigned based on your role within 
+                    the school district.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

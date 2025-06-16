@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ service_name }} - OCS Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+    <style>
+        .coming-soon-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .coming-soon-card {
+            background: white;
+            border-radius: 10px;
+            padding: 3rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .service-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        
+        .back-btn {
+            background: #6a1b9a;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 2rem;
+            transition: background-color 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: #4a148c;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo {
+            width: 50px;
+            height: auto;
+        }
+        
+        .user-info {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .timeline {
+            background: #f8f9fa;
+            border-left: 4px solid #6a1b9a;
+            padding: 1.5rem;
+            border-radius: 5px;
+            margin-top: 2rem;
+            text-align: left;
+        }
+        
+        .timeline h4 {
+            color: #6a1b9a;
+            margin-bottom: 1rem;
+        }
+        
+        .timeline ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+        
+        .timeline li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="coming-soon-container">
+        <div class="header">
+            <div class="logo-section">
+                <img src="{{ url_for('static', path='/ocs-logo.png') }}" alt="OCS Logo" class="logo">
+                <h1>OCS Tracker</h1>
+            </div>
+            <div class="user-info">
+                Logged in as: {{ user.display_name }}<br>
+                Access Level: {{ user.access_level.title() }}
+            </div>
+        </div>
+        
+        <div class="coming-soon-card">
+            <div class="service-icon">🚧</div>
+            <h2>{{ service_name }}</h2>
+            <p style="font-size: 1.1rem; color: #666; margin-bottom: 1rem;">{{ description }}</p>
+            
+            <h3 style="color: #6a1b9a;">Coming Soon!</h3>
+            <p>
+                This service is currently under development. The authentication system is now in place, 
+                and we're working on integrating the existing service modules with the new security framework.
+            </p>
+            
+            <div class="timeline">
+                <h4>🗓️ Implementation Timeline</h4>
+                <ul>
+                    <li>✅ Phase 1: Authentication system (Completed)</li>
+                    <li>🔄 Phase 2: Service integration (In Progress)</li>
+                    <li>⏳ Phase 3: UI updates and testing</li>
+                    <li>⏳ Phase 4: Production deployment</li>
+                </ul>
+            </div>
+            
+            <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

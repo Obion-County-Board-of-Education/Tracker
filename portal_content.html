@@ -1,0 +1,953 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OCS Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container">
+            <h1 class="logo"><img src="/static/ocs-logo.png" alt="OCS Logo" class="logo-img"> Obion County Schools</h1>            <nav>
+                
+                
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-ticket"></i> Tickets <i class="fa fa-caret-down"></i></a>                    <div class="dropdown-content">                        <div class="dropdown-section">Tech Tickets
+                            <a href="/tickets/tech/new">New Ticket</a>
+                            <a href="/tickets/tech/open">Tickets</a>
+                        </div>
+                        <div class="dropdown-section">Maintenance Tickets
+                            <a href="/tickets/maintenance/new">New Ticket</a>
+                            <a href="/tickets/maintenance/open">Tickets</a>
+                        </div>
+                    </div>
+                </div>
+                
+                
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Inventory <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/inventory/add">Add Inventory</a>
+                        <a href="/inventory/remove">Remove Inventory</a>
+                        <a href="/inventory/edit">Edit Inventory</a>
+                        <a href="/inventory/view">View Inventory</a>
+                    </div>
+                </div>
+                                
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-gears"></i> Manage <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/manage/device-register">Device Register</a>
+                    </div>
+                </div>
+                
+                
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-shopping-cart"></i> Purchasing <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/purchasing/requisitions">Requisitions</a>
+                        <a href="/purchasing/purchase-orders">Purchase Orders</a>
+                    </div>
+                </div>
+                
+                
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-clipboard-list"></i> Forms <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/forms/time">Time Forms</a>
+                        <a href="/forms/fuel">Fuel Tracking</a>
+                    </div>
+                </div>
+                
+                
+                <div class="dropdown">
+                    <a href="#" class="nav-link"><i class="fa-solid fa-user-gear"></i> Admin <i class="fa fa-caret-down"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/users/list">Users</a>
+                        <a href="/buildings/list">Buildings</a>
+                        <!-- You can add more admin options here -->
+                    </div>
+                </div>
+                
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        
+<div class="homepage-container">
+    <div class="header-section">
+        <h2 class="welcome-title">Welcome to the OCS Portal</h2>
+    </div>
+    
+    <div class="message-section">
+        <!-- Display Mode -->
+        <div id="messageDisplay" class="message-display">
+            <div class="message-content">
+                You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to &#34;Tickets-&gt;Open Tickets&#34; to check these.
+            </div>
+            <div class="message-footer">
+                
+                <div class="message-meta">
+                    Last updated: June 16, 2025 at 08:14 AM
+                </div>
+                
+                <div class="message-controls">
+                    <button id="editMessageBtn" class="btn btn-outline btn-sm">
+                        <i class="fa fa-edit"></i> Edit Message
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Edit Mode -->
+        <div id="messageEdit" class="message-edit" style="display: none;">
+            <form method="post" action="/update-homepage-message" class="edit-form">
+                <div class="form-group">
+                    <label for="message_content" class="form-label">Homepage Message:</label>
+                    <textarea id="message_content" name="message_content" class="form-textarea" 
+                              rows="6" required maxlength="2000">You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to &#34;Tickets-&gt;Open Tickets&#34; to check these.</textarea>
+                    <div class="char-count">
+                        <span id="charCount">221</span>/2000 characters
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa fa-save"></i> Save Message
+                    </button>
+                    <button type="button" id="cancelEditBtn" class="btn btn-outline">
+                        <i class="fa fa-times"></i> Cancel
+                    </button>
+                </div>
+            </form>        </div>
+    </div>
+    
+    <!-- Dashboard Section -->
+    <div class="dashboard-section">
+        <div class="dashboard-header">
+            <h2 class="dashboard-title">
+                <i class="fa fa-chart-bar"></i> System Dashboard
+            </h2>
+            <div class="dashboard-refresh">
+                <button id="refreshDashboard" class="btn btn-outline btn-sm">
+                    <i class="fa fa-refresh"></i> Refresh
+                </button>
+            </div>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card tickets-card">
+                <div class="card-icon">
+                    <i class="fa fa-ticket"></i>
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Tickets</div>
+                    <div class="card-value">0</div>
+                    <div class="card-subtitle">Open • 0 Closed</div>
+                </div>
+            </div>
+            
+            <div class="summary-card buildings-card">
+                <div class="card-icon">
+                    <i class="fa fa-building"></i>
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Buildings</div>
+                    <div class="card-value">0</div>
+                    <div class="card-subtitle">0 Rooms Total</div>
+                </div>
+            </div>
+            
+            <div class="summary-card users-card">
+                <div class="card-icon">
+                    <i class="fa fa-users"></i>
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Users</div>
+                    <div class="card-value">0</div>
+                    <div class="card-subtitle">0 Admin</div>
+                </div>
+            </div>
+            
+            <div class="summary-card health-card">
+                <div class="card-icon">
+                    <i class="fa fa-heartbeat"></i>
+                </div>
+                <div class="card-content">
+                    <div class="card-title">Services</div>
+                    <div class="card-value service-status">
+                        
+                        5
+                    </div>
+                    <div class="card-subtitle">Services Online</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <!-- Tickets Overview Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Tickets Overview</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="ticketsChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            
+            <!-- Ticket Types Distribution -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Ticket Types</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="ticketTypesChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            
+            <!-- System Resources -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">System Resources</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="systemResourcesChart" width="400" height="200"></canvas>
+                </div>            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.homepage-container {
+    max-width: 95%;
+    margin: 0 auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.welcome-title {
+    font-size: 2.5em;
+    font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, 'Liberation Sans', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.message-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.message-section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 2rem;
+}
+
+.message-display {
+    padding: 2rem;
+}
+
+.message-content {
+    font-size: 1.4em;
+    line-height: 1.6;
+    color: #495057;
+    margin-bottom: 1rem;
+    white-space: pre-wrap;
+}
+
+.message-meta {
+    font-size: 0.9em;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.message-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #e9ecef;
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+.message-edit {
+    padding: 2rem;
+    background: #f8f9fa;
+}
+
+.edit-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 150px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-textarea:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.char-count {
+    text-align: right;
+    font-size: 0.9em;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: white;
+    border: 2px solid #e9ecef;
+}
+
+.btn-outline:hover {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #495057;
+}
+
+/* Dashboard Styles */
+.dashboard-section {
+    width: 100%;
+    max-width: 100%;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.dashboard-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.dashboard-refresh button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.dashboard-refresh button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Summary Cards */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
+    background: #f8f9fa;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.tickets-card .card-icon {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+}
+
+.buildings-card .card-icon {
+    background: linear-gradient(45deg, #4834d4, #686de0);
+}
+
+.users-card .card-icon {
+    background: linear-gradient(45deg, #00d2d3, #54a0ff);
+}
+
+.health-card .card-icon {
+    background: linear-gradient(45deg, #5f27cd, #a55eea);
+}
+
+.card-content {
+    flex: 1;
+}
+
+.card-title {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+}
+
+.card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+}
+
+.card-subtitle {
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+/* Charts Section */
+.charts-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    padding: 2rem;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.chart-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.chart-header {
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.chart-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.chart-wrapper {
+    padding: 1.5rem;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-loading {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.chart-error {
+    text-align: center;
+    color: #dc3545;
+    padding: 2rem;
+}
+
+.chart-error i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.chart-error p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Dashboard animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.summary-card {
+    animation: fadeInUp 0.6s ease-out;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chart-container {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.chart-container:nth-child(1) { animation-delay: 0.1s; }
+.chart-container:nth-child(2) { animation-delay: 0.2s; }
+.chart-container:nth-child(3) { animation-delay: 0.3s; }
+.chart-container:nth-child(4) { animation-delay: 0.4s; }
+
+@media (max-width: 768px) {
+    .homepage-container {
+        padding: 1rem;
+    }
+    
+    .header-section {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .welcome-title {
+        font-size: 2em;
+    }
+    
+    .message-display,
+    .message-edit {
+        padding: 1.5rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .dashboard-header {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .summary-cards {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+      .charts-section {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+    
+    .chart-wrapper {
+        height: 250px;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editBtn = document.getElementById('editMessageBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    const messageDisplay = document.getElementById('messageDisplay');
+    const messageEdit = document.getElementById('messageEdit');
+    const textarea = document.getElementById('message_content');
+    const charCount = document.getElementById('charCount');
+    
+    // Show edit mode
+    editBtn.addEventListener('click', function() {
+        messageDisplay.style.display = 'none';
+        messageEdit.style.display = 'block';
+        textarea.focus();
+    });
+    
+    // Cancel edit mode
+    cancelBtn.addEventListener('click', function() {
+        messageEdit.style.display = 'none';
+        messageDisplay.style.display = 'block';
+        // Reset textarea to original content
+        textarea.value = "You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to \"Tickets-\u003eOpen Tickets\" to check these.";
+        updateCharCount();
+    });
+    
+    // Update character count
+    function updateCharCount() {
+        const count = textarea.value.length;
+        charCount.textContent = count;
+        
+        if (count > 1800) {
+            charCount.style.color = '#dc3545';
+        } else if (count > 1500) {
+            charCount.style.color = '#ffc107';
+        } else {
+            charCount.style.color = '#6c757d';
+        }
+    }
+    
+    // Character count updates
+    textarea.addEventListener('input', updateCharCount);    
+    // Initial character count
+    updateCharCount();
+    
+    // Dashboard refresh functionality
+    const refreshBtn = document.getElementById('refreshDashboard');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            location.reload();
+        });
+    }
+      // Initialize charts after page load
+    initializeCharts();
+    
+    // Add dashboard interactivity
+    addDashboardInteractivity();
+});
+
+// Chart initialization and rendering
+function initializeCharts() {
+    // Dashboard data from backend
+    const dashboardData = {"buildings": {"buildings_with_rooms": 0, "total_buildings": 0, "total_rooms": 0}, "recent_activity": [], "service_health": {"forms": true, "inventory": true, "manage": true, "purchasing": true, "tickets": true}, "ticket_trends": [], "tickets": {"maintenance_closed": 0, "maintenance_open": 0, "tech_closed": 0, "tech_open": 0, "total_closed": 0, "total_open": 0}, "users": {"admin_users": 0, "regular_users": 0, "total_users": 0}};
+    
+    // Validate dashboard data
+    if (!dashboardData) {
+        console.error('Dashboard data not available');
+        showChartError();
+        return;
+    }
+    
+    // Tickets Overview Chart (Line Chart)
+    const ticketsCtx = document.getElementById('ticketsChart');
+    if (ticketsCtx) {
+        new Chart(ticketsCtx, {
+            type: 'line',
+            data: {
+                labels: ['Tech Open', 'Tech Closed', 'Maintenance Open', 'Maintenance Closed'],
+                datasets: [{
+                    label: 'Tickets',
+                    data: [
+                        dashboardData.tickets.tech_open,
+                        dashboardData.tickets.tech_closed,
+                        dashboardData.tickets.maintenance_open,
+                        dashboardData.tickets.maintenance_closed
+                    ],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Ticket Types Distribution (Doughnut Chart)
+    const typesCtx = document.getElementById('ticketTypesChart');
+    if (typesCtx) {
+        new Chart(typesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Tech Tickets', 'Maintenance Tickets'],
+                datasets: [{
+                    data: [
+                        dashboardData.tickets.tech_open + dashboardData.tickets.tech_closed,
+                        dashboardData.tickets.maintenance_open + dashboardData.tickets.maintenance_closed
+                    ],
+                    backgroundColor: [
+                        '#ff6b6b',
+                        '#4834d4'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // System Resources Chart (Bar Chart)
+    const resourcesCtx = document.getElementById('systemResourcesChart');
+    if (resourcesCtx) {
+        new Chart(resourcesCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Buildings', 'Rooms', 'Users', 'Services'],
+                datasets: [{
+                    label: 'Count',
+                    data: [
+                        dashboardData.buildings.total_buildings,
+                        dashboardData.buildings.total_rooms,
+                        dashboardData.users.total_users,
+                        Object.keys(dashboardData.service_health).length
+                    ],
+                    backgroundColor: [
+                        '#4834d4',
+                        '#686de0',
+                        '#00d2d3',
+                        '#5f27cd'
+                    ],
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0,0,0,0.1)'
+                        }
+                    },                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Error handling for charts
+function showChartError() {
+    const chartWrappers = document.querySelectorAll('.chart-wrapper');
+    chartWrappers.forEach(wrapper => {
+        wrapper.innerHTML = '<div class="chart-error"><i class="fa fa-exclamation-triangle"></i><p>Unable to load chart data</p></div>';
+    });
+}
+
+// Add some interactive features
+function addDashboardInteractivity() {
+    // Add hover effects to summary cards
+    const summaryCards = document.querySelectorAll('.summary-card');
+    summaryCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+    
+    // Add click handlers to cards for navigation
+    const ticketsCard = document.querySelector('.tickets-card');
+    if (ticketsCard) {
+        ticketsCard.addEventListener('click', function() {
+            window.location.href = '/tickets';
+        });
+        ticketsCard.style.cursor = 'pointer';
+    }
+    
+    const buildingsCard = document.querySelector('.buildings-card');
+    if (buildingsCard) {
+        buildingsCard.addEventListener('click', function() {
+            window.location.href = '/buildings';
+        });
+        buildingsCard.style.cursor = 'pointer';
+    }
+    
+    const usersCard = document.querySelector('.users-card');
+    if (usersCard) {
+        usersCard.addEventListener('click', function() {
+            window.location.href = '/users';
+        });
+        usersCard.style.cursor = 'pointer';
+    }
+}
+
+// Error handling for charts
+function showChartError() {
+    const chartWrappers = document.querySelectorAll('.chart-wrapper');
+    chartWrappers.forEach(wrapper => {
+        wrapper.innerHTML = '<div class="chart-error"><i class="fa fa-exclamation-triangle"></i><p>Unable to load chart data</p></div>';
+    });
+}
+
+// Add some interactive features
+function addDashboardInteractivity() {
+    // Add hover effects to summary cards
+    const summaryCards = document.querySelectorAll('.summary-card');
+    summaryCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+    
+    // Add click handlers to cards for navigation
+    const ticketsCard = document.querySelector('.tickets-card');
+    if (ticketsCard) {
+        ticketsCard.addEventListener('click', function() {
+            window.location.href = '/tickets';
+        });
+        ticketsCard.style.cursor = 'pointer';
+    }
+    
+    const buildingsCard = document.querySelector('.buildings-card');
+    if (buildingsCard) {
+        buildingsCard.addEventListener('click', function() {
+            window.location.href = '/buildings';
+        });
+        buildingsCard.style.cursor = 'pointer';
+    }
+    
+    const usersCard = document.querySelector('.users-card');
+    if (usersCard) {
+        usersCard.addEventListener('click', function() {
+            window.location.href = '/users';
+        });
+        usersCard.style.cursor = 'pointer';
+    }
+}
+</script>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    </main>
+    <script>
+    // Toggle .open class on dropdowns for click-to-open submenu
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.dropdown > .nav-link').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Close other open dropdowns
+                document.querySelectorAll('.dropdown.open').forEach(function(dd) {
+                    if (dd !== link.parentElement) dd.classList.remove('open');
+                });
+                // Toggle this dropdown
+                link.parentElement.classList.toggle('open');
+            });
+        });
+        // Optional: close dropdown if clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown.open').forEach(function(dd) {
+                    dd.classList.remove('open');
+                });
+            }
+        });
+    });
+    </script>
+</body>
+</html>

@@ -258,3 +258,31 @@ button:hover {
         min-width: 180px;
     }
 }
+
+/* Logout Button Styles */
+.nav-link.logout-btn {
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+    color: #fff;
+    padding: 0.5em 1em;
+    border-radius: 0.4em;
+    font-weight: 600;
+    margin-left: auto; /* Push to the right side */
+    transition: background 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+}
+
+.nav-link.logout-btn:hover {
+    background: linear-gradient(90deg, #b91c1c 0%, #dc2626 100%);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive adjustments for logout button */
+@media (max-width: 900px) {
+    .nav-link.logout-btn {
+        margin-left: 0;
+        margin-top: 1em;
+        width: fit-content;
+    }
+}

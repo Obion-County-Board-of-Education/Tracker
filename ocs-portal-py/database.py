@@ -1,12 +1,30 @@
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+<<<<<<< HEAD
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from ocs_shared_models import Base, SystemMessage, User, Building, Room
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://ocs_user:ocs_pass@db:5432/ocs_portal")
+=======
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+try:
+    from ocs_shared_models import Base, SystemMessage, User, Building, Room
+except ImportError:
+    # Fallback for direct execution
+    sys.path.insert(0, '../ocs_shared_models')
+    from models import Base, SystemMessage, User, Building, Room
+
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://ocs_user:ocs_pass@localhost:5433/ocs_portal")
+>>>>>>> 2fd8c62 (add auth with graph)
 
 # Create engine with connection timeout and error handling
 try:
