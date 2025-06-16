@@ -10,6 +10,7 @@ psycopg2-binary>=2.9.0
 
 # Authentication dependencies
 msal>=1.24.0
+PyJWT>=2.8.0
 python-jose[cryptography]
 python-dotenv
 passlib[bcrypt]
