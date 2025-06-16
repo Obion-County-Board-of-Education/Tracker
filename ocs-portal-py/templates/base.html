@@ -72,6 +72,25 @@
                         <!-- You can add more admin options here -->
                     </div>
                 </div>
+                {% endif %}                
+                <!-- Notifications -->
+                {% if user %}
+                <div class="notification-center">
+                    <button class="notification-bell" onclick="toggleNotificationCenter()">
+                        <i class="fa fa-bell"></i>
+                        <span id="notification-badge" class="notification-badge" style="display: none;"></span>
+                        <span id="notification-status" class="notification-status disconnected"></span>
+                    </button>
+                    <div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+                        <div class="notification-header">
+                            <h4>Notifications</h4>
+                            <button onclick="notificationClient.clearAllNotifications()" class="clear-all-btn">Clear All</button>
+                        </div>
+                        <div id="notifications-list" class="notifications-list">
+                            <!-- Notifications will be inserted here -->
+                        </div>
+                    </div>
+                </div>
                 {% endif %}
                 
                 <!-- Logout Button -->
@@ -82,9 +101,39 @@
         </div>
     </header>
     <main class="container">
-        {% block content %}{% endblock %}
-    </main>
+        {% block content %}{% endblock %}    </main>
+    
+    <!-- Toast Container for notifications -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- User data for JavaScript -->
+    {% if user %}
+    <div style="display: none;" 
+         data-user-id="{{ user.id or user.username }}" 
+         data-user-roles="{{ user.roles | tojson }}">
+    </div>
+    {% endif %}
+    
+    <!-- Load notification client -->
+    <script src="/static/js/notifications.js"></script>
+    
     <script>
+    // Toggle notification center dropdown
+    function toggleNotificationCenter() {
+        const dropdown = document.getElementById('notification-dropdown');
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+    
+    // Close notification center when clicking outside
+    document.addEventListener('click', function(event) {
+        const notificationCenter = document.querySelector('.notification-center');
+        const dropdown = document.getElementById('notification-dropdown');
+        
+        if (dropdown && !notificationCenter.contains(event.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+    
     // Toggle .open class on dropdowns for click-to-open submenu
     document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.dropdown > .nav-link').forEach(function(link) {

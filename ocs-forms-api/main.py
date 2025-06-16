@@ -14,6 +14,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from ocs_shared_models import User, Building, Room
 from ocs_shared_models.timezone_utils import central_now, format_central_time
+from ocs_shared_models.permissions import (
+    require_forms_read,
+    require_forms_write,
+    require_admin,
+    require_permission
+)
 from database import get_db, init_database
 from auth_middleware import AuthMiddleware, get_current_user, has_permission
 
@@ -98,7 +104,9 @@ next_fuel_id = 1
 
 # Time Forms Endpoints
 @app.get("/time/entries", response_model=List[TimeEntryResponse])
+@require_forms_read
 async def get_time_entries(
+    request: Request,
     db: Session = Depends(get_db),
     date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
@@ -121,7 +129,8 @@ async def get_time_entries(
     return entries
 
 @app.post("/time/entries", response_model=TimeEntryResponse)
-async def create_time_entry(entry: TimeEntryCreate, db: Session = Depends(get_db)):
+@require_forms_write
+async def create_time_entry(entry: TimeEntryCreate, request: Request, db: Session = Depends(get_db)):
     """Create a new time entry"""
     global next_time_id
     
@@ -190,7 +199,9 @@ async def delete_time_entry(entry_id: int):
 
 # Fuel Forms Endpoints
 @app.get("/fuel/entries", response_model=List[FuelEntryResponse])
+@require_forms_read
 async def get_fuel_entries(
+    request: Request,
     db: Session = Depends(get_db),
     date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
@@ -217,7 +228,8 @@ async def get_fuel_entries(
     return entries
 
 @app.post("/fuel/entries", response_model=FuelEntryResponse)
-async def create_fuel_entry(entry: FuelEntryCreate, db: Session = Depends(get_db)):
+@require_forms_write
+async def create_fuel_entry(entry: FuelEntryCreate, request: Request, db: Session = Depends(get_db)):
     """Create a new fuel entry"""
     global next_fuel_id
     
@@ -252,7 +264,8 @@ async def create_fuel_entry(entry: FuelEntryCreate, db: Session = Depends(get_db
     return new_entry
 
 @app.get("/fuel/entries/{entry_id}", response_model=FuelEntryResponse)
-async def get_fuel_entry(entry_id: int):
+@require_forms_read
+async def get_fuel_entry(request: Request, entry_id: int):
     """Get a specific fuel entry by ID"""
     entry = next((e for e in fuel_entries_db if e["id"] == entry_id), None)
     if not entry:
@@ -260,7 +273,8 @@ async def get_fuel_entry(entry_id: int):
     return entry
 
 @app.put("/fuel/entries/{entry_id}", response_model=FuelEntryResponse)
-async def update_fuel_entry(entry_id: int, entry: FuelEntryCreate, db: Session = Depends(get_db)):
+@require_forms_write
+async def update_fuel_entry(request: Request, entry_id: int, entry: FuelEntryCreate, db: Session = Depends(get_db)):
     """Update an existing fuel entry"""
     existing_entry = next((e for e in fuel_entries_db if e["id"] == entry_id), None)
     if not existing_entry:
@@ -292,7 +306,8 @@ async def update_fuel_entry(entry_id: int, entry: FuelEntryCreate, db: Session =
     return existing_entry
 
 @app.delete("/fuel/entries/{entry_id}")
-async def delete_fuel_entry(entry_id: int):
+@require_forms_write
+async def delete_fuel_entry(request: Request, entry_id: int):
     """Delete a fuel entry"""
     global fuel_entries_db
     fuel_entries_db = [e for e in fuel_entries_db if e["id"] != entry_id]
@@ -300,7 +315,9 @@ async def delete_fuel_entry(entry_id: int):
 
 # Summary/Report Endpoints
 @app.get("/time/summary")
+@require_forms_read
 async def get_time_summary(
+    request: Request,
     date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD)")
 ):
@@ -325,7 +342,9 @@ async def get_time_summary(
     }
 
 @app.get("/fuel/summary")
+@require_forms_read
 async def get_fuel_summary(
+    request: Request,
     date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD)")
 ):

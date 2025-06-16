@@ -87,6 +87,10 @@ app.include_router(auth_router)
 # Include health router
 app.include_router(health_router)
 
+# Import and setup notification routes
+from notification_routes import setup_notification_routes
+setup_notification_routes(app)
+
 async def get_menu_context(request: Request = None):
     """Get menu visibility context for templates"""
     try:
@@ -354,6 +358,10 @@ async def new_tech_ticket_submit(
 ):
     """Process technology ticket submission via Tickets API"""
     try:
+        # Import audit and notification functions
+        from ocs_shared_models.audit_service import log_user_action
+        from ocs_shared_models.notifications import notify_ticket_created
+        
         # Get services with authentication token
         services = get_service_for_request(request)
         
@@ -364,6 +372,8 @@ async def new_tech_ticket_submit(
         rooms = await services["tickets"].get_building_rooms(building)
         room_obj = next((r for r in rooms if r["id"] == room), None)
         
+        requester_name = f"{current_user.first_name} {current_user.last_name}"
+        
         ticket_data = {
             "title": title,
             "description": description,
@@ -371,12 +381,39 @@ async def new_tech_ticket_submit(
             "building_name": building_obj["name"] if building_obj else "Unknown",
             "room_name": room_obj["name"] if room_obj else "Unknown",
             "tag": tag,
-            "created_by": f"{current_user.first_name} {current_user.last_name}"
+            "created_by": requester_name
         }
         
         result = await services["tickets"].create_tech_ticket(ticket_data)
         if result:
+            ticket_id = result.get("id") if isinstance(result, dict) else None
+            
             print(f"Tech ticket created: {title}")
+            
+            # Log the action
+            log_user_action(
+                user_id=getattr(current_user, 'id', None),
+                action="CREATE_TECH_TICKET",
+                resource_type="TechTicket",
+                resource_id=ticket_id,
+                details={
+                    "title": title,
+                    "issue_type": issue_type,
+                    "building": building_obj["name"] if building_obj else "Unknown",
+                    "room": room_obj["name"] if room_obj else "Unknown",
+                    "tag": tag
+                }
+            )
+            
+            # Send notification
+            if ticket_id:
+                priority = "high" if issue_type in ["network_down", "server_issue"] else "normal"
+                await notify_ticket_created(
+                    ticket_id=ticket_id,
+                    ticket_type="tech",
+                    requester=requester_name,
+                    priority=priority
+                )
         else:
             print(f"Failed to create tech ticket: {title}")
             
@@ -1111,70 +1148,166 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             db.add(homepage_message)
             db.commit()
             db.refresh(homepage_message)
-        
-        # Determine available services based on user permissions
+          # Get user permissions and access level
         permissions = user.get('permissions', {})
-        available_services = []
+        access_level = user.get('access_level', 'student')
         
+        # Categorize services by access level
+        services_by_category = {
+            'core_services': [],
+            'management_tools': [],
+            'admin_functions': [],
+            'quick_actions': []
+        }
+        
+        # Core Services (based on permissions)
         if permissions.get('tickets_access', 'none') != 'none':
-            available_services.append({
-                'name': 'Technology Tickets',
-                'description': 'Submit and manage technology support requests',
-                'url': '/tickets',
-                'icon': '🖥️'
-            })
-            available_services.append({
-                'name': 'Maintenance Tickets', 
-                'description': 'Submit and track maintenance requests',
-                'url': '/maintenance',
-                'icon': '🔧'
-            })
+            ticket_access = permissions.get('tickets_access')
+            services_by_category['core_services'].extend([
+                {
+                    'name': 'Technology Tickets',
+                    'description': f'Submit and manage technology support requests ({ticket_access} access)',
+                    'url': '/tickets',
+                    'icon': '🖥️',
+                    'access_type': ticket_access,
+                    'status': 'Available'
+                },
+                {
+                    'name': 'Maintenance Tickets', 
+                    'description': f'Submit and track maintenance requests ({ticket_access} access)',
+                    'url': '/maintenance',
+                    'icon': '🔧',
+                    'access_type': ticket_access,
+                    'status': 'Available'
+                }
+            ])
+            
+            # Quick actions for ticket system
+            if ticket_access in ['write', 'admin']:
+                services_by_category['quick_actions'].append({
+                    'name': 'Quick Tech Ticket',
+                    'description': 'Submit a technology support request',
+                    'url': '/tickets/new',
+                    'icon': '⚡',
+                    'category': 'quick'
+                })
         
         if permissions.get('inventory_access', 'none') != 'none':
-            available_services.append({
+            inventory_access = permissions.get('inventory_access')
+            services_by_category['management_tools'].append({
                 'name': 'Inventory Management',
-                'description': 'View and manage school district inventory',
+                'description': f'View and manage school district inventory ({inventory_access} access)',
                 'url': '/inventory',
-                'icon': '📦'
+                'icon': '📦',
+                'access_type': inventory_access,
+                'status': 'Available'
             })
+            
+            # Quick actions for inventory
+            if inventory_access in ['write', 'admin']:
+                services_by_category['quick_actions'].append({
+                    'name': 'Check Out Item',
+                    'description': 'Quick inventory checkout',
+                    'url': '/inventory/checkout',
+                    'icon': '📤',
+                    'category': 'quick'
+                })
         
         if permissions.get('purchasing_access', 'none') != 'none':
-            available_services.append({
+            purchasing_access = permissions.get('purchasing_access')
+            services_by_category['management_tools'].append({
                 'name': 'Purchase Requisitions',
-                'description': 'Submit and track purchase requests',
+                'description': f'Submit and track purchase requests ({purchasing_access} access)',
                 'url': '/purchasing',
-                'icon': '🛒'
+                'icon': '🛒',
+                'access_type': purchasing_access,
+                'status': 'Available'
             })
+            
+            # Quick actions for purchasing
+            if purchasing_access in ['write', 'admin']:
+                services_by_category['quick_actions'].append({
+                    'name': 'New Purchase Request',
+                    'description': 'Submit a purchase requisition',
+                    'url': '/purchasing/new',
+                    'icon': '💳',
+                    'category': 'quick'
+                })
         
         if permissions.get('forms_access', 'none') != 'none':
-            available_services.append({
+            forms_access = permissions.get('forms_access')
+            services_by_category['core_services'].append({
                 'name': 'Forms & Documents',
-                'description': 'Access district forms and documentation',
+                'description': f'Access district forms and documentation ({forms_access} access)',
                 'url': '/forms',
-                'icon': '📋'
+                'icon': '📋',
+                'access_type': forms_access,
+                'status': 'Available'
             })
         
-        # Admin services for elevated users
-        if user.get('access_level') in ['admin', 'super_admin']:
-            available_services.append({
-                'name': 'User Management',
-                'description': 'Manage users and permissions',
-                'url': '/admin/users',
-                'icon': '👥'
-            })
-            available_services.append({
-                'name': 'System Administration',
-                'description': 'System configuration and management',
-                'url': '/admin/system',
-                'icon': '⚙️'
-            })
+        # Administrative Functions (based on access level)
+        if access_level in ['admin', 'super_admin']:
+            services_by_category['admin_functions'].extend([
+                {
+                    'name': 'User Management',
+                    'description': 'Manage users and permissions',
+                    'url': '/admin/users',
+                    'icon': '👥',
+                    'access_type': 'admin',
+                    'status': 'Available'
+                },
+                {
+                    'name': 'System Reports',
+                    'description': 'View system analytics and reports',
+                    'url': '/admin/reports',
+                    'icon': '📊',
+                    'access_type': 'admin',
+                    'status': 'Available'
+                }
+            ])
+        
+        if access_level == 'super_admin':
+            services_by_category['admin_functions'].extend([
+                {
+                    'name': 'System Administration',
+                    'description': 'System configuration and management',
+                    'url': '/admin/system',
+                    'icon': '⚙️',
+                    'access_type': 'super_admin',
+                    'status': 'Available'
+                },
+                {
+                    'name': 'Role Management',
+                    'description': 'Configure roles and permissions',
+                    'url': '/admin/roles',
+                    'icon': '🔐',
+                    'access_type': 'super_admin',
+                    'status': 'Available'
+                }
+            ])
+        
+        # Calculate service statistics
+        total_services = sum(len(services) for services in services_by_category.values())
+        accessible_services = total_services
+        
+        # Get recent activity (placeholder - would connect to audit log)
+        recent_activity = [
+            {
+                'action': 'Login',
+                'timestamp': central_now().strftime('%H:%M'),
+                'description': 'Accessed dashboard'
+            }        ]
         
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
             "user": user,
             "homepage_message": homepage_message,
-            "available_services": available_services,
-            "permissions": permissions
+            "services_by_category": services_by_category,
+            "permissions": permissions,
+            "access_level": access_level,
+            "total_services": total_services,
+            "accessible_services": accessible_services,
+            "recent_activity": recent_activity
         })
         
     except Exception as e:

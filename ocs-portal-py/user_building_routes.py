@@ -8,6 +8,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ocs_shared_models import User, Building, Room
+from ocs_shared_models.permissions import require_admin, require_super_admin, get_current_user
+from ocs_shared_models.audit_service import log_user_action
 from database import get_db
 
 # Initialize templates
@@ -147,12 +149,13 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
                 "username": f"user{user_id}"
             }
         
-        return await render_template("edit_user.html", {"request": request, "user": user_data})
-
-    @app.post("/users/add")
+        return await render_template("edit_user.html", {"request": request, "user": user_data})    @app.post("/users/add")
+    @require_admin
     def add_user_submit(request: Request, name: str = Form(...), email: str = Form(...), role: str = Form(...), db: Session = Depends(get_db)):
         """Add new user to database"""
         print("📍 /users/add submit route accessed")
+        current_user = get_current_user(request)
+        
         try:
             # Create username from name (simple approach)
             username = name.lower().replace(" ", "")
@@ -165,26 +168,57 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
             )
             db.add(new_user)
             db.commit()
+            
+            # Log the action
+            log_user_action(
+                user_id=current_user.get('id'),
+                action="CREATE_USER",
+                resource_type="User",
+                resource_id=new_user.id,
+                details={"username": username, "email": email, "role": role.lower()}
+            )
+            
             print(f"✅ User added: {name} ({email})")
         except Exception as e:
             print(f"Error adding user: {e}")
             db.rollback()
         
-        return RedirectResponse("/users/list", status_code=303)
-
-    @app.post("/users/edit/{user_id}")
+        return RedirectResponse("/users/list", status_code=303)    @app.post("/users/edit/{user_id}")
+    @require_admin
     def edit_user_submit(request: Request, user_id: int, name: str = Form(...), email: str = Form(...), role: str = Form(...), db: Session = Depends(get_db)):
         """Update user in database"""
         print(f"📍 /users/edit/{user_id} submit route accessed")
+        current_user = get_current_user(request)
+        
         try:
             user = db.query(User).filter(User.id == user_id).first()
             if user:
+                # Store old values for audit
+                old_values = {
+                    "display_name": user.display_name,
+                    "email": user.email,
+                    "roles": user.roles
+                }
+                
                 # Update user fields
                 user.display_name = name
                 user.email = email
                 user.roles = role.lower()
                 
                 db.commit()
+                
+                # Log the action
+                log_user_action(
+                    user_id=current_user.get('id'),
+                    action="UPDATE_USER",
+                    resource_type="User",
+                    resource_id=user_id,
+                    details={
+                        "old_values": old_values,
+                        "new_values": {"display_name": name, "email": email, "roles": role.lower()}
+                    }
+                )
+                
                 print(f"✅ User updated: {name} ({email})")
             else:
                 print(f"❌ User with ID {user_id} not found")
@@ -192,17 +226,35 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
             print(f"Error updating user: {e}")
             db.rollback()
         
-        return RedirectResponse("/users/list", status_code=303)
-
-    @app.post("/users/delete/{user_id}")
+        return RedirectResponse("/users/list", status_code=303)    @app.post("/users/delete/{user_id}")
+    @require_super_admin
     def delete_user_submit(request: Request, user_id: int, db: Session = Depends(get_db)):
         """Delete user from database"""
         print(f"📍 /users/delete/{user_id} route accessed")
+        current_user = get_current_user(request)
+        
         try:
             user = db.query(User).filter(User.id == user_id).first()
             if user:
+                user_data = {
+                    "username": user.username,
+                    "display_name": user.display_name,
+                    "email": user.email,
+                    "roles": user.roles
+                }
+                
                 db.delete(user)
                 db.commit()
+                
+                # Log the action
+                log_user_action(
+                    user_id=current_user.get('id'),
+                    action="DELETE_USER",
+                    resource_type="User",
+                    resource_id=user_id,
+                    details={"deleted_user": user_data}
+                )
+                
                 print(f"✅ User deleted: {user.display_name or user.username}")
             else:
                 print(f"❌ User with ID {user_id} not found")

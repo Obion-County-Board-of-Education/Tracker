@@ -26,12 +26,37 @@
             align-items: center;
             margin-bottom: 1rem;
         }
-        
-        .services-grid {
+          .services-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 1.5rem;
-            margin-top: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .service-category {
+            margin-bottom: 2rem;
+        }
+        
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        
+        .category-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+        
+        .category-count {
+            background: #3498db;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
         }
         
         .service-card {
@@ -42,11 +67,107 @@
             transition: transform 0.2s, box-shadow 0.2s;
             text-decoration: none;
             color: inherit;
+            border-left: 4px solid #3498db;
+            position: relative;
         }
         
         .service-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .service-card.admin-function {
+            border-left-color: #e74c3c;
+        }
+        
+        .service-card.management-tool {
+            border-left-color: #f39c12;
+        }
+        
+        .service-card.quick-action {
+            border-left-color: #27ae60;
+            padding: 1rem;
+        }
+        
+        .access-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #ecf0f1;
+            color: #2c3e50;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .access-badge.read { background: #d5e8d4; color: #27ae60; }
+        .access-badge.write { background: #fff2cc; color: #f39c12; }
+        .access-badge.admin { background: #f8cecc; color: #e74c3c; }
+        .access-badge.super_admin { background: #e1d5e7; color: #8e44ad; }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .recent-activity {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .no-services-message {
+            text-align: center;
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #e74c3c;
         }
         
         .service-icon {
@@ -120,13 +241,12 @@
                 <button type="submit" class="logout-btn">🚪 Logout</button>
             </form>
         </div>
-        
-        <div class="user-welcome">
+          <div class="user-welcome">
             <div class="user-info">
                 <div>
-                    <h2>Welcome, {{ user.display_name }}!</h2>
-                    <p>Email: {{ user.email }}</p>
-                    <p>Access Level: <strong>{{ user.access_level.title() }}</strong></p>
+                    <h2>Welcome, {{ user.display_name }}! 👋</h2>
+                    <p>📧 {{ user.email }}</p>
+                    <p>🔐 Access Level: <strong>{{ user.access_level.title().replace('_', ' ') }}</strong></p>
                 </div>
             </div>
             
@@ -139,44 +259,125 @@
             </div>
             {% endif %}
             
-            <div class="permissions-info">
-                <h4>🔐 Your Permissions</h4>
-                <ul>
-                    {% if permissions.tickets_access != 'none' %}
-                    <li>✅ Tickets: {{ permissions.tickets_access.title() }} access</li>
-                    {% endif %}
-                    {% if permissions.inventory_access != 'none' %}
-                    <li>✅ Inventory: {{ permissions.inventory_access.title() }} access</li>
-                    {% endif %}
-                    {% if permissions.purchasing_access != 'none' %}
-                    <li>✅ Purchasing: {{ permissions.purchasing_access.title() }} access</li>
-                    {% endif %}
-                    {% if permissions.forms_access != 'none' %}
-                    <li>✅ Forms: {{ permissions.forms_access.title() }} access</li>
-                    {% endif %}
-                </ul>
+            <!-- Service Statistics -->
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <span class="stat-number">{{ accessible_services }}</span>
+                    <span class="stat-label">Available Services</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">{{ user.access_level.title().replace('_', ' ') }}</span>
+                    <span class="stat-label">Access Level</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">{{ permissions.values() | list | length }}</span>
+                    <span class="stat-label">Active Permissions</span>
+                </div>
             </div>
         </div>
-        
-        <h3>Available Services</h3>
-        <div class="services-grid">
-            {% for service in available_services %}
-            <a href="{{ service.url }}" class="service-card">
-                <div class="service-icon">{{ service.icon }}</div>
-                <div class="service-name">{{ service.name }}</div>
-                <div class="service-description">{{ service.description }}</div>
-            </a>
-            {% endfor %}
+
+        <!-- Quick Actions for frequent tasks -->
+        {% if services_by_category.quick_actions %}
+        <div class="service-category">
+            <div class="category-header">
+                <h3>⚡ Quick Actions</h3>
+                <span class="category-count">{{ services_by_category.quick_actions | length }}</span>
+            </div>
+            <div class="quick-actions">
+                {% for service in services_by_category.quick_actions %}
+                <a href="{{ service.url }}" class="service-card quick-action">
+                    <div class="service-icon">{{ service.icon }}</div>
+                    <div class="service-name">{{ service.name }}</div>
+                </a>
+                {% endfor %}
+            </div>
         </div>
-        
-        {% if not available_services %}
-        <div class="service-card" style="text-align: center; margin-top: 2rem;">
+        {% endif %}
+
+        <!-- Core Services -->
+        {% if services_by_category.core_services %}
+        <div class="service-category">
+            <div class="category-header">
+                <h3>🎯 Core Services</h3>
+                <span class="category-count">{{ services_by_category.core_services | length }}</span>
+            </div>
+            <div class="services-grid">
+                {% for service in services_by_category.core_services %}
+                <a href="{{ service.url }}" class="service-card">
+                    <div class="access-badge {{ service.access_type }}">{{ service.access_type }}</div>
+                    <div class="service-icon">{{ service.icon }}</div>
+                    <div class="service-name">{{ service.name }}</div>
+                    <div class="service-description">{{ service.description }}</div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Management Tools -->
+        {% if services_by_category.management_tools %}
+        <div class="service-category">
+            <div class="category-header">
+                <h3>🛠️ Management Tools</h3>
+                <span class="category-count">{{ services_by_category.management_tools | length }}</span>
+            </div>
+            <div class="services-grid">
+                {% for service in services_by_category.management_tools %}
+                <a href="{{ service.url }}" class="service-card management-tool">
+                    <div class="access-badge {{ service.access_type }}">{{ service.access_type }}</div>
+                    <div class="service-icon">{{ service.icon }}</div>
+                    <div class="service-name">{{ service.name }}</div>
+                    <div class="service-description">{{ service.description }}</div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Administrative Functions -->
+        {% if services_by_category.admin_functions %}
+        <div class="service-category">
+            <div class="category-header">
+                <h3>👑 Administrative Functions</h3>
+                <span class="category-count">{{ services_by_category.admin_functions | length }}</span>
+            </div>
+            <div class="services-grid">
+                {% for service in services_by_category.admin_functions %}
+                <a href="{{ service.url }}" class="service-card admin-function">
+                    <div class="access-badge {{ service.access_type }}">{{ service.access_type }}</div>
+                    <div class="service-icon">{{ service.icon }}</div>
+                    <div class="service-name">{{ service.name }}</div>
+                    <div class="service-description">{{ service.description }}</div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- No Services Available Message -->
+        {% if accessible_services == 0 %}
+        <div class="no-services-message">
             <div class="service-icon">🚫</div>
             <div class="service-name">No Services Available</div>
             <div class="service-description">
                 You don't have access to any services yet. Please contact your administrator 
                 to be added to the appropriate Azure AD groups.
             </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Activity -->
+        {% if recent_activity %}
+        <div class="recent-activity">
+            <h3>📈 Recent Activity</h3>
+            {% for activity in recent_activity %}
+            <div class="activity-item">
+                <div>
+                    <strong>{{ activity.action }}</strong> - {{ activity.description }}
+                </div>
+                <div class="activity-time">{{ activity.timestamp }}</div>
+            </div>
+            {% endfor %}
         </div>
         {% endif %}
     </div>

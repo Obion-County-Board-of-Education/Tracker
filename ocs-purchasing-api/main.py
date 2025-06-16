@@ -12,6 +12,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from ocs_shared_models import User, Building, Room, Requisition, PurchaseOrder
 from ocs_shared_models.timezone_utils import central_now, format_central_time
+from ocs_shared_models.permissions import (
+    require_purchasing_read,
+    require_purchasing_write,
+    require_admin,
+    require_permission
+)
+from ocs_shared_models.audit_service import log_user_action
+from ocs_shared_models.notifications import notify_requisition_created_sync, notify_requisition_approved_sync, notify_po_created_sync
 from database import get_db, init_database
 from auth_middleware import AuthMiddleware, get_current_user, has_permission
 
@@ -111,7 +119,9 @@ def health_check():
 
 # Requisitions endpoints
 @app.get("/api/requisitions", response_model=List[RequisitionResponse], tags=["Requisitions"])
+@require_purchasing_read
 def get_requisitions(
+    request: Request,
     status: Optional[str] = Query(None, description="Filter by status"),
     department: Optional[str] = Query(None, description="Filter by department"),
     priority: Optional[str] = Query(None, description="Filter by priority"),
@@ -150,8 +160,11 @@ def get_requisitions(
     ]
 
 @app.post("/api/requisitions", response_model=RequisitionResponse, tags=["Requisitions"])
-def create_requisition(requisition: RequisitionCreate, db: Session = Depends(get_db)):
+@require_purchasing_write
+def create_requisition(request: Request, requisition: RequisitionCreate, db: Session = Depends(get_db)):
     """Create a new requisition"""
+    user = get_current_user(request)
+    
     db_requisition = Requisition(
         title=requisition.title,
         description=requisition.description,
@@ -166,6 +179,22 @@ def create_requisition(requisition: RequisitionCreate, db: Session = Depends(get
     db.add(db_requisition)
     db.commit()
     db.refresh(db_requisition)
+    
+    # Log the creation action
+    log_user_action(
+        user_id=user.id,
+        action="create_requisition",
+        details=f"Created requisition: {requisition.title} for {requisition.department}",
+        db=db
+    )
+    
+    # Send notification
+    notify_requisition_created_sync(
+        requisition_id=db_requisition.id,
+        requester=requisition.requested_by,
+        department=requisition.department,
+        amount=requisition.estimated_cost
+    )
     
     return RequisitionResponse(
         id=db_requisition.id,
@@ -209,8 +238,10 @@ def get_requisition(requisition_id: int, db: Session = Depends(get_db)):
     )
 
 @app.put("/api/requisitions/{requisition_id}/approve", response_model=RequisitionResponse, tags=["Requisitions"])
-def approve_requisition(requisition_id: int, approved_by: str, db: Session = Depends(get_db)):
+@require_permission("purchasing", "admin")
+def approve_requisition(request: Request, requisition_id: int, approved_by: str, db: Session = Depends(get_db)):
     """Approve a requisition"""
+    user = get_current_user(request)
     requisition = db.query(Requisition).filter(Requisition.id == requisition_id).first()
     if not requisition:
         raise HTTPException(status_code=404, detail="Requisition not found")
@@ -222,6 +253,21 @@ def approve_requisition(requisition_id: int, approved_by: str, db: Session = Dep
     
     db.commit()
     db.refresh(requisition)
+    
+    # Log the approval action
+    log_user_action(
+        user_id=user.id,
+        action="approve_requisition",
+        details=f"Approved requisition: {requisition.title} for {requisition.department}",
+        db=db
+    )
+    
+    # Send notification
+    notify_requisition_approved_sync(
+        requisition_id=requisition.id,
+        approved_by=approved_by,
+        department=requisition.department
+    )
     
     return RequisitionResponse(
         id=requisition.id,
@@ -300,6 +346,22 @@ def create_purchase_order(purchase_order: PurchaseOrderCreate, db: Session = Dep
     db.add(db_purchase_order)
     db.commit()
     db.refresh(db_purchase_order)
+      # Log the creation action
+    log_user_action(
+        user_id=purchase_order.created_by,
+        action="create_purchase_order",
+        details=f"Created purchase order: {purchase_order.po_number} for {purchase_order.vendor_name}",
+        db=db
+    )
+    
+    # Send notification
+    notify_po_created_sync(
+        po_id=db_purchase_order.id,
+        po_number=db_purchase_order.po_number,
+        vendor=db_purchase_order.vendor_name,
+        created_by=purchase_order.created_by,
+        amount=purchase_order.total_amount
+    )
     
     return PurchaseOrderResponse(
         id=db_purchase_order.id,

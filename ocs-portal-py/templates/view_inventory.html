@@ -41,13 +41,23 @@
           </ul>
         </details>
       </div>
-    </aside>
-    <!-- Main Content -->
+    </aside>    <!-- Main Content -->
     <section style="flex:1;overflow-x:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1em;">
         <h2 style="margin:0;">All Inventory</h2>
-        <form method="get" style="display:flex;gap:0.7em;align-items:center;">
-          <label for="sort" style="font-weight:500;">Sort by:</label>
+        <div style="display:flex;gap:0.7em;align-items:center;">
+          {% if user and user.permissions.inventory_write %}
+          <a href="/inventory/add" class="btn btn-primary" style="background:#3b82f6;color:white;padding:0.5em 1em;border-radius:0.5em;text-decoration:none;">
+            <i class="fa fa-plus"></i> Add Item
+          </a>
+          {% endif %}
+          {% if user and user.permissions.inventory_admin %}
+          <a href="/inventory/export" class="btn btn-outline" style="border:1px solid #d1d5db;padding:0.5em 1em;border-radius:0.5em;text-decoration:none;">
+            <i class="fa fa-download"></i> Export
+          </a>
+          {% endif %}
+          <form method="get" style="display:flex;gap:0.7em;align-items:center;">
+            <label for="sort" style="font-weight:500;">Sort by:</label>
           <select name="sort" id="sort" onchange="this.form.submit()">
             <option value="newest">Newest to Oldest</option>
             <option value="oldest">Oldest to Newest</option>

@@ -5,6 +5,11 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
 from ocs_shared_models import User, Building, Room, UserRole
+from ocs_shared_models.permissions import (
+    require_admin,
+    require_super_admin,
+    require_permission
+)
 from database import get_db, init_database
 from auth_middleware import AuthMiddleware, get_current_user, has_permission
 
@@ -85,13 +90,15 @@ def health_check():
 
 # User management endpoints
 @app.get("/api/users", response_model=List[UserResponse], tags=["Users"])
-def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@require_admin
+def get_users(request: Request, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Get all users with pagination"""
     users = db.query(User).offset(skip).limit(limit).all()
     return users
 
 @app.get("/api/users/{user_id}", response_model=UserResponse, tags=["Users"])
-def get_user(user_id: int, db: Session = Depends(get_db)):
+@require_admin
+def get_user(request: Request, user_id: int, db: Session = Depends(get_db)):
     """Get a specific user by ID"""
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
@@ -100,13 +107,15 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 # Building management endpoints
 @app.get("/api/buildings", response_model=List[BuildingResponse], tags=["Buildings"])
-def get_buildings(db: Session = Depends(get_db)):
+@require_admin
+def get_buildings(request: Request, db: Session = Depends(get_db)):
     """Get all buildings"""
     buildings = db.query(Building).all()
     return buildings
 
 @app.get("/api/buildings/{building_id}", response_model=BuildingResponse, tags=["Buildings"])
-def get_building(building_id: int, db: Session = Depends(get_db)):
+@require_admin
+def get_building(request: Request, building_id: int, db: Session = Depends(get_db)):
     """Get a specific building by ID"""
     building = db.query(Building).filter(Building.id == building_id).first()
     if building is None:
@@ -114,7 +123,8 @@ def get_building(building_id: int, db: Session = Depends(get_db)):
     return building
 
 @app.get("/api/buildings/{building_id}/rooms", response_model=List[RoomResponse], tags=["Buildings"])
-def get_building_rooms(building_id: int, db: Session = Depends(get_db)):
+@require_admin
+def get_building_rooms(request: Request, building_id: int, db: Session = Depends(get_db)):
     """Get all rooms for a specific building"""
     building = db.query(Building).filter(Building.id == building_id).first()
     if building is None:
@@ -125,7 +135,8 @@ def get_building_rooms(building_id: int, db: Session = Depends(get_db)):
 
 # System management endpoints
 @app.get("/api/system/stats", tags=["System"])
-def get_system_stats(db: Session = Depends(get_db)):
+@require_super_admin
+def get_system_stats(request: Request, db: Session = Depends(get_db)):
     """Get system statistics"""
     user_count = db.query(User).count()
     building_count = db.query(Building).count()
@@ -140,13 +151,15 @@ def get_system_stats(db: Session = Depends(get_db)):
 
 # Additional system management endpoints
 @app.post("/api/logs/clear", tags=["System"])
-def clear_logs():
+@require_super_admin
+def clear_logs(request: Request):
     """Clear all system logs"""
     # Placeholder implementation
     return {"success": True, "message": "Logs cleared successfully"}
 
 @app.get("/api/system/settings", tags=["System"])
-def get_system_settings():
+@require_super_admin
+def get_system_settings(request: Request):
     """Get system settings"""
     # Placeholder implementation
     return {
@@ -158,25 +171,29 @@ def get_system_settings():
     }
 
 @app.put("/api/system/settings", tags=["System"])
-def update_system_settings(settings: dict):
+@require_super_admin
+def update_system_settings(request: Request, settings: dict):
     """Update system settings"""
     # Placeholder implementation
     return {"success": True, "message": "Settings updated successfully"}
 
 @app.post("/api/maintenance/run", tags=["System"])
-def run_maintenance():
+@require_super_admin
+def run_maintenance(request: Request):
     """Run system maintenance tasks"""
     # Placeholder implementation
     return {"success": True, "message": "Maintenance completed successfully"}
 
 @app.post("/api/search/rebuild", tags=["System"])
-def rebuild_search_index():
+@require_super_admin
+def rebuild_search_index(request: Request):
     """Rebuild search index"""
     # Placeholder implementation
     return {"success": True, "message": "Search index rebuilt successfully"}
 
 @app.post("/api/database/optimize", tags=["System"])
-def optimize_databases():
+@require_super_admin
+def optimize_databases(request: Request):
     """Optimize all databases"""
     # Placeholder implementation
     return {"success": True, "message": "Database optimization completed successfully"}

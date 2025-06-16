@@ -4,11 +4,21 @@
     <div class="header-content">
         <h1><i class="fa-solid fa-laptop-code"></i> {{ page_title }}</h1>
         <p class="header-subtitle">Manage and track technology support requests</p>
-    </div>
-    <div class="header-actions">
+    </div>    <div class="header-actions">
+        <!-- Role-based action buttons -->
+        {% if user and user.permissions.tickets_access in ['write', 'admin'] %}
         <a href="/tickets/tech/new" class="btn btn-primary">
             <i class="fa fa-plus"></i> New Tech Ticket
         </a>
+        {% endif %}
+        
+        {% if user and user.access_level in ['admin', 'super_admin'] %}
+        <div class="admin-actions">
+            <button class="btn btn-outline admin-toggle" onclick="toggleAdminPanel()">
+                <i class="fa fa-cog"></i> Admin Tools
+            </button>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -25,18 +35,25 @@
                 <a href="/tickets/tech/archives" class="filter-tab {% if status_filter == 'archived' %}active{% endif %}">
                     <i class="fa fa-archive"></i> Archives
                 </a>
-            </div>
-            <!-- DEBUG: Before action buttons -->            <div class="action-buttons">                <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
+            </div>            <!-- Admin Action Buttons - Role-based access -->
+            <div class="action-buttons" id="adminPanel" style="display: {% if user and user.access_level in ['admin', 'super_admin'] %}block{% else %}none{% endif %};">
+                {% if user and user.permissions.tickets_access == 'admin' %}
+                <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
                     <i class="fa fa-upload"></i> Import CSV
                 </button>
                 <a href="/tickets/tech/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export all tickets to CSV">
                     <i class="fa fa-download"></i> Export CSV
-                </a>                <button class="btn btn-warning btn-sm roll-database-btn" onclick="showRollDatabaseModal('tech')" title="Archive current tickets and start fresh">
+                </a>
+                <button class="btn btn-warning btn-sm roll-database-btn" onclick="showRollDatabaseModal('tech')" title="Archive current tickets and start fresh">
                     <i class="fa fa-refresh"></i> Roll Database
                 </button>
+                {% endif %}
+                
+                {% if user and user.access_level == 'super_admin' %}
                 <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
                     <i class="fa fa-trash"></i> Clear All Tickets
                 </button>
+                {% endif %}
             </div>
         </div>
           <div class="search-and-filters">

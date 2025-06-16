@@ -15,6 +15,14 @@ from apscheduler.triggers.interval import IntervalTrigger
 import atexit
 from ocs_shared_models import User, Building, Room, TechTicket, MaintenanceTicket, TicketUpdate
 from ocs_shared_models.timezone_utils import central_now
+from ocs_shared_models.permissions import (
+    require_tickets_read, 
+    require_tickets_write, 
+    require_admin,
+    require_permission
+)
+from ocs_shared_models.audit_service import log_user_action
+from ocs_shared_models.notifications import notify_ticket_created, notify_ticket_updated
 from database import get_db, init_database
 # Import the authentication middleware
 from auth_middleware import AuthMiddleware, get_current_user, has_permission
@@ -221,7 +229,9 @@ def test_post():
 
 # Technology Tickets API
 @app.get("/api/tickets/tech", response_model=List[TechTicketResponse])
+@require_tickets_read
 def get_tech_tickets(
+    request: Request,
     status_filter: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -243,7 +253,8 @@ def get_tech_tickets(
 
 # CSV Export API - Must come before parameterized routes
 @app.get("/api/tickets/tech/export")
-def export_tech_tickets_csv(import_ready: str = "false", db: Session = Depends(get_db)):
+@require_permission("tickets", "admin")  # Export requires admin access
+def export_tech_tickets_csv(request: Request, import_ready: str = "false", db: Session = Depends(get_db)):
     """Export all technology tickets to CSV. Use import_ready=true for import-compatible format."""
     try:
         # Convert string parameter to boolean
@@ -321,7 +332,8 @@ def export_tech_tickets_csv(import_ready: str = "false", db: Session = Depends(g
         raise HTTPException(status_code=500, detail=f"Error exporting tech tickets: {str(e)}")
 
 @app.get("/api/tickets/maintenance/export")
-def export_maintenance_tickets_csv(import_ready: str = "false", db: Session = Depends(get_db)):
+@require_permission("tickets", "admin")  # Export requires admin access
+def export_maintenance_tickets_csv(request: Request, import_ready: str = "false", db: Session = Depends(get_db)):
     """Export all maintenance tickets to CSV. Use import_ready=true for import-compatible format."""
     try:
         # Convert string parameter to boolean
@@ -398,9 +410,12 @@ def export_maintenance_tickets_csv(import_ready: str = "false", db: Session = De
 
 # Clear All Tickets API - Must come before parameterized routes
 @app.post("/api/tickets/tech/clear")
-def clear_all_tech_tickets(db: Session = Depends(get_db)):
+@require_admin  # Only admins can clear all tickets
+def clear_all_tech_tickets(request: Request, db: Session = Depends(get_db)):
     """Clear all technology tickets from the database"""
     try:
+        user = get_current_user(request)
+        
         # Get count before deletion
         count = db.query(TechTicket).count()
         
@@ -415,6 +430,14 @@ def clear_all_tech_tickets(db: Session = Depends(get_db)):
         
         db.commit()
         
+        # Log this critical action
+        log_user_action(
+            user_id=user.id,
+            action="clear_all_tech_tickets",
+            details=f"Cleared {count} technology tickets from database",
+            db=db
+        )
+        
         return {
             "success": True,
             "message": f"Successfully cleared {count} technology tickets",
@@ -426,13 +449,15 @@ def clear_all_tech_tickets(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error clearing tech tickets: {str(e)}")
 
 @app.post("/api/tickets/maintenance/clear")
-def clear_all_maintenance_tickets(db: Session = Depends(get_db)):
+@require_admin  # Only admins can clear all tickets
+def clear_all_maintenance_tickets(request: Request, db: Session = Depends(get_db)):
     """Clear all maintenance tickets from the database"""
     try:
+        user = get_current_user(request)
+        
         # Get count before deletion
         count = db.query(MaintenanceTicket).count()
-        
-        # Delete all maintenance tickets
+          # Delete all maintenance tickets
         db.query(MaintenanceTicket).delete()
         
         # Reset the closed ticket counter
@@ -441,6 +466,14 @@ def clear_all_maintenance_tickets(db: Session = Depends(get_db)):
             ON CONFLICT (name) DO UPDATE SET value = 0;
         """))        
         db.commit()
+        
+        # Log this critical action
+        log_user_action(
+            user_id=user.id,
+            action="clear_all_maintenance_tickets",
+            details=f"Cleared {count} maintenance tickets from database",
+            db=db
+        )
         
         return {
             "success": True,
@@ -453,9 +486,12 @@ def clear_all_maintenance_tickets(db: Session = Depends(get_db)):
 
 # Roll Database API - Must come before parameterized routes
 @app.post("/api/tickets/tech/roll-database")
-def roll_tech_database(archive_name: str, db: Session = Depends(get_db)):
+@require_admin  # Only admins can roll database
+def roll_tech_database(request: Request, archive_name: str, db: Session = Depends(get_db)):
     """Archive current tech tickets and create a new table"""
     try:
+        user = get_current_user(request)
+        
         # Validate archive name (only allow alphanumeric and underscore)
         if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
             raise HTTPException(status_code=400, detail="Invalid archive name. Only letters, numbers, and underscores are allowed.")
@@ -489,9 +525,16 @@ def roll_tech_database(archive_name: str, db: Session = Depends(get_db)):
             INSERT INTO counter (name, value) VALUES ('closed_tech_tickets', 0)
             ON CONFLICT (name) DO UPDATE SET value = 0;
         """))
-        
-        # Commit the transaction
+          # Commit the transaction
         db.commit()
+        
+        # Log this critical action
+        log_user_action(
+            user_id=user.id,
+            action="roll_tech_database",
+            details=f"Archived {archive_count} tech tickets to '{archive_table}'",
+            db=db
+        )
         
         return {
             "success": True,
@@ -509,9 +552,12 @@ def roll_tech_database(archive_name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error rolling tech database: {str(e)}")
 
 @app.post("/api/tickets/maintenance/roll-database")
-def roll_maintenance_database(archive_name: str, db: Session = Depends(get_db)):
+@require_admin  # Only admins can roll database
+def roll_maintenance_database(request: Request, archive_name: str, db: Session = Depends(get_db)):
     """Archive current maintenance tickets and create a new table"""
     try:
+        user = get_current_user(request)
+        
         # Validate archive name (only allow alphanumeric and underscore)
         if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
             raise HTTPException(status_code=400, detail="Invalid archive name. Only letters, numbers, and underscores are allowed.")
@@ -545,9 +591,16 @@ def roll_maintenance_database(archive_name: str, db: Session = Depends(get_db)):
             INSERT INTO counter (name, value) VALUES ('closed_maintenance_tickets', 0)
             ON CONFLICT (name) DO UPDATE SET value = 0;
         """))
-        
-        # Commit the transaction
+          # Commit the transaction
         db.commit()
+        
+        # Log this critical action
+        log_user_action(
+            user_id=user.id,
+            action="roll_maintenance_database",
+            details=f"Archived {archive_count} maintenance tickets to '{archive_table}'",
+            db=db
+        )
         
         return {
             "success": True,
@@ -566,7 +619,8 @@ def roll_maintenance_database(archive_name: str, db: Session = Depends(get_db)):
 
 # CSV Import API
 @app.post("/api/tickets/tech/import")
-async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str = Form(...), db: Session = Depends(get_db)):
+@require_permission("tickets", "admin")  # Import requires admin access
+async def import_tech_tickets_csv(request: Request, file: UploadFile = File(...), operation: str = Form(...), db: Session = Depends(get_db)):
     """Import technology tickets from CSV"""
     try:
         # Validate file type
@@ -643,9 +697,17 @@ async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str =
             except Exception as e:
                 errors.append(f"Row {row_num}: {str(e)}")
                 continue
-        
-        # Commit all changes
+          # Commit all changes
         db.commit()
+        
+        # Log the import action
+        user = get_current_user(request)
+        log_user_action(
+            user_id=user.id,
+            action="import_tech_tickets",
+            details=f"Imported {imported_count} tech tickets via CSV ({operation} mode)",
+            db=db
+        )
         
         return {
             "success": True,
@@ -662,7 +724,8 @@ async def import_tech_tickets_csv(file: UploadFile = File(...), operation: str =
         raise HTTPException(status_code=500, detail=f"Error importing tech tickets: {str(e)}")
 
 @app.post("/api/tickets/maintenance/import")
-async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation: str = Form(...), db: Session = Depends(get_db)):
+@require_permission("tickets", "admin")  # Import requires admin access
+async def import_maintenance_tickets_csv(request: Request, file: UploadFile = File(...), operation: str = Form(...), db: Session = Depends(get_db)):
     """Import maintenance tickets from CSV"""
     try:
         # Validate file type
@@ -738,9 +801,17 @@ async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation
             except Exception as e:
                 errors.append(f"Row {row_num}: {str(e)}")
                 continue
-        
-        # Commit all changes
+          # Commit all changes
         db.commit()
+        
+        # Log the import action
+        user = get_current_user(request)
+        log_user_action(
+            user_id=user.id,
+            action="import_maintenance_tickets",
+            details=f"Imported {imported_count} maintenance tickets via CSV ({operation} mode)",
+            db=db
+        )
         
         return {
             "success": True,
@@ -758,12 +829,16 @@ async def import_maintenance_tickets_csv(file: UploadFile = File(...), operation
 
 # Archive API endpoints - these must come before parameterized routes
 @app.get("/api/tickets/tech/archives")
+@require_permission("tickets", "admin")  # Archives require admin access
 def get_tech_archives(
+    request: Request,
     delete_archive: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Get list of available tech ticket archives, or delete one if specified"""
     try:
+        user = get_current_user(request)
+        
         # If delete_archive is specified, delete the archive
         if delete_archive:
             # Validate the archive name to prevent SQL injection

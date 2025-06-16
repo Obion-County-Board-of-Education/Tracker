@@ -6,18 +6,29 @@
         <p class="header-subtitle">Manage and track purchase requisitions</p>
     </div>
     <div class="header-actions">
+        {% if user and user.permissions.purchasing_write %}
         <a href="/purchasing/requisitions/new" class="btn btn-primary">
             <i class="fa fa-plus"></i> New Requisition
         </a>
+        {% endif %}
+        {% if user and user.permissions.purchasing_admin %}
+        <a href="/purchasing/export" class="btn btn-outline">
+            <i class="fa fa-download"></i> Export
+        </a>
+        {% endif %}
     </div>
 </div>
 
 <div class="purchasing-container">
+    {% if user and user.permissions.purchasing_read %}
     <div class="filters-section">
         <div class="filter-tabs">
             <div class="tab-navigation">
                 <a href="/purchasing/requisitions?status=pending" class="filter-tab">
                     <i class="fa fa-clock"></i> Pending
+                    {% if user.permissions.purchasing_admin %}
+                    <span class="badge-count">{{ pending_count or 0 }}</span>
+                    {% endif %}
                 </a>
                 <a href="/purchasing/requisitions?status=approved" class="filter-tab">
                     <i class="fa fa-check"></i> Approved
@@ -31,6 +42,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <div class="requisitions-list">
         {% if requisitions %}
@@ -70,14 +82,23 @@
                     <p>{{ requisition.description }}</p>
                 </div>
                 {% endif %}
-                
-                <div class="requisition-actions">
+                  <div class="requisition-actions">
+                    {% if user and user.permissions.purchasing_read %}
                     <button class="btn btn-sm btn-outline" onclick="viewRequisition({{ requisition.id }})">
                         <i class="fa fa-eye"></i> View
                     </button>
-                    {% if requisition.status == 'pending' %}
+                    {% endif %}
+                    {% if user and user.permissions.purchasing_admin and requisition.status == 'pending' %}
                     <button class="btn btn-sm btn-success" onclick="approveRequisition({{ requisition.id }})">
                         <i class="fa fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="rejectRequisition({{ requisition.id }})">
+                        <i class="fa fa-times"></i> Reject
+                    </button>
+                    {% endif %}
+                    {% if user and user.permissions.purchasing_write and requisition.status == 'draft' %}
+                    <button class="btn btn-sm btn-primary" onclick="editRequisition({{ requisition.id }})">
+                        <i class="fa fa-edit"></i> Edit
                     </button>
                     {% endif %}
                 </div>
