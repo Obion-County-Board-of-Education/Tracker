@@ -322,14 +322,35 @@ def export_tech_tickets_csv(request: Request, import_ready: str = "false", db: S
             filename = f"tech_tickets_export_{current_date}.csv"
         
         return FileResponse(
-            path=temp_file.name,
-            filename=filename,
+            path=temp_file.name,            filename=filename,
             media_type='text/csv',
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting tech tickets: {str(e)}")
+
+# Maintenance Tickets API
+@app.get("/api/tickets/maintenance", response_model=List[MaintenanceTicketResponse])
+def get_maintenance_tickets(
+    status_filter: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get maintenance tickets with optional status filtering"""
+    try:
+        query = db.query(MaintenanceTicket)
+        
+        if status_filter == "open":
+            query = query.filter(MaintenanceTicket.status.in_(['new', 'open', 'assigned', 'in_progress']))
+        elif status_filter == "closed":
+            query = query.filter(MaintenanceTicket.status == 'closed')
+        elif status_filter:
+            query = query.filter(MaintenanceTicket.status == status_filter)
+            
+        tickets = query.order_by(desc(MaintenanceTicket.created_at)).all()
+        return tickets
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.get("/api/tickets/maintenance/export")
 @require_permission("tickets", "admin")  # Export requires admin access

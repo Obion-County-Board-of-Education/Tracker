@@ -25,6 +25,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://ocs_user:ocs_pass@db:5432/ocs_tickets
       - DB_HOST=db
+<<<<<<< HEAD
       - DB_PORT=5432
       - DB_USER=ocs_user
       - JWT_SECRET=${JWT_SECRET}
@@ -48,6 +49,9 @@ services:
       - DB_PORT=5432
       - DB_USER=ocs_user
       - JWT_SECRET=${JWT_SECRET}
+=======
+      - DB_PORT=5432      - DB_USER=ocs_user
+>>>>>>> 39fea0881d4dde4b37312a1f0bd599bae322d177
     depends_on:
       db:
         condition: service_healthy
