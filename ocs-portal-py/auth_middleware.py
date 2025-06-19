@@ -12,8 +12,7 @@ from auth_service import AuthenticationService
 from auth_config import AuthConfig
 from database import get_db
 
-class AuthenticationMiddleware(BaseHTTPMiddleware):
-    """Middleware to handle authentication for protected routes"""
+class AuthenticationMiddleware(BaseHTTPMiddleware):    """Middleware to handle authentication for protected routes"""
     
     def __init__(self, app, exclude_paths: list = None):
         super().__init__(app)
@@ -74,6 +73,8 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 return response
             
             print(f"DEBUG: Token valid for user {user_info.get('email')} on {request.url.path}")
+            print(f"DEBUG: User info contains: {list(user_info.keys())}")
+            print(f"DEBUG: User permissions: {user_info.get('permissions', 'NOT FOUND')}")
             # Add user info to request state
             request.state.user = user_info
             request.state.session_token = session_token
@@ -123,7 +124,154 @@ def require_access_level(required_level: str):
     return decorator
 
 def get_current_user(request: Request) -> Optional[dict]:
-    """Get current user from request state"""
+    """Get current user from request state with enhanced permissions"""
     if hasattr(request.state, 'user'):
-        return request.state.user
+        user = request.state.user
+        
+        # Ensure permissions are properly populated
+        if 'permissions' in user and isinstance(user['permissions'], dict):
+            # Add convenience properties for template compatibility
+            permissions = user['permissions']
+            user['tickets_write'] = permissions.get('tickets_access') in ['write', 'admin']
+            user['tickets_admin'] = permissions.get('tickets_access') == 'admin'
+            user['purchasing_write'] = permissions.get('purchasing_access') in ['write', 'admin']
+            user['purchasing_admin'] = permissions.get('purchasing_access') == 'admin'
+            user['inventory_write'] = permissions.get('inventory_access') in ['write', 'admin']
+            user['inventory_admin'] = permissions.get('inventory_access') == 'admin'
+            user['forms_write'] = permissions.get('forms_access') in ['write', 'admin']
+            user['forms_admin'] = permissions.get('forms_access') == 'admin'
+            
+        return user
     return None
+
+async def get_menu_context(request: Request) -> dict:
+    """Get menu context with role-based filtering"""
+    try:
+        current_user = get_current_user(request)
+        print(f"DEBUG: get_menu_context - current_user: {current_user}")
+        if not current_user:
+            return {
+                'user': None,
+                'access_level': 'guest',
+                'permissions': {},
+                'menu_visibility': {},
+                'is_authenticated': False            }
+        
+        access_level = current_user.get('access_level', 'student')
+        permissions = current_user.get('permissions', {})
+        
+        print(f"DEBUG: get_menu_context - access_level: {access_level}")
+        print(f"DEBUG: get_menu_context - permissions: {permissions}")
+        
+        # Determine what should be visible in the menu based on permissions
+        menu_visibility = {
+            'tickets': permissions.get('tickets_access', 'none') != 'none',
+            'purchasing': permissions.get('purchasing_access', 'none') != 'none',
+            'inventory': permissions.get('inventory_access', 'none') != 'none' and access_level in ['admin', 'super_admin'],
+            'forms': permissions.get('forms_access', 'none') != 'none' and access_level in ['admin', 'super_admin'],
+            'manage': access_level in ['admin', 'super_admin'],
+            'admin': access_level in ['admin', 'super_admin']
+        }
+        
+        # Generate menu items based on permissions
+        menu_items = []
+        
+        if menu_visibility['tickets']:
+            menu_items.append({
+                'name': 'Tickets',
+                'url': '/tickets',
+                'icon': 'fa-ticket',
+                'access_level': permissions.get('tickets_access'),
+                'dropdown': [
+                    {'name': 'New Tech Ticket', 'url': '/tickets/tech/new'},
+                    {'name': 'Tech Tickets', 'url': '/tickets/tech/open'},
+                    {'name': 'New Maintenance Request', 'url': '/tickets/maintenance/new'},
+                    {'name': 'Maintenance Requests', 'url': '/tickets/maintenance/open'}
+                ]
+            })
+        
+        if menu_visibility['purchasing']:
+            menu_items.append({
+                'name': 'Purchasing',
+                'url': '/purchasing',
+                'icon': 'fa-shopping-cart',
+                'access_level': permissions.get('purchasing_access'),
+                'dropdown': [
+                    {'name': 'New Requisition', 'url': '/purchasing/new'},
+                    {'name': 'My Requisitions', 'url': '/purchasing/my'},
+                    {'name': 'All Requisitions', 'url': '/purchasing/all'}
+                ]
+            })
+        
+        if menu_visibility['inventory']:
+            menu_items.append({
+                'name': 'Inventory',
+                'url': '/inventory',
+                'icon': 'fa-boxes-stacked',
+                'access_level': permissions.get('inventory_access'),
+                'dropdown': [
+                    {'name': 'Add Inventory', 'url': '/inventory/add'},
+                    {'name': 'View Inventory', 'url': '/inventory/view'},
+                    {'name': 'Check Out Items', 'url': '/inventory/checkout'},
+                    {'name': 'Check In Items', 'url': '/inventory/checkin'}
+                ]
+            })
+        
+        if menu_visibility['forms']:
+            menu_items.append({
+                'name': 'Forms',
+                'url': '/forms',
+                'icon': 'fa-file-alt',
+                'access_level': permissions.get('forms_access'),
+                'dropdown': [
+                    {'name': 'Create Form', 'url': '/forms/new'},
+                    {'name': 'View Forms', 'url': '/forms/list'},
+                    {'name': 'Form Submissions', 'url': '/forms/submissions'}
+                ]
+            })
+        
+        if menu_visibility['manage']:
+            menu_items.append({
+                'name': 'Manage',
+                'url': '/manage',
+                'icon': 'fa-gears',
+                'access_level': 'admin',
+                'dropdown': [
+                    {'name': 'Settings', 'url': '/manage/settings'},
+                    {'name': 'System Logs', 'url': '/manage/logs'},
+                    {'name': 'Other Management', 'url': '/manage/other'}
+                ]
+            })
+        
+        if menu_visibility['admin']:
+            menu_items.append({
+                'name': 'Admin',
+                'url': '/admin',
+                'icon': 'fa-user-gear',
+                'access_level': 'admin',
+                'dropdown': [
+                    {'name': 'Users', 'url': '/users/list'},
+                    {'name': 'Buildings', 'url': '/buildings/list'},
+                    {'name': 'Reports', 'url': '/admin/reports'}
+                ]
+            })
+        
+        return {
+            'user': current_user,
+            'access_level': access_level,
+            'permissions': permissions,
+            'menu_visibility': menu_visibility,
+            'menu_items': menu_items,
+            'is_authenticated': True
+        }
+        
+    except Exception as e:
+        print(f"Error getting menu context: {e}")
+        return {
+            'user': None,
+            'access_level': 'guest',
+            'permissions': {},
+            'menu_visibility': {},
+            'menu_items': [],
+            'is_authenticated': False
+        }

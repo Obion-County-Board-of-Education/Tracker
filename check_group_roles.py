@@ -11,9 +11,9 @@ from ocs_shared_models.models import GroupRole
 
 def check_group_roles():
     try:
-        with get_db_session() as db:
-            # Check all existing group roles
-            roles = db.query(GroupRole).all()            print('Existing GroupRole mappings:')
+        with get_db_session() as db:            # Check all existing group roles
+            roles = db.query(GroupRole).all()
+            print('Existing GroupRole mappings:')
             if not roles:
                 print('  No GroupRole mappings found in database!')
             else:

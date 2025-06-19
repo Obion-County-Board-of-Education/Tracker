@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from ocs_shared_models import User, Building, Room
-from ocs_shared_models.permissions import require_admin, require_super_admin, get_current_user
+from ocs_shared_models.permissions import require_admin, require_super_admin
 from ocs_shared_models.audit_service import log_user_action
 from database import get_db
 
@@ -18,14 +18,19 @@ templates = Jinja2Templates(directory="templates")
 # Import menu context helper - will be set by main.py
 get_menu_context = None
 render_template = None
+get_current_user = None
 
 def setup_user_building_routes(app, menu_context_func, render_template_func):
     """Setup user and building management routes"""
     
     # Set module-level references to menu context functions
-    global get_menu_context, render_template
+    global get_menu_context, render_template, get_current_user
     get_menu_context = menu_context_func
     render_template = render_template_func
+    
+    # Import get_current_user from auth_middleware
+    from auth_middleware import get_current_user as auth_get_current_user
+    get_current_user = auth_get_current_user
     
     # Redirect routes for base paths
     @app.get("/users")
@@ -88,7 +93,7 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
                 },
             ]
         
-        return await render_template("users.html", {"request": request, "users": users_data})
+        return await render_template(request, "users.html", {"users": users_data})
 
     @app.get("/buildings/list")
     async def buildings_list(request: Request, db: Session = Depends(get_db)):
@@ -114,12 +119,12 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
                 {"id": 3, "name": "Middle School", "room_count": 20, "created_at": "January 3, 2024"},
             ]
         
-        return await render_template("buildings.html", {"request": request, "buildings": buildings_data})
+        return await render_template(request, "buildings.html", {"buildings": buildings_data})
 
     @app.get("/users/add")
     async def add_user_form(request: Request):
         print("📍 /users/add route accessed")
-        return await render_template("add_user.html", {"request": request})
+        return await render_template(request, "add_user.html", {})
 
     @app.get("/users/edit/{user_id}")
     async def edit_user_form(request: Request, user_id: int, db: Session = Depends(get_db)):
@@ -149,7 +154,7 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
                 "username": f"user{user_id}"
             }
         
-        return await render_template("edit_user.html", {"request": request, "user": user_data})    @app.post("/users/add")
+        return await render_template(request, "edit_user.html", {"user": user_data})    @app.post("/users/add")
     @require_admin
     def add_user_submit(request: Request, name: str = Form(...), email: str = Form(...), role: str = Form(...), db: Session = Depends(get_db)):
         """Add new user to database"""
@@ -267,7 +272,7 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
     @app.get("/buildings/add")
     async def add_building_form(request: Request):
         print("📍 /buildings/add route accessed")
-        return await render_template("add_building.html", {"request": request})
+        return await render_template(request, "add_building.html", {})
 
     @app.post("/buildings/add")
     def add_building_submit(request: Request, name: str = Form(...), db: Session = Depends(get_db)):
@@ -299,10 +304,8 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
                 building_data = {"id": building_id, "name": ""}
         except Exception as e:
             print(f"Database error: {e}")
-            building_data = {"id": building_id, "name": ""}
-        
-        return await render_template("edit_building.html", {
-            "request": request, 
+            building_data = {"id": building_id, "name": ""}        
+        return await render_template(request, "edit_building.html", {
             "building": building_data
         })
 
@@ -370,10 +373,8 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
         except Exception as e:
             print(f"Database error: {e}")
             building_data = {"id": building_id, "name": "Sample Building"}
-            rooms_data = []
-        
-        return await render_template("building_rooms.html", {
-            "request": request, 
+            rooms_data = []        
+        return await render_template(request, "building_rooms.html", {
             "building": building_data, 
             "rooms": rooms_data
         })
