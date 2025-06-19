@@ -8,12 +8,14 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from datetime import datetime
+from typing import Optional
 from ocs_shared_models import User, Building, Room, SystemMessage
 from ocs_shared_models.timezone_utils import central_now, format_central_time
 from database import get_db, init_database
 from services import tickets_service, purchasing_service
 from management_service import management_service
 from service_health import health_checker
+from health_router import router as health_router
 
 # Initialize database on startup
 try:
@@ -25,6 +27,9 @@ except Exception as e:
 app = FastAPI(title="OCS Portal (Python)")
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Include health router
+app.include_router(health_router)
 
 async def get_menu_context():
     """Get menu visibility context for templates"""
@@ -100,8 +105,7 @@ async def home(request: Request, db: Session = Depends(get_db)):
         }
     
     # Get menu visibility context
-    menu_context = await get_menu_context()
-    
+    menu_context = await get_menu_context()    
     return templates.TemplateResponse("index.html", {
         "request": request,
         "homepage_message": homepage_message,
@@ -411,6 +415,25 @@ async def export_tech_tickets(request: Request):
         # Return to the tickets page with error
         return RedirectResponse("/tickets/tech/open", status_code=303)
 
+@app.get("/tickets/maintenance/export")
+async def export_maintenance_tickets(request: Request):
+    """Export maintenance tickets to CSV"""
+    try:
+        csv_content = await tickets_service.export_maintenance_tickets_csv()
+        
+        # Generate filename with current date
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        filename = f"maintenance_tickets_export_{current_date}.csv"
+        
+        return Response(
+            content=csv_content,
+            media_type='text/csv',
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        print(f"❌ Error exporting maintenance tickets: {e}")
+        # Return to the tickets page with error        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+
 # CSV Import Routes
 @app.post("/tickets/tech/import")
 async def import_tech_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
@@ -439,6 +462,208 @@ async def import_tech_tickets(request: Request, file: UploadFile = File(...), op
         error_msg = str(e).replace("'", "").replace('"', "")[:100]  # Sanitize and limit length
         return RedirectResponse(f"/tickets/tech/open?import_error=true&message={error_msg}", status_code=303)
 
+@app.post("/tickets/maintenance/import")
+async def import_maintenance_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
+    """Import maintenance tickets from CSV"""
+    try:
+        # Read file content
+        file_content = await file.read()
+        
+        # Call the import service
+        result = await tickets_service.import_maintenance_tickets_csv(file_content, operation)
+        
+        print(f"✅ Maintenance tickets import successful: {result}")
+        
+        # Parse the result to get import count
+        import_count = "unknown"
+        if result and "imported" in str(result).lower():
+            # Try to extract the number from the result
+            import re
+            match = re.search(r'(\d+)', str(result))
+            if match:
+                import_count = match.group(1)
+        
+        return RedirectResponse(f"/tickets/maintenance/open?import_success=true&count={import_count}&mode={operation}", status_code=303)
+    except Exception as e:
+        print(f"❌ Error importing maintenance tickets: {e}")
+        error_msg = str(e).replace("'", "").replace('"', "")[:100]  # Sanitize and limit length
+        return RedirectResponse(f"/tickets/maintenance/open?import_error=true&message={error_msg}", status_code=303)
+
+# Archive routes must come before parameterized routes
+@app.get("/tickets/tech/archives")
+async def tech_tickets_archives(
+    request: Request,
+    archive: Optional[str] = None,
+    status_filter: Optional[str] = None
+):
+    """Display tech ticket archives using main template with archive selector"""
+    try:
+        # Get list of available archives
+        archives = await tickets_service.get_tech_archives()
+        
+        tickets = []
+        selected_archive = None
+        archive_info = {}
+        
+        # If an archive is selected, get its tickets
+        if archive:
+            archive_data = await tickets_service.get_tech_archive_tickets(archive, status_filter)
+            tickets = archive_data.get("tickets", [])
+            selected_archive = archive
+            archive_info = next((a for a in archives if a["name"] == archive), {})
+            
+            # Format dates for template display
+            for ticket in tickets:
+                if ticket.get("created_at"):
+                    try:
+                        created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
+                        ticket["created_at"] = created_at
+                    except:
+                        ticket["created_at"] = None
+                        
+                if ticket.get("updated_at"):
+                    try:
+                        updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
+                        ticket["updated_at"] = updated_at
+                    except:
+                        ticket["updated_at"] = None
+        
+        buildings = await tickets_service.get_buildings()
+        
+        # Get closed tickets count for consistency
+        closed_count = 0
+        try:
+            closed_response = await tickets_service.get_closed_tech_tickets()
+            if isinstance(closed_response, dict) and "tickets" in closed_response:
+                closed_count = len(closed_response["tickets"])
+        except:
+            pass
+            
+    except Exception as e:
+        print(f"Error fetching tech archive tickets: {e}")
+        tickets = []
+        buildings = []
+        archives = []
+        closed_count = 0
+    
+    menu_context = await get_menu_context()
+    return templates.TemplateResponse("tech_tickets_list.html", {
+        "request": request,
+        "tickets": tickets,
+        "buildings": buildings,
+        "page_title": "Technology Ticket Archives",
+        "status_filter": "archived",
+        "archives": archives,
+        "selected_archive": selected_archive,
+        "archive_info": archive_info,
+        "closed_count": closed_count,
+        "current_datetime": datetime.now(),
+        **menu_context
+    })
+
+@app.get("/tickets/maintenance/archives")
+async def maintenance_tickets_archives(
+    request: Request,
+    archive: Optional[str] = None,
+    status_filter: Optional[str] = None
+):
+    """Display maintenance ticket archives using main template with archive selector"""
+    try:
+        # Get list of available archives
+        archives = await tickets_service.get_maintenance_archives()
+        
+        tickets = []
+        selected_archive = None
+        archive_info = {}
+        
+        # If an archive is selected, get its tickets
+        if archive:
+            archive_data = await tickets_service.get_maintenance_archive_tickets(archive, status_filter)
+            tickets = archive_data.get("tickets", [])
+            selected_archive = archive
+            archive_info = next((a for a in archives if a["name"] == archive), {})
+            
+            # Format dates for template display
+            for ticket in tickets:
+                if ticket.get("created_at"):
+                    try:
+                        created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
+                        ticket["created_at"] = created_at
+                    except:
+                        ticket["created_at"] = None
+                        
+                if ticket.get("updated_at"):
+                    try:
+                        updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
+                        ticket["updated_at"] = updated_at
+                    except:
+                        ticket["updated_at"] = None
+        
+        buildings = await tickets_service.get_buildings()
+        
+        # Get closed tickets count for consistency
+        closed_count = 0
+        try:
+            closed_response = await tickets_service.get_closed_maintenance_tickets()
+            if isinstance(closed_response, dict) and "tickets" in closed_response:
+                closed_count = len(closed_response["tickets"])
+        except:
+            pass
+            
+    except Exception as e:
+        print(f"Error fetching maintenance archive tickets: {e}")
+        tickets = []
+        buildings = []
+        archives = []
+        closed_count = 0
+    
+    menu_context = await get_menu_context()
+    return templates.TemplateResponse("maintenance_tickets_list.html", {
+        "request": request,
+        "tickets": tickets,
+        "buildings": buildings,
+        "page_title": "Maintenance Ticket Archives",
+        "status_filter": "archived",
+        "archives": archives,
+        "selected_archive": selected_archive,
+        "archive_info": archive_info,
+        "closed_count": closed_count,
+        "current_datetime": datetime.now(),
+        **menu_context
+    })
+
+# Clear All Tickets Routes - Must come before parameterized routes
+@app.post("/tickets/tech/clear")
+async def clear_tech_tickets(request: Request):
+    """Clear all tech tickets"""
+    try:
+        result = await tickets_service.clear_all_tech_tickets()
+        print(f"✅ Tech tickets cleared: {result}")
+        
+        # Redirect back to tech tickets page with success message
+        return RedirectResponse("/tickets/tech/open?message=Tech tickets cleared successfully", status_code=303)
+        
+    except Exception as e:
+        print(f"❌ Error clearing tech tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/tech/open?error=Failed to clear tickets", status_code=303)
+
+@app.post("/tickets/maintenance/clear")
+async def clear_maintenance_tickets(request: Request):
+    """Clear all maintenance tickets"""
+    try:
+        result = await tickets_service.clear_all_maintenance_tickets()
+        print(f"✅ Maintenance tickets cleared: {result}")
+        
+        # Redirect back to maintenance tickets page with success message
+        return RedirectResponse("/tickets/maintenance/open?message=Maintenance tickets cleared successfully", status_code=303)
+        
+    except Exception as e:
+        print(f"❌ Error clearing maintenance tickets: {e}")
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/maintenance/open?error=Failed to clear tickets", status_code=303)
+
+# Parameterized routes - Must come after specific routes
 @app.get("/tickets/tech/{ticket_id}")
 async def view_tech_ticket(request: Request, ticket_id: int):
     """View individual technology ticket details"""
@@ -670,6 +895,8 @@ async def maintenance_tickets_closed(request: Request):
                 except Exception as e:
                     print(f"Warning: Could not parse updated_at '{ticket.get('updated_at')}': {e}")
                     ticket["updated_at"] = None
+            else:
+                ticket["updated_at"] = None
         
     except Exception as e:
         print(f"Error fetching tickets: {e}")
@@ -679,371 +906,64 @@ async def maintenance_tickets_closed(request: Request):
     menu_context = await get_menu_context()
     return templates.TemplateResponse("maintenance_tickets_list.html", {
         "request": request,
-        "tickets": tickets,
-        "buildings": buildings,
-        "page_title": "Closed Maintenance Requests",        "status_filter": "closed",
+        "tickets": tickets,        "buildings": buildings,
+        "page_title": "Closed Maintenance Requests",
+        "status_filter": "closed",
         "current_datetime": datetime.now(),
         **menu_context
     })
 
-@app.get("/tickets/maintenance/export")
-async def export_maintenance_tickets(request: Request):
-    """Export maintenance tickets to CSV"""
+# Roll Database Routes
+@app.post("/tickets/tech/roll-database")
+async def roll_tech_database(request: Request, archive_name: str = Form(...)):
+    """Roll the tech database - archive current tickets and create new empty table"""
     try:
-        csv_content = await tickets_service.export_maintenance_tickets_csv()
-        
-        # Generate filename with current date
-        current_date = datetime.now().strftime('%Y-%m-%d')
-        filename = f"maintenance_tickets_export_{current_date}.csv"
-        
-        return Response(
-            content=csv_content,
-            media_type='text/csv',
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        result = await tickets_service.roll_tech_database(archive_name)
+        if result.get("success"):
+            redirect_url = "/tickets/tech/open?roll_success=true&archive_name=" + archive_name
+        else:
+            error_message = result.get("message", "Unknown error")
+            redirect_url = f"/tickets/tech/open?roll_error=true&message={error_message}"
+        return RedirectResponse(redirect_url, status_code=303)
+    except Exception as e:
+        print(f"Error rolling tech database: {e}")
+        return RedirectResponse(
+            f"/tickets/tech/open?roll_error=true&message={str(e)}", 
+            status_code=303
         )
-    except Exception as e:
-        print(f"❌ Error exporting maintenance tickets: {e}")
-        # Return to the tickets page with error
-        return RedirectResponse("/tickets/maintenance/open", status_code=303)
 
-@app.post("/tickets/maintenance/import")
-async def import_maintenance_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
-    """Import maintenance tickets from CSV"""
+@app.post("/tickets/maintenance/roll-database")
+async def roll_maintenance_database(request: Request, archive_name: str = Form(...)):
+    """Roll the maintenance database - archive current tickets and create new empty table"""
     try:
-        # Read file content
-        file_content = await file.read()
-        
-        # Call the import service
-        result = await tickets_service.import_maintenance_tickets_csv(file_content, operation)
-        
-        print(f"✅ Maintenance tickets import successful: {result}")
-        
-        # Parse the result to get import count
-        import_count = "unknown"
-        if result and "imported" in str(result).lower():
-            # Try to extract the number from the result
-            import re
-            match = re.search(r'(\d+)', str(result))
-            if match:
-                import_count = match.group(1)
-        
-        return RedirectResponse(f"/tickets/maintenance/open?import_success=true&count={import_count}&mode={operation}", status_code=303)
-    except Exception as e:
-        print(f"❌ Error importing maintenance tickets: {e}")
-        error_msg = str(e).replace("'", "").replace('"', "")[:100]  # Sanitize and limit length
-        return RedirectResponse(f"/tickets/maintenance/open?import_error=true&message={error_msg}", status_code=303)
-
-@app.get("/tickets/maintenance/{ticket_id}")
-async def view_maintenance_ticket(request: Request, ticket_id: int):
-    """View individual maintenance ticket details"""
-    try:
-        ticket = await tickets_service.get_maintenance_ticket(ticket_id)
-        if not ticket:
-            return RedirectResponse("/tickets/maintenance/open", status_code=303)
-        
-        # Get ticket update history
-        updates = await tickets_service.get_ticket_updates("maintenance", ticket_id)
-        
-        # Format dates for display
-        if ticket.get("created_at"):
-            try:
-                created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
-                ticket["created_at"] = created_at.strftime("%B %d, %Y at %I:%M %p")
-            except:
-                pass
-                
-        if ticket.get("updated_at"):
-            try:
-                updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
-                ticket["updated_at"] = updated_at.strftime("%B %d, %Y at %I:%M %p")
-            except:
-                pass
-        
-        # Format update timestamps
-        for update in updates:
-            try:
-                created_at = datetime.fromisoformat(update["created_at"].replace('Z', '+00:00'))
-                update["created_at"] = created_at.strftime("%B %d, %Y at %I:%M %p")
-            except:
-                pass
-        
-    except Exception as e:
-        print(f"Error fetching ticket: {e}")
-        return RedirectResponse("/tickets/maintenance/open", status_code=303)
-    
-    menu_context = await get_menu_context()
-    return templates.TemplateResponse("maintenance_ticket_detail.html", {
-        "request": request,
-        "ticket": ticket,
-        "updates": updates,
-        **menu_context
-    })
-
-@app.post("/tickets/maintenance/{ticket_id}/update")
-async def update_maintenance_ticket_status(
-    ticket_id: int,
-    status: str = Form(...),
-    update_message: str = Form(default="")
-):
-    """Update maintenance ticket status and add update message via Tickets API"""
-    try:
-        if update_message.strip():
-            update_data = {
-                "status": status,
-                "update_message": update_message.strip(),
-                "updated_by": "System User"  # Replace with actual user when auth is implemented
-            }
-            success = await tickets_service.update_maintenance_ticket_comprehensive(ticket_id, update_data)
+        result = await tickets_service.roll_maintenance_database(archive_name)
+        if result.get("success"):
+            redirect_url = "/tickets/maintenance/open?roll_success=true&archive_name=" + archive_name
         else:
-            success = await tickets_service.update_maintenance_ticket_status(ticket_id, status)
-        if success:
-            print(f"Maintenance ticket {ticket_id} updated - Status: {status}")
-        else:
-            print(f"Failed to update maintenance ticket {ticket_id}")
+            error_message = result.get("message", "Unknown error")
+            redirect_url = f"/tickets/maintenance/open?roll_error=true&message={error_message}"
+        return RedirectResponse(redirect_url, status_code=303)
     except Exception as e:
-        print(f"Error updating maintenance ticket: {e}")
-    return RedirectResponse(f"/tickets/maintenance/{ticket_id}", status_code=303)
+        print(f"Error rolling maintenance database: {e}")
+        return RedirectResponse(
+            f"/tickets/maintenance/open?roll_error=true&message={str(e)}", 
+            status_code=303
+        )
 
-# Clear Tickets Routes
-@app.post("/tickets/tech/clear")
-async def clear_tech_tickets(request: Request):
-    """Clear all technology tickets"""
+@app.get("/tickets/tech/archives/{archive_name}/delete")
+async def delete_tech_archive(archive_name: str):
+    """Delete a tech ticket archive"""
     try:
-        result = await tickets_service.clear_all_tech_tickets()
-        if result.get("success", True):
-            print(f"✅ Tech tickets cleared: {result.get('message', 'Success')}")
-        else:
-            print(f"❌ Failed to clear tech tickets: {result.get('message', 'Unknown error')}")
+        result = await tickets_service.delete_tech_archive(archive_name)
+        return result
     except Exception as e:
-        print(f"❌ Error clearing tech tickets: {e}")
-    return RedirectResponse("/tickets/tech/open", status_code=303)
+        return {"success": False, "message": f"Error deleting archive: {str(e)}"}
 
-@app.post("/tickets/maintenance/clear")
-async def clear_maintenance_tickets(request: Request):
-    """Clear all maintenance tickets"""
+@app.get("/tickets/maintenance/archives/{archive_name}/delete")
+async def delete_maintenance_archive(archive_name: str):
+    """Delete a maintenance ticket archive"""
     try:
-        result = await tickets_service.clear_all_maintenance_tickets()
-        if result.get("success", True):
-            print(f"✅ Maintenance tickets cleared: {result.get('message', 'Success')}")
-        else:
-            print(f"❌ Failed to clear maintenance tickets: {result.get('message', 'Unknown error')}")
+        result = await tickets_service.delete_maintenance_archive(archive_name)
+        return result
     except Exception as e:
-        print(f"❌ Error clearing maintenance tickets: {e}")
-    return RedirectResponse("/tickets/maintenance/open", status_code=303)
-
-# Keep other non-ticket routes (inventory, users, etc.)
-@app.get("/inventory/add")
-async def add_inventory_form(request: Request):
-    menu_context = await get_menu_context()
-    return templates.TemplateResponse("add_inventory.html", {
-        "request": request,
-        **menu_context
-    })
-
-@app.post("/inventory/add")
-async def add_inventory_submit(request: Request):
-    menu_context = await get_menu_context()
-    return templates.TemplateResponse("inventory_success.html", {
-        "request": request,
-        **menu_context
-    })
-
-@app.get("/tickets/success")
-async def ticket_success(request: Request):
-    menu_context = await get_menu_context()
-    return templates.TemplateResponse("ticket_success.html", {
-        "request": request,
-        **menu_context
-    })
-
-# Management Routes - Basic Device Register route
-@app.get("/manage/device-register")
-async def device_register(request: Request):
-    """Basic device register page - placeholder"""
-    menu_context = await get_menu_context()
-    return templates.TemplateResponse("manage.html", {
-        "request": request,
-        "page_title": "Device Register",
-        "content": "Device Register functionality - Coming Soon",
-        **menu_context
-    })
-
-# Forms Routes
-@app.get("/forms/time")
-async def time_forms(request: Request):
-    """Time forms management page"""
-    try:
-        menu_context = await get_menu_context()
-        return templates.TemplateResponse("forms/time.html", {
-            "request": request,
-            **menu_context
-        })
-    except Exception as e:
-        print(f"Error loading time forms: {e}")
-        return RedirectResponse("/", status_code=303)
-
-@app.get("/forms/fuel")
-async def fuel_tracking(request: Request):
-    """Fuel tracking management page"""
-    try:
-        menu_context = await get_menu_context()
-        return templates.TemplateResponse("forms/fuel.html", {
-            "request": request,
-            **menu_context
-        })
-    except Exception as e:
-        print(f"Error loading fuel tracking: {e}")
-        return RedirectResponse("/", status_code=303)
-
-# Purchasing Routes
-@app.get("/purchasing/requisitions")
-async def requisitions_page(request: Request):
-    """Requisitions management page"""
-    try:
-        requisitions = await purchasing_service.get_requisitions()
-        menu_context = await get_menu_context()
-        return templates.TemplateResponse("purchasing/requisitions.html", {
-            "request": request,
-            "requisitions": requisitions,
-            **menu_context
-        })
-    except Exception as e:
-        print(f"Error loading requisitions: {e}")
-        return RedirectResponse("/", status_code=303)
-
-@app.get("/purchasing/purchase-orders")
-async def purchase_orders_page(request: Request):
-    """Purchase Orders management page"""
-    try:
-        purchase_orders = await purchasing_service.get_purchase_orders()
-        menu_context = await get_menu_context()
-        return templates.TemplateResponse("purchasing/purchase_orders.html", {
-            "request": request,
-            "purchase_orders": purchase_orders,
-            **menu_context
-        })
-    except Exception as e:
-        print(f"Error loading purchase orders: {e}")
-        return RedirectResponse("/", status_code=303)
-
-@app.get("/purchasing/requisitions/new")
-async def new_requisition_page(request: Request):
-    """Create new requisition page"""
-    try:
-        buildings = await tickets_service.get_buildings()  # Reuse buildings API from tickets
-        menu_context = await get_menu_context()
-        return templates.TemplateResponse("purchasing/new_requisition.html", {
-            "request": request,
-            "buildings": buildings,
-            **menu_context
-        })
-    except Exception as e:
-        print(f"Error loading new requisition form: {e}")
-        return RedirectResponse("/", status_code=303)
-
-@app.post("/purchasing/requisitions/new")
-async def create_requisition(
-    request: Request,
-    title: str = Form(...),
-    description: str = Form(None),
-    department: str = Form(...),
-    requested_by: str = Form(...),
-    estimated_cost: str = Form(None),
-    justification: str = Form(None),
-    priority: str = Form("normal"),
-    building_id: int = Form(None)
-):
-    """Create a new requisition"""
-    try:
-        requisition_data = {
-            "title": title,
-            "description": description,
-            "department": department,
-            "requested_by": requested_by,
-            "estimated_cost": estimated_cost,
-            "justification": justification,
-            "priority": priority,
-            "building_id": building_id
-        }
-        
-        result = await purchasing_service.create_requisition(requisition_data)
-        if result:
-            return RedirectResponse("/purchasing/requisitions", status_code=303)
-        else:
-            # Handle error case
-            return RedirectResponse("/purchasing/requisitions/new", status_code=303)
-    except Exception as e:
-        print(f"Error creating requisition: {e}")
-        return RedirectResponse("/purchasing/requisitions/new", status_code=303)
-
-@app.get("/purchasing/purchase-orders/new")
-async def new_purchase_order_page(request: Request):
-    """Create new purchase order page"""
-    try:
-        # Get approved requisitions for selection
-        approved_requisitions = await purchasing_service.get_requisitions(status_filter="approved")
-        menu_context = await get_menu_context()
-        return templates.TemplateResponse("purchasing/new_purchase_order.html", {
-            "request": request,
-            "approved_requisitions": approved_requisitions,
-            **menu_context
-        })
-    except Exception as e:
-        print(f"Error loading new purchase order form: {e}")
-        return RedirectResponse("/", status_code=303)
-
-@app.post("/purchasing/purchase-orders/new")
-async def create_purchase_order(
-    request: Request,
-    po_number: str = Form(...),
-    requisition_id: int = Form(None),
-    vendor_name: str = Form(...),
-    vendor_contact: str = Form(None),
-    total_amount: str = Form(None),
-    description: str = Form(None),
-    delivery_address: str = Form(None),
-    created_by: str = Form(...)
-):
-    """Create a new purchase order"""
-    try:
-        po_data = {
-            "po_number": po_number,
-            "requisition_id": requisition_id,
-            "vendor_name": vendor_name,
-            "vendor_contact": vendor_contact,
-            "total_amount": total_amount,
-            "description": description,
-            "delivery_address": delivery_address,
-            "created_by": created_by
-        }
-        
-        result = await purchasing_service.create_purchase_order(po_data)
-        if result:
-            return RedirectResponse("/purchasing/purchase-orders", status_code=303)
-        else:
-            # Handle error case
-            return RedirectResponse("/purchasing/purchase-orders/new", status_code=303)
-    except Exception as e:
-        print(f"Error creating purchase order: {e}")
-        return RedirectResponse("/purchasing/purchase-orders/new", status_code=303)
-
-# Health check and service status endpoints
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for the portal"""
-    return {"status": "healthy", "service": "portal"}
-
-@app.get("/api/services/status")
-async def get_services_status():
-    """Get status of all microservices"""
-    try:
-        menu_visibility = await health_checker.get_menu_visibility()
-        service_status = await health_checker.get_service_health()
-        return {
-            "menu_visibility": menu_visibility,
-            "service_status": service_status,
-            "timestamp": central_now().isoformat()
-        }
-    except Exception as e:
-        print(f"Error getting service status: {e}")
-        return {"error": str(e), "timestamp": central_now().isoformat()}
+        return {"success": False, "message": f"Error deleting archive: {str(e)}"}

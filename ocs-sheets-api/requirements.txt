@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-jinja2
-python-multipart
-httpx
-pydantic
-apscheduler
--e ./ocs_shared_models

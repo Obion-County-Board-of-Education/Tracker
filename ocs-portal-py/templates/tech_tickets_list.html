@@ -15,34 +15,55 @@
 <div class="tickets-container">
     <!-- Filter and Search Section -->
     <div class="filters-section">
-        <div class="filter-tabs">
-            <div class="tab-navigation">
+        <div class="filter-tabs">            <div class="tab-navigation">
                 <a href="/tickets/tech/open" class="filter-tab {% if status_filter == 'open' %}active{% endif %}">
                     <i class="fa fa-clock"></i> Open Tickets
                 </a>
                 <a href="/tickets/tech/closed" class="filter-tab {% if status_filter == 'closed' %}active{% endif %}">
                     <i class="fa fa-check-circle"></i> Closed Tickets
                 </a>
+                <a href="/tickets/tech/archives" class="filter-tab {% if status_filter == 'archived' %}active{% endif %}">
+                    <i class="fa fa-archive"></i> Archives
+                </a>
             </div>
-            <!-- DEBUG: Before action buttons -->
-            <div class="action-buttons">                <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
+            <!-- DEBUG: Before action buttons -->            <div class="action-buttons">                <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
                     <i class="fa fa-upload"></i> Import CSV
                 </button>
                 <a href="/tickets/tech/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export all tickets to CSV">
                     <i class="fa fa-download"></i> Export CSV
-                </a>
+                </a>                <button class="btn btn-warning btn-sm roll-database-btn" onclick="showRollDatabaseModal('tech')" title="Archive current tickets and start fresh">
+                    <i class="fa fa-refresh"></i> Roll Database
+                </button>
                 <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('tech')" title="Clear all tickets from database">
                     <i class="fa fa-trash"></i> Clear All Tickets
                 </button>
             </div>
         </div>
-        
-        <div class="search-and-filters">
-            <div class="search-box">
-                <i class="fa fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search tickets by title, school, or created by..." />
-            </div>
-              <div class="filter-controls">
+          <div class="search-and-filters">
+            {% if status_filter == 'archived' %}
+                <!-- Archive Selector (replaces search bar for archives) -->
+                <div class="archive-selector-container">
+                    <form method="get" action="/tickets/tech/archives" id="archiveForm">
+                        <label for="archive-select">Select Archive:</label>
+                        <select name="archive" id="archive-select" class="archive-dropdown" onchange="this.form.submit()">
+                            <option value="">Choose an archive...</option>
+                            {% if archives %}
+                                {% for archive in archives %}
+                                    <option value="{{ archive.name }}" {% if selected_archive == archive.name %}selected{% endif %}>
+                                        {{ archive.name }} ({{ archive.ticket_count }} tickets)
+                                    </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </form>
+                </div>
+            {% else %}
+                <!-- Regular Search Bar -->
+                <div class="search-box">
+                    <i class="fa fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search tickets by title, school, or created by..." />
+                </div>
+            {% endif %}              <div class="filter-controls">
                 <select id="buildingFilter" class="filter-select">
                     <option value="">All Buildings</option>
                     {% if buildings %}
@@ -51,6 +72,15 @@
                         {% endfor %}
                     {% endif %}
                 </select>
+                
+                {% if status_filter == 'archived' and selected_archive %}
+                    <!-- Delete Archive Button -->
+                    <button class="btn btn-danger btn-sm delete-archive-btn" 
+                            onclick="deleteArchive('{{ selected_archive }}', 'tech')" 
+                            title="Delete this archive permanently">
+                        <i class="fa fa-trash"></i> Delete Archive
+                    </button>
+                {% endif %}
             </div>
         </div>
         
@@ -223,6 +253,71 @@
   </div>
 </div>
 
+<!-- Roll Database Modal -->
+<div id="rollDatabaseModal-tech" class="modal" style="display:none;">
+  <div class="modal-content roll-database-modal">
+    <div class="modal-header">
+      <h2><i class="fa fa-refresh"></i> Roll Technology Database</h2>
+      <span class="close" onclick="closeRollDatabaseModal('tech')" title="Close">&times;</span>
+    </div>
+    
+    <form method="post" action="/tickets/tech/roll-database">
+      <div class="modal-body">
+        <div class="warning-section">
+          <div class="warning-box">
+            <i class="fa fa-exclamation-triangle"></i>
+            <div class="warning-content">
+              <h4>⚠️ Warning: This action will:</h4>
+              <ul>
+                <li>Archive all current tickets (both open and closed)</li>
+                <li>Create a new empty tickets table</li>
+                <li>Reset the closed ticket counter to zero</li>
+                <li><strong>This cannot be undone!</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="archiveName-tech">
+            <i class="fa fa-tag"></i> Archive Table Name <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="archiveName-tech" 
+            name="archive_name" 
+            placeholder="e.g., 2024_fall_semester, q4_2024, december_archive"
+            pattern="[a-zA-Z0-9_]+"
+            title="Only letters, numbers, and underscores allowed"
+            required 
+          />
+          <div class="help-text">
+            <i class="fa fa-info-circle"></i>
+            This will create a table named: <code>tech_tickets_archive_<strong>[your_name]</strong></code>
+          </div>
+        </div>
+        
+        <div class="confirmation-section">
+          <label class="checkbox-label">
+            <input type="checkbox" id="confirmRoll-tech" required>
+            <span class="checkmark"></span>
+            I understand this will permanently archive all current tickets and cannot be undone
+          </label>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeRollDatabaseModal('tech')">
+          <i class="fa fa-times"></i> Cancel
+        </button>
+        <button type="submit" class="btn btn-warning" id="rollBtn-tech" disabled>
+          <i class="fa fa-refresh"></i> Roll Database
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <style>
 .content-header {
     display: flex;
@@ -322,6 +417,22 @@
     transform: translateY(-1px);
 }
 
+.roll-database-btn {
+    background: #fd7e14;
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.roll-database-btn:hover {
+    background: #e8690b;
+    transform: translateY(-1px);
+}
+
 .export-csv-btn {
     background: #6c757d;
     border: none;
@@ -394,6 +505,47 @@
 .search-box input:focus {
     outline: none;
     border-color: #007bff;
+}
+
+/* Archive selector styling */
+.archive-selector-container {
+    flex: 1;
+    min-width: 300px;
+}
+
+.archive-selector-container form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.archive-selector-container label {
+    font-weight: 500;
+    color: #495057;
+    white-space: nowrap;
+    font-size: 0.95rem;
+}
+
+.archive-dropdown {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: white;
+    color: #495057;
+    transition: border-color 0.2s;
+    cursor: pointer;
+}
+
+.archive-dropdown:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.archive-dropdown option {
+    padding: 8px;
 }
 
 .filter-controls {
@@ -946,6 +1098,77 @@
         justify-content: center;
     }
 }
+
+/* Roll Database Modal Styles */
+.roll-database-modal {
+  max-width: 500px;
+}
+
+.warning-section {
+  margin-bottom: 1.5rem;
+}
+
+.warning-box {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 8px;
+}
+
+.warning-box i {
+  font-size: 2rem;
+  color: #f0ad4e;
+}
+
+.warning-content h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #856404;
+}
+
+.warning-content ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #856404;
+}
+
+.confirmation-section {
+  margin-top: 1.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 0.25rem;
+}
+
+.required {
+  color: #dc3545;
+}
+
+.help-text {
+  margin-top: 0.5rem;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.help-text code {
+  background: #f8f9fa;
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  border: 1px solid #e9ecef;
+}
 </style>
 
 <script>
@@ -1028,7 +1251,7 @@ function showNotification(message, type = 'info') {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check for import success/error messages from URL parameters
+    // Check for import success/error messages and roll database messages from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     
     if (urlParams.get('import_success') === 'true') {
@@ -1045,6 +1268,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const message = urlParams.get('message') || 'Unknown error occurred during import';
         
         showNotification(`Import failed: ${message}`, 'error');
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+    } else if (urlParams.get('roll_success') === 'true') {
+        const archiveName = urlParams.get('archive_name') || 'unknown';
+        
+        showNotification(`Successfully archived all tickets to tech_tickets_archive_${archiveName}! The database has been rolled over to a fresh state.`, 'success');
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+    } else if (urlParams.get('roll_error') === 'true') {
+        const errorMessage = urlParams.get('message') || 'Unknown error occurred during database roll';
+        
+        showNotification(`Database roll failed: ${errorMessage}`, 'error');
         
         // Clean up URL parameters
         const cleanUrl = window.location.pathname + window.location.hash;
@@ -1297,10 +1536,144 @@ function resetImportModal(type) {
   }
 }
 
+function showRollDatabaseModal(type) {
+  document.getElementById('rollDatabaseModal-' + type).style.display = 'block';
+  
+  // Set up checkbox to enable/disable submit button
+  const confirmCheckbox = document.getElementById('confirmRoll-' + type);
+  const rollBtn = document.getElementById('rollBtn-' + type);
+  const archiveNameInput = document.getElementById('archiveName-' + type);
+  
+  confirmCheckbox.addEventListener('change', function() {
+    rollBtn.disabled = !this.checked || !archiveNameInput.value;
+  });
+  
+  archiveNameInput.addEventListener('input', function() {
+    rollBtn.disabled = !confirmCheckbox.checked || !this.value;
+  });
+  
+  // Form submission validation
+  document.querySelector('#rollDatabaseModal-' + type + ' form').addEventListener('submit', function(e) {
+    const archiveName = archiveNameInput.value;
+    const confirmCheckbox = document.getElementById('confirmRoll-' + type);
+    const rollBtn = document.getElementById('rollBtn-' + type);
+    
+    // Validate archive name format
+    if (!/^[a-zA-Z0-9_]+$/.test(archiveName)) {
+      e.preventDefault();
+      alert('Archive name can only contain letters, numbers, and underscores.');
+      return;
+    }
+    
+    if (!confirmCheckbox.checked) {
+      e.preventDefault();
+      alert('Please confirm that you understand this action cannot be undone.');
+      return;
+    }
+    
+    // Final confirmation
+    const confirmMsg = `Are you absolutely sure you want to roll the ${type} database?\n\n` +
+                      `This will:\n` +
+                      `• Archive all current tickets to: ${type}_tickets_archive_${archiveName}\n` +
+                      `• Create a new empty tickets table\n` +
+                      `• Reset the closed ticket counter\n\n` +
+                      `This action CANNOT be undone!`;
+    
+    if (!confirm(confirmMsg)) {
+      e.preventDefault();
+      return;
+    }
+    
+    // Show loading state
+    rollBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Rolling Database...';
+    rollBtn.disabled = true;
+  });
+}
+
+function closeRollDatabaseModal(type) {
+  document.getElementById('rollDatabaseModal-' + type).style.display = 'none';
+  resetRollDatabaseModal(type);
+}
+
+function resetRollDatabaseModal(type) {
+  const archiveNameInput = document.getElementById('archiveName-' + type);
+  const confirmCheckbox = document.getElementById('confirmRoll-' + type);
+  const rollBtn = document.getElementById('rollBtn-' + type);
+  
+  // Reset form
+  archiveNameInput.value = '';
+  confirmCheckbox.checked = false;
+  rollBtn.disabled = true;
+  rollBtn.innerHTML = '<i class="fa fa-refresh"></i> Roll Database';
+    // Clear any custom validity
+  archiveNameInput.setCustomValidity('');
+}
+
+// Delete archive function
+function deleteArchive(archiveName, ticketType) {
+  if (!archiveName) {
+    showNotification('No archive selected for deletion', 'error');
+    return;
+  }
+  
+  const confirmation = confirm(`Are you sure you want to permanently delete the archive "${archiveName}"?\n\nThis action cannot be undone and will remove all tickets in this archive.`);
+  
+  if (confirmation) {
+    // Show loading state
+    const deleteBtn = document.querySelector('.delete-archive-btn');
+    if (deleteBtn) {
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Deleting...';
+    }    // Make GET request to delete via query parameter
+    fetch(`/tickets/${ticketType}/archives/${archiveName}/delete`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showNotification(`Archive "${archiveName}" deleted successfully`, 'success');
+        // Redirect to archives page without selected archive
+        setTimeout(() => {
+          window.location.href = `/tickets/${ticketType}/archives`;
+        }, 1500);
+      } else {
+        showNotification(`Error deleting archive: ${data.message}`, 'error');
+        // Reset button state
+        if (deleteBtn) {
+          deleteBtn.disabled = false;
+          deleteBtn.innerHTML = '<i class="fa fa-trash"></i> Delete Archive';
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error deleting archive:', error);
+      showNotification('Error deleting archive. Please try again.', 'error');
+      // Reset button state
+      if (deleteBtn) {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="fa fa-trash"></i> Delete Archive';
+      }
+    });
+  }
+}
+
+// Update window.onclick to close modal on outside click
 window.onclick = function(event) {
   ['tech','maintenance'].forEach(function(type) {
-    var modal = document.getElementById('importCsvModal-' + type);
-    if (modal && event.target === modal) modal.style.display = 'none';
+    var importModal = document.getElementById('importCsvModal-' + type);
+    var rollModal = document.getElementById('rollDatabaseModal-' + type);
+    
+    if (importModal && event.target === importModal) {
+      importModal.style.display = 'none';
+    }
+    
+    if (rollModal && event.target === rollModal) {
+      rollModal.style.display = 'none';
+      resetRollDatabaseModal(type);
+    }
   });
 };
 </script>

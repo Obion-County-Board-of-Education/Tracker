@@ -1,9 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+<head>    <meta charset="UTF-8">
     <title>OCS Portal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="manifest" href="/static/site.webmanifest">
+    
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -17,9 +24,7 @@
                 {% endif %}
                 {% if menu_visibility.tickets %}
                 <div class="dropdown">
-                    <a href="#" class="nav-link"><i class="fa-solid fa-ticket"></i> Tickets <i class="fa fa-caret-down"></i></a>
-                    <div class="dropdown-content">
-                        <div class="dropdown-section">Tech Tickets
+                    <a href="#" class="nav-link"><i class="fa-solid fa-ticket"></i> Tickets <i class="fa fa-caret-down"></i></a>                    <div class="dropdown-content">                        <div class="dropdown-section">Tech Tickets
                             <a href="/tickets/tech/new">New Ticket</a>
                             <a href="/tickets/tech/open">Tickets</a>
                         </div>

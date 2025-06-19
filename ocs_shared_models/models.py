@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Text, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 import enum
@@ -10,6 +10,10 @@ class UserRole(enum.Enum):
     BASIC = "basic"
     ADMIN = "admin"
     TECHNICIAN = "technician"
+
+class CheckoutType(enum.Enum):
+    LOCATION = "location"
+    USER = "user"
 
 user_buildings = Table(
     "user_buildings", Base.metadata,
@@ -130,5 +134,68 @@ class PurchaseOrder(Base):
     approved_by = Column(String, nullable=True)
     sent_date = Column(DateTime, nullable=True)
     received_date = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
+
+class InventoryItem(Base):
+    __tablename__ = 'inventory_items'
+    id = Column(Integer, primary_key=True, index=True)
+    tag_number = Column(String, unique=True, nullable=False)
+    item_type = Column(String, nullable=False)  # Computer, Printer, Projector, etc.
+    brand = Column(String, nullable=False)
+    model = Column(String, nullable=False)
+    serial_number = Column(String, unique=True, nullable=False)
+    purchase_order = Column(String)
+    price = Column(String)
+    purchase_date = Column(DateTime)
+    vendor = Column(String)
+    funds = Column(String)
+    description = Column(Text)
+    condition = Column(String, default='excellent')  # excellent, good, fair, poor
+    status = Column(String, default='available')  # available, checked_out, retired, maintenance
+    # Default location (when not checked out)
+    default_building_id = Column(Integer, ForeignKey('buildings.id'))
+    default_room_id = Column(Integer, ForeignKey('rooms.id'))
+    default_building = relationship("Building", foreign_keys=[default_building_id])
+    default_room = relationship("Room", foreign_keys=[default_room_id])
+    # Relationships
+    checkouts = relationship("InventoryCheckout", back_populates="item")
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
+
+class InventoryCheckout(Base):
+    __tablename__ = 'inventory_checkouts'
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer, ForeignKey('inventory_items.id'), nullable=False)
+    checkout_type = Column(String, nullable=False)  # 'location' or 'user'
+    
+    # Location-based checkout fields
+    location_building_id = Column(Integer, ForeignKey('buildings.id'), nullable=True)
+    location_room_id = Column(Integer, ForeignKey('rooms.id'), nullable=True)
+    
+    # User-based checkout fields  
+    user_building_id = Column(Integer, ForeignKey('buildings.id'), nullable=True)
+    assigned_user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    
+    # Common fields
+    checked_out_by = Column(String, nullable=False)  # Who performed the checkout
+    checked_out_at = Column(DateTime, default=central_now, nullable=False)
+    expected_return_date = Column(DateTime, nullable=True)
+    notes = Column(Text)
+    
+    # Return fields
+    returned_at = Column(DateTime, nullable=True)
+    returned_by = Column(String, nullable=True)
+    return_condition = Column(String, nullable=True)
+    return_notes = Column(Text)
+    is_active = Column(Boolean, default=True)
+    
+    # Relationships
+    item = relationship("InventoryItem", back_populates="checkouts")
+    location_building = relationship("Building", foreign_keys=[location_building_id])
+    location_room = relationship("Room", foreign_keys=[location_room_id])
+    user_building = relationship("Building", foreign_keys=[user_building_id])
+    assigned_user = relationship("User", foreign_keys=[assigned_user_id])
+    
     created_at = Column(DateTime, default=central_now)
     updated_at = Column(DateTime, default=central_now, onupdate=central_now)
