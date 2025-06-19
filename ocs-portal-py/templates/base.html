@@ -106,11 +106,10 @@
     <!-- Toast Container for notifications -->
     <div id="toast-container" class="toast-container"></div>
     
-    <!-- User data for JavaScript -->
-    {% if user %}
+    <!-- User data for JavaScript -->    {% if user %}
     <div style="display: none;" 
-         data-user-id="{{ user.id or user.username }}" 
-         data-user-roles="{{ user.roles | tojson }}">
+         data-user-id="{{ user.user_id or user.email }}" 
+         data-user-permissions="{{ user.permissions | tojson }}">
     </div>
     {% endif %}
     

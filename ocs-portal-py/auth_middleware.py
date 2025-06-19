@@ -12,7 +12,8 @@ from auth_service import AuthenticationService
 from auth_config import AuthConfig
 from database import get_db
 
-class AuthenticationMiddleware(BaseHTTPMiddleware):    """Middleware to handle authentication for protected routes"""
+class AuthenticationMiddleware(BaseHTTPMiddleware):
+    """Middleware to handle authentication for protected routes"""
     
     def __init__(self, app, exclude_paths: list = None):
         super().__init__(app)
@@ -42,10 +43,27 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):    """Middleware to handle a
             elif exclude_path != "/" and path.startswith(exclude_path):
                 # Prefix match for other paths
                 should_exclude = True
-                break
-        
+                break        
         if should_exclude:
             print(f"DEBUG: Path {request.url.path} is excluded from auth")
+            
+            # For excluded paths, still try to set user context if token exists
+            # This allows home page to show proper menu for logged-in users
+            session_token = request.cookies.get("session_token")
+            if session_token:
+                db = next(get_db())
+                auth_service = AuthenticationService(db)
+                try:
+                    user_info = auth_service.validate_token(session_token)
+                    if user_info:
+                        print(f"DEBUG: Setting user context for excluded path {request.url.path}")
+                        request.state.user = user_info
+                        request.state.session_token = session_token
+                except Exception as e:
+                    print(f"DEBUG: Token validation failed for excluded path: {e}")
+                finally:
+                    db.close()
+            
             response = await call_next(request)
             return response
         

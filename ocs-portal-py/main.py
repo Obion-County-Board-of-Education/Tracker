@@ -33,7 +33,7 @@ except Exception as e:
 
 # Import authentication components
 from auth_config import AuthConfig
-from auth_middleware import AuthenticationMiddleware, get_current_user
+from auth_middleware import AuthenticationMiddleware, get_current_user, get_menu_context as auth_get_menu_context
 from auth_routes import auth_router
 from database import get_db
 
@@ -88,26 +88,39 @@ app.include_router(auth_router)
 app.include_router(health_router)
 
 async def get_menu_context(request: Request = None):
-    """Get menu visibility context for templates"""
+    """Get menu visibility context for templates - using role-based filtering"""
     try:
-        # Get auth token if request is provided
-        auth_token = None
         if request:
-            auth_token = request.cookies.get("session_token")
-            
-        menu_visibility = await health_checker.get_menu_visibility(auth_token)
-        print(f"🔍 Dynamic menu context: {menu_visibility}")
-        return {"menu_visibility": menu_visibility}
+            # Use the role-based menu context from auth middleware
+            return await auth_get_menu_context(request)
+        else:
+            # No request, return guest context
+            return {
+                'user': None,
+                'access_level': 'guest',
+                'permissions': {},
+                'menu_visibility': {},
+                'menu_items': [],
+                'is_authenticated': False
+            }
     except Exception as e:
-        print(f"⚠️ Health checker failed, using fallback menu: {e}")        # Fallback to show all menus if health checker fails
-        return {"menu_visibility": {
-            "tickets": True,
-            "inventory": True,
-            "purchasing": True,
-            "manage": True,
-            "forms": True,
-            "admin": True
-        }}
+        print(f"⚠️ Menu context failed: {e}")
+        # Fallback to show limited menus
+        return {
+            'user': None,
+            'access_level': 'guest',
+            'permissions': {},
+            'menu_visibility': {
+                "tickets": True,
+                "inventory": False,
+                "purchasing": False,
+                "manage": False,
+                "forms": False,
+                "admin": False
+            },
+            'menu_items': [],
+            'is_authenticated': False
+        }
 
 async def render_template(template_name: str, context: dict):
     """Helper function to render templates with menu context"""
