@@ -16,7 +16,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
   ocs-tickets-api:
     build:
       context: .
@@ -36,8 +35,8 @@ services:
       test: ["CMD-SHELL", "./healthcheck.sh"]
       interval: 30s
       timeout: 10s
-      retries: 3
-
+      retries: 5
+      start_period: 60s
   ocs-purchasing-api:
     build:
       context: .
@@ -57,7 +56,8 @@ services:
       test: ["CMD-SHELL", "./healthcheck.sh"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
 
   ocs-portal-py:
     build:
@@ -94,7 +94,6 @@ services:
         condition: service_healthy
       ocs-purchasing-api:
         condition: service_healthy
-
   ocs-manage-api:
     build:
       context: .
@@ -114,8 +113,8 @@ services:
       test: ["CMD-SHELL", "./healthcheck.sh"]
       interval: 30s
       timeout: 10s
-      retries: 3
-
+      retries: 5
+      start_period: 60s
   ocs-forms-api:
     build:
       context: .
@@ -135,7 +134,8 @@ services:
       test: ["CMD-SHELL", "./healthcheck.sh"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
 
 volumes:
   pgdata:

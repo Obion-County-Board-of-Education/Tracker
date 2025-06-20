@@ -6,6 +6,10 @@ RUN apt-get update && apt-get install -y postgresql-client curl && rm -rf /var/l
 
 # Copy shared models first
 COPY ocs_shared_models/ ./ocs_shared_models/
+
+# Install shared models as package
+RUN pip install -e ./ocs_shared_models/
+
 # Copy service requirements and install
 COPY ocs-tickets-api/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
@@ -14,5 +18,7 @@ COPY ocs-tickets-api/ ./
 # Copy healthcheck script
 COPY ocs-tickets-api/healthcheck.sh ./
 RUN chmod +x healthcheck.sh
+
+EXPOSE 8000
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
