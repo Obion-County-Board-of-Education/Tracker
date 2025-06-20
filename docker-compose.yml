@@ -34,9 +34,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "./healthcheck.sh"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 5
-      start_period: 60s
+      start_period: 90s
   ocs-purchasing-api:
     build:
       context: .

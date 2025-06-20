@@ -22,9 +22,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy service files
 COPY ocs-purchasing-api/ ./
 
-# Copy healthcheck script
+# Copy healthcheck script and ensure proper line endings
 COPY ocs-purchasing-api/healthcheck.sh ./
-RUN chmod +x healthcheck.sh
+RUN chmod +x healthcheck.sh && \
+    # Convert any remaining Windows line endings to Unix
+    sed -i 's/\r$//' healthcheck.sh && \
+    # Verify the script is executable and syntax is correct
+    ls -la healthcheck.sh && \
+    bash -n healthcheck.sh && \
+    echo "✓ Healthcheck script validated"
 
 EXPOSE 8000
 
