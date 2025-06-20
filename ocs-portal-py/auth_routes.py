@@ -179,7 +179,7 @@ async def logout(request: Request, db: Session = Depends(get_db)):
             auth_service.logout_user(session_token, client_ip)
         
         # Create response and delete cookie
-        response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+        response = RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
         response.delete_cookie("session_token")
         
         return response
@@ -187,7 +187,7 @@ async def logout(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error during logout: {str(e)}")
         # Still redirect to login even if logout fails
-        response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+        response = RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
         response.delete_cookie("session_token")
         return response
 

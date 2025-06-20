@@ -22,6 +22,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             "/auth/login", 
             "/auth/microsoft", 
             "/auth/callback",
+            "/auth/logout",
             "/static",
             "/health",
             "/auth/status"
@@ -35,14 +36,18 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         should_exclude = False
         
+        print(f"DEBUG: Checking path '{path}' against exclude_paths: {self.exclude_paths}")
+        
         for exclude_path in self.exclude_paths:
             if exclude_path == "/" and path == "/":
                 # Exact match for root path only
                 should_exclude = True
+                print(f"DEBUG: Matched root path exclusion")
                 break
             elif exclude_path != "/" and path.startswith(exclude_path):
                 # Prefix match for other paths
                 should_exclude = True
+                print(f"DEBUG: Matched exclude path '{exclude_path}' for '{path}'")
                 break        
         if should_exclude:
             print(f"DEBUG: Path {request.url.path} is excluded from auth")
