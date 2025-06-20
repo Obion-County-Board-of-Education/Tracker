@@ -21,10 +21,16 @@ class AuthConfig:
     # JWT Configuration
     JWT_SECRET = os.getenv("JWT_SECRET", "your_jwt_secret_key_change_this_in_production")
     JWT_ALGORITHM = "HS256"
-    JWT_EXPIRATION_HOURS = 8
-      # Session Configuration
-    SESSION_TIMEOUT_MINUTES = int(os.getenv("SESSION_TIMEOUT_MINUTES", 30))
-    MAX_CONCURRENT_SESSIONS = int(os.getenv("MAX_CONCURRENT_SESSIONS", 3))
+    JWT_EXPIRATION_HOURS = 8    # Session Configuration
+    try:
+        SESSION_TIMEOUT_MINUTES = int(os.getenv("SESSION_TIMEOUT_MINUTES", "30").strip())
+    except (ValueError, TypeError):
+        SESSION_TIMEOUT_MINUTES = 30
+    
+    try:
+        MAX_CONCURRENT_SESSIONS = int(os.getenv("MAX_CONCURRENT_SESSIONS", "3").strip())
+    except (ValueError, TypeError):
+        MAX_CONCURRENT_SESSIONS = 3
     
     # Security Configuration
     SECURE_COOKIES = os.getenv("SECURE_COOKIES", "false").lower() == "true"  # Set to true in production with HTTPS
