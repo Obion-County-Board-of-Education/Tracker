@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy service code
 COPY ocs-forms-api/ ./
 # Copy healthcheck script
-COPY healthcheck.sh ./
+COPY ocs-forms-api/healthcheck.sh ./
 RUN chmod +x healthcheck.sh
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
