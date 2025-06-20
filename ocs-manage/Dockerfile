@@ -8,8 +8,14 @@ COPY ocs_shared_models/ ./ocs_shared_models/
 COPY ocs-manage/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY ocs-manage/ .
-# Copy healthcheck script
+# Copy healthcheck script and ensure proper line endings
 COPY ocs-manage/healthcheck.sh ./
-RUN chmod +x healthcheck.sh
+RUN chmod +x healthcheck.sh && \
+    # Convert any remaining Windows line endings to Unix
+    sed -i 's/\r$//' healthcheck.sh && \
+    # Verify the script is executable and syntax is correct
+    ls -la healthcheck.sh && \
+    bash -n healthcheck.sh && \
+    echo "✓ Healthcheck script validated"
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
