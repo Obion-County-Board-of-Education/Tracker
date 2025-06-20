@@ -176,9 +176,8 @@ powershell -ExecutionPolicy Bypass -File .\Test-DynamicMenu.ps1
 The dynamic menu system automatically shows/hides menu items based on the health status of their corresponding microservices:
 
 - **Tickets Menu** → `ocs-tickets-api` health
-- **Inventory Menu** → `ocs-inventory-api` health  
+- **Management & Inventory Menu** → `ocs-manage-api` health (includes inventory functionality)
 - **Requisitions Menu** → `ocs-requisition-api` health
-- **Manage Menu** → `ocs-manage-api` health
 - **Admin Menu** → Always visible (no service dependency)
 
 ### API Endpoints

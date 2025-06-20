@@ -82,8 +82,10 @@ services:
       # Application Settings
       - DEBUG=${DEBUG}
       - HOST=${HOST}
-      - PORT=${PORT}      # Microservice URLs for integration
+      - PORT=${PORT}
+      # Microservice URLs for integration
       - TICKETS_API_URL=http://ocs-tickets-api:8000
+      - INVENTORY_API_URL=http://ocs-inventory-api:8000
       - PURCHASING_API_URL=http://ocs-purchasing-api:8000
       - MANAGE_API_URL=http://ocs-manage-api:8000
       - FORMS_API_URL=http://ocs-forms-api:8000

@@ -16,9 +16,8 @@
 ## 🗂️ Project Structure
 
 - <b>ocs-tickets-api/</b> – FastAPI service for ticket system
-- <b>ocs-inventory-api/</b> – FastAPI service for inventory
 - <b>ocs-forms-api/</b> – FastAPI service for forms (time tracking, fuel tracking)
-- <b>ocs-manage/</b> – FastAPI service for management tasks
+- <b>ocs-manage/</b> – FastAPI service for management tasks and inventory
 - <b>ocs-portal-py/</b> – FastAPI service for admin portal (Jinja2, static, templates)
 - <b>ocs_shared_models/</b> – Shared SQLAlchemy models for all services
 - <b>tests/</b> – Comprehensive test suite organized by component and type
@@ -226,9 +225,8 @@ docker volume rm tracker_pgdata
 ## 📋 Current Task Allocation
 
 - <b>ocs-tickets-api/</b> ............................................. jhowell-ocs
-- <b>ocs-inventory-api/</b> ......................................... CrypticSYS
+- <b>ocs-manage/</b> (includes inventory) ........................... CrypticSYS
 - <b>ocs-requisition-api/</b>
-- <b>ocs-manage/</b>
 - <b>ocs-portal-py/</b>
 - <b>ocs-shared-models/</b>
 

@@ -17,10 +17,9 @@ The OCS Tracker uses a **modular monorepo structure** with:
 | Service | Port | Database | Purpose |
 |---------|------|----------|---------|
 | `ocs-tickets-api` | 8000 | `ocs_tickets` | Ticket management system |
-| `ocs-inventory-api` | 8001 | `ocs_inventory` | Inventory tracking |
 | `ocs-purchasing-api` | 8002 | `ocs_purchasing` | Purchasing and procurement |
 | `ocs-portal-py` | 8003 | `ocs_portal` | Admin portal interface |
-| `ocs-manage-api` | 8004 | `ocs_manage` | Management tasks |
+| `ocs-manage-api` | 8004 | `ocs_manage` | Management tasks and inventory |
 | `ocs-forms-api` | 8005 | `ocs_forms` | Forms and tracking |
 
 ### Database Server

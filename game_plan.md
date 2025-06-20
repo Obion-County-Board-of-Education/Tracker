@@ -105,9 +105,8 @@ GroupRoles (permission definitions)
 - ✅ **ocs-portal-py**: Main dashboard and authentication hub
 - ✅ **ocs-tickets-api**: Help desk and support tickets
 - ✅ **ocs-purchasing-api**: Purchase requisitions and approvals
-- ✅ **ocs-inventory-api**: Asset and equipment management
 - ✅ **ocs-forms-api**: Digital forms and submissions
-- ✅ **ocs-manage-api**: Administrative functions
+- ✅ **ocs-manage-api**: Administrative functions and inventory management
 
 ### **Service Permissions Matrix**
 

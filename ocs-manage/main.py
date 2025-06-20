@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
-from ocs_shared_models import User, Building, Room, UserRole
+from ocs_shared_models import User, Building, Room, UserRole, InventoryItem, InventoryCheckout
 from ocs_shared_models.permissions import (
     require_admin,
     require_super_admin,
@@ -39,7 +39,8 @@ app.add_middleware(
         "/health",
         "/docs",
         "/openapi.json",
-        "/redoc"
+        "/redoc",
+        "/inventory"
     ]
 )
 
@@ -70,6 +71,55 @@ class RoomResponse(BaseModel):
     name: str
     building_id: int
     room_type: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+# Pydantic models for inventory
+class InventoryItemResponse(BaseModel):
+    id: int
+    tag: str
+    type: str
+    brand: str
+    model: str
+    serial: str
+    po_number: str
+    price: float
+    purchase_date: datetime
+    funds: str
+    vendor: str
+    school: str
+    room: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class InventoryItemCreate(BaseModel):
+    tag: str
+    type: str
+    brand: str
+    model: str
+    serial: str
+    po_number: str
+    price: float
+    purchase_date: datetime
+    funds: str
+    vendor: str
+    school: str
+    room: str
+
+class InventoryCheckoutResponse(BaseModel):
+    id: int
+    item_id: int
+    checkout_type: str
+    checked_out_by: str
+    checked_out_at: datetime
+    expected_return_date: Optional[datetime]
+    notes: Optional[str]
+    returned_at: Optional[datetime]
+    returned_by: Optional[str]
+    is_active: bool
     
     class Config:
         from_attributes = True
@@ -203,6 +253,164 @@ def import_data():
     """Import data from file"""
     # Placeholder implementation
     return {"success": True, "message": "Data imported successfully"}
+
+# ===============================
+# INVENTORY MANAGEMENT ENDPOINTS
+# ===============================
+
+@app.get("/inventory", tags=["Inventory"])
+def inventory_home():
+    """Inventory service home page"""
+    return {"service": "Inventory Management", "status": "active", "message": "Inventory functionality merged with Management API"}
+
+@app.get("/api/inventory", response_model=List[InventoryItemResponse], tags=["Inventory"])
+@require_permission("inventory_access")
+def get_inventory_items(
+    request: Request,
+    skip: int = 0,
+    limit: int = 100,
+    school: Optional[str] = None,
+    sort: Optional[str] = "newest",
+    db: Session = Depends(get_db)
+):
+    """Get inventory items with filtering and sorting"""
+    query = db.query(InventoryItem)
+    
+    if school:
+        query = query.filter(InventoryItem.school == school)
+    
+    # Apply sorting
+    if sort == "oldest":
+        query = query.order_by(InventoryItem.created_at.asc())
+    elif sort == "numerical":
+        query = query.order_by(InventoryItem.tag)
+    elif sort == "alphabetical":
+        query = query.order_by(InventoryItem.type, InventoryItem.brand)
+    else:  # newest (default)
+        query = query.order_by(InventoryItem.created_at.desc())
+    
+    items = query.offset(skip).limit(limit).all()
+    return items
+
+@app.get("/api/inventory/{item_id}", response_model=InventoryItemResponse, tags=["Inventory"])
+@require_permission("inventory_access")
+def get_inventory_item(request: Request, item_id: int, db: Session = Depends(get_db)):
+    """Get specific inventory item"""
+    item = db.query(InventoryItem).filter(InventoryItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    return item
+
+@app.post("/api/inventory", tags=["Inventory"])
+@require_permission("inventory_write")
+def create_inventory_item(request: Request, item: InventoryItemCreate, db: Session = Depends(get_db)):
+    """Create new inventory item"""
+    db_item = InventoryItem(**item.dict())
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return {"success": True, "item_id": db_item.id, "message": "Inventory item created successfully"}
+
+@app.put("/api/inventory/{item_id}", tags=["Inventory"])
+@require_permission("inventory_write")
+def update_inventory_item(request: Request, item_id: int, item: InventoryItemCreate, db: Session = Depends(get_db)):
+    """Update inventory item"""
+    db_item = db.query(InventoryItem).filter(InventoryItem.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    for key, value in item.dict().items():
+        setattr(db_item, key, value)
+    
+    db.commit()
+    return {"success": True, "message": "Inventory item updated successfully"}
+
+@app.delete("/api/inventory/{item_id}", tags=["Inventory"])
+@require_permission("inventory_admin")
+def delete_inventory_item(request: Request, item_id: int, db: Session = Depends(get_db)):
+    """Delete inventory item"""
+    db_item = db.query(InventoryItem).filter(InventoryItem.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Inventory item not found")
+    
+    db.delete(db_item)
+    db.commit()
+    return {"success": True, "message": "Inventory item deleted successfully"}
+
+@app.post("/api/inventory/checkout", tags=["Inventory"])
+@require_permission("inventory_write")
+def checkout_device(request: Request, checkout_data: dict, db: Session = Depends(get_db)):
+    """Checkout device to location or user"""
+    checkout = InventoryCheckout(**checkout_data)
+    db.add(checkout)
+    db.commit()
+    return {"success": True, "checkout_id": checkout.id, "message": "Device checked out successfully"}
+
+@app.put("/api/inventory/checkout/{checkout_id}/return", tags=["Inventory"])
+@require_permission("inventory_write")
+def checkin_device(request: Request, checkout_id: int, return_data: dict, db: Session = Depends(get_db)):
+    """Check in device from checkout"""
+    checkout = db.query(InventoryCheckout).filter(InventoryCheckout.id == checkout_id).first()
+    if not checkout:
+        raise HTTPException(status_code=404, detail="Checkout not found")
+    
+    checkout.returned_at = datetime.now()
+    checkout.returned_by = return_data.get("returned_by")
+    checkout.return_condition = return_data.get("condition")
+    checkout.return_notes = return_data.get("notes")
+    checkout.is_active = False
+    
+    db.commit()
+    return {"success": True, "message": "Device checked in successfully"}
+
+@app.get("/api/inventory/checkout/history", response_model=List[InventoryCheckoutResponse], tags=["Inventory"])
+@require_permission("inventory_access")
+def get_checkout_history(request: Request, item_id: Optional[int] = None, db: Session = Depends(get_db)):
+    """Get checkout history"""
+    query = db.query(InventoryCheckout)
+    if item_id:
+        query = query.filter(InventoryCheckout.item_id == item_id)
+    
+    checkouts = query.order_by(InventoryCheckout.checked_out_at.desc()).all()
+    return checkouts
+
+@app.get("/api/inventory/search", response_model=List[InventoryItemResponse], tags=["Inventory"])
+@require_permission("inventory_access")
+def search_inventory(
+    request: Request,
+    tag: Optional[str] = None,
+    serial: Optional[str] = None,
+    po_number: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Search inventory by tag, serial, or PO number"""
+    query = db.query(InventoryItem)
+    
+    if tag:
+        query = query.filter(InventoryItem.tag.ilike(f"%{tag}%"))
+    if serial:
+        query = query.filter(InventoryItem.serial.ilike(f"%{serial}%"))
+    if po_number:
+        query = query.filter(InventoryItem.po_number.ilike(f"%{po_number}%"))
+    
+    items = query.limit(50).all()  # Limit search results
+    return items
+
+@app.get("/api/inventory/stats", tags=["Inventory"])
+@require_permission("inventory_access") 
+def get_inventory_stats(request: Request, db: Session = Depends(get_db)):
+    """Get inventory statistics"""
+    total_items = db.query(InventoryItem).count()
+    active_checkouts = db.query(InventoryCheckout).filter(InventoryCheckout.is_active == True).count()
+    
+    # Get counts by school
+    school_counts = db.query(InventoryItem.school, db.func.count(InventoryItem.id)).group_by(InventoryItem.school).all()
+    
+    return {
+        "total_items": total_items,
+        "active_checkouts": active_checkouts,
+        "school_distribution": dict(school_counts)
+    }
 
 if __name__ == "__main__":
     import uvicorn
