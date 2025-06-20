@@ -124,21 +124,28 @@ async def auth_callback(
         permissions = auth_service.determine_user_permissions(user_data, groups_data)
         
         logger.info(f"User permissions determined: {permissions['access_level']} level")
-        
-        # Get client IP
+          # Get client IP
         client_ip = request.client.host
-          # Create user session
+        
+        # Create user session
         session_token = auth_service.create_user_session(user_data, permissions, client_ip)
         
         logger.info(f"User {user_data.get('userPrincipalName')} logged in successfully")
         
+        # Debug: Log session contents
+        logger.info(f"Session contents: {dict(request.session)}")
+        
         # Get the next URL from session (where user originally wanted to go)
         next_url = request.session.get("next_url", "/")
+        logger.info(f"Retrieved next_url from session: {next_url}")
         logger.info(f"Redirecting user to: {next_url}")
         
         # Clear the next URL from session
         if "next_url" in request.session:
+            logger.info(f"Clearing next_url from session")
             del request.session["next_url"]
+        else:
+            logger.info(f"No next_url found in session to clear")
         
         # Set session cookie and redirect to original destination
         response = RedirectResponse(url=next_url, status_code=status.HTTP_302_FOUND)

@@ -1369,13 +1369,21 @@ async def forms_service_integration(request: Request):
 @app.get("/admin/users")
 async def admin_users(request: Request):
     """Admin user management - redirect to portal's user management"""
+    print(f"DEBUG: Admin users route accessed")
+    print(f"DEBUG: Request cookies: {list(request.cookies.keys())}")
+    
     user = get_current_user(request)
+    print(f"DEBUG: Current user in admin route: {user}")
+    
     if not user:
-        return RedirectResponse(url="/auth/login")
+        print(f"DEBUG: No user found, redirecting to login")
+        return RedirectResponse(url="/auth/login", status_code=302)
     
     if user.get('access_level') not in ['admin', 'super_admin']:
+        print(f"DEBUG: User access level {user.get('access_level')} insufficient for admin")
         raise HTTPException(status_code=403, detail="Access denied: Admin access required")
     
+    print(f"DEBUG: Admin access confirmed, redirecting to /users/list")
     # Use the existing user management functionality in portal
     return RedirectResponse(url="/users/list", status_code=302)
 

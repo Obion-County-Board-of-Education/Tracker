@@ -67,9 +67,13 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             return response
         
         print(f"DEBUG: Path {request.url.path} requires authentication")
-        
-        # Get session token from cookie
+          # Get session token from cookie
         session_token = request.cookies.get("session_token")
+        print(f"DEBUG: Session token present: {session_token is not None}")
+        if session_token:
+            print(f"DEBUG: Session token length: {len(session_token)}")
+            print(f"DEBUG: Session token start: {session_token[:20]}...")
+        
         if not session_token:
             # No token, redirect to login with original URL preserved
             print(f"DEBUG: No session token found for {request.url.path}")
