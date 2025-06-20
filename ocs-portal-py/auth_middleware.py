@@ -179,15 +179,12 @@ async def get_menu_context(request: Request) -> dict:
         permissions = current_user.get('permissions', {})
         
         print(f"DEBUG: get_menu_context - access_level: {access_level}")
-        print(f"DEBUG: get_menu_context - permissions: {permissions}")
-        
-        # Determine what should be visible in the menu based on permissions
+        print(f"DEBUG: get_menu_context - permissions: {permissions}")        # Determine what should be visible in the menu based on permissions
         menu_visibility = {
             'tickets': permissions.get('tickets_access', 'none') != 'none',
             'purchasing': permissions.get('purchasing_access', 'none') != 'none',
-            'inventory': permissions.get('inventory_access', 'none') != 'none' and access_level in ['admin', 'super_admin'],
             'forms': permissions.get('forms_access', 'none') != 'none' and access_level in ['admin', 'super_admin'],
-            'manage': access_level in ['admin', 'super_admin'],
+            'manage': access_level in ['admin', 'super_admin'] or permissions.get('inventory_access', 'none') != 'none',
             'admin': access_level in ['admin', 'super_admin']
         }
         
@@ -204,10 +201,9 @@ async def get_menu_context(request: Request) -> dict:
                     {'name': 'New Tech Ticket', 'url': '/tickets/tech/new'},
                     {'name': 'Tech Tickets', 'url': '/tickets/tech/open'},
                     {'name': 'New Maintenance Request', 'url': '/tickets/maintenance/new'},
-                    {'name': 'Maintenance Requests', 'url': '/tickets/maintenance/open'}
-                ]
+                    {'name': 'Maintenance Requests', 'url': '/tickets/maintenance/open'}                ]
             })
-        
+
         if menu_visibility['purchasing']:
             menu_items.append({
                 'name': 'Purchasing',
@@ -220,21 +216,7 @@ async def get_menu_context(request: Request) -> dict:
                     {'name': 'All Requisitions', 'url': '/purchasing/all'}
                 ]
             })
-        
-        if menu_visibility['inventory']:
-            menu_items.append({
-                'name': 'Inventory',
-                'url': '/inventory',
-                'icon': 'fa-boxes-stacked',
-                'access_level': permissions.get('inventory_access'),
-                'dropdown': [
-                    {'name': 'Add Inventory', 'url': '/inventory/add'},
-                    {'name': 'View Inventory', 'url': '/inventory/view'},
-                    {'name': 'Check Out Items', 'url': '/inventory/checkout'},
-                    {'name': 'Check In Items', 'url': '/inventory/checkin'}
-                ]
-            })
-        
+
         if menu_visibility['forms']:
             menu_items.append({
                 'name': 'Forms',
@@ -247,18 +229,34 @@ async def get_menu_context(request: Request) -> dict:
                     {'name': 'Form Submissions', 'url': '/forms/submissions'}
                 ]
             })
-        
+
         if menu_visibility['manage']:
+            manage_dropdown = []
+            
+            # Add management options for admins
+            if access_level in ['admin', 'super_admin']:
+                manage_dropdown.extend([
+                    {'name': 'Settings', 'url': '/manage/settings'},
+                    {'name': 'System Logs', 'url': '/manage/logs'},
+                    {'name': 'Device Register', 'url': '/manage/device-register'}
+                ])
+            
+            # Add inventory options for users with inventory access
+            if permissions.get('inventory_access', 'none') != 'none':
+                if manage_dropdown:  # Add separator if there are already items
+                    manage_dropdown.append({'separator': True})
+                manage_dropdown.extend([
+                    {'name': 'Add Inventory', 'url': '/inventory/add'},
+                    {'name': 'View Inventory', 'url': '/inventory/view'},
+                    {'name': 'Check Out Items', 'url': '/inventory/checkout'},
+                    {'name': 'Check In Items', 'url': '/inventory/checkin'}                ])
+            
             menu_items.append({
                 'name': 'Manage',
                 'url': '/manage',
-                'icon': 'fa-gears',
-                'access_level': 'admin',
-                'dropdown': [
-                    {'name': 'Settings', 'url': '/manage/settings'},
-                    {'name': 'System Logs', 'url': '/manage/logs'},
-                    {'name': 'Other Management', 'url': '/manage/other'}
-                ]
+                'icon': 'fa-boxes-stacked',
+                'access_level': 'admin' if access_level in ['admin', 'super_admin'] else permissions.get('inventory_access'),
+                'dropdown': manage_dropdown
             })
         
         if menu_visibility['admin']:

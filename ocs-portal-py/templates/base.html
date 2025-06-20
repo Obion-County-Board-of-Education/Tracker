@@ -34,22 +34,19 @@
                         </div>
                     </div>
                 </div>
-                {% endif %}
-                {% if menu_visibility.inventory %}
-                <div class="dropdown">
-                    <a href="#" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Inventory <i class="fa fa-caret-down"></i></a>
-                    <div class="dropdown-content">
-                        <a href="/inventory/add">Add Inventory</a>
-                        <a href="/inventory/remove">Remove Inventory</a>
-                        <a href="/inventory/edit">Edit Inventory</a>
-                        <a href="/inventory/view">View Inventory</a>
-                    </div>
-                </div>
                 {% endif %}                {% if menu_visibility.manage %}
                 <div class="dropdown">
-                    <a href="#" class="nav-link"><i class="fa-solid fa-gears"></i> Manage <i class="fa fa-caret-down"></i></a>
+                    <a href="#" class="nav-link"><i class="fa-solid fa-boxes-stacked"></i> Manage <i class="fa fa-caret-down"></i></a>
                     <div class="dropdown-content">
-                        <a href="/manage/device-register">Device Register</a>
+                        <div class="dropdown-section">Management
+                            <a href="/manage/device-register">Device Register</a>
+                        </div>
+                        <div class="dropdown-section">Inventory
+                            <a href="/inventory/add">Add Inventory</a>
+                            <a href="/inventory/remove">Remove Inventory</a>
+                            <a href="/inventory/edit">Edit Inventory</a>
+                            <a href="/inventory/view">View Inventory</a>
+                        </div>
                     </div>
                 </div>
                 {% endif %}

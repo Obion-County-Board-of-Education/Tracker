@@ -14,11 +14,6 @@ SERVICE_CONFIG = {
         "menu_item": "tickets",
         "check_endpoint": "/health"
     },
-    "inventory": {
-        "url": os.getenv("INVENTORY_API_URL", "http://host.docker.internal:8001"),
-        "menu_item": "inventory", 
-        "check_endpoint": "/health"
-    },
     "purchasing": {
         "url": os.getenv("PURCHASING_API_URL", "http://host.docker.internal:8002"),
         "menu_item": "purchasing",

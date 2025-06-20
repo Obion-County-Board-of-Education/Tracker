@@ -3,6 +3,8 @@ OCS Tracker Portal with Azure AD Authentication
 """
 import sys
 import os
+import re
+import uvicorn
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
@@ -39,7 +41,6 @@ from database import get_db
 
 # Service URLs - get from environment or use defaults
 TICKETS_API_URL = os.getenv("TICKETS_API_URL", "http://ocs-tickets-api:8000")
-INVENTORY_API_URL = os.getenv("INVENTORY_API_URL", "http://ocs-inventory-api:8000") 
 PURCHASING_API_URL = os.getenv("PURCHASING_API_URL", "http://ocs-purchasing-api:8000")
 MANAGE_API_URL = os.getenv("MANAGE_API_URL", "http://ocs-manage-api:8000")
 FORMS_API_URL = os.getenv("FORMS_API_URL", "http://ocs-forms-api:8000")
@@ -567,11 +568,14 @@ async def import_tech_tickets(request: Request, file: UploadFile = File(...), op
 async def import_maintenance_tickets(request: Request, file: UploadFile = File(...), operation: str = Form(...)):
     """Import maintenance tickets from CSV"""
     try:
+        # Get services with authentication token
+        services = get_service_for_request(request)
+        
         # Read file content
         file_content = await file.read()
         
         # Call the import service
-        result = await tickets_service.import_maintenance_tickets_csv(file_content, operation)
+        result = await services["tickets"].import_maintenance_tickets_csv(file_content, operation)
         
         print(f"✅ Maintenance tickets import successful: {result}")
         
@@ -1170,13 +1174,12 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
                 'description': 'Submit and track maintenance requests',
                 'url': '/maintenance',
                 'icon': '🔧'
-            })
-        
-        if permissions.get('inventory_access', 'none') != 'none':
+            })        
+        if permissions.get('manage_access', 'none') != 'none' or permissions.get('inventory_access', 'none') != 'none':
             available_services.append({
-                'name': 'Inventory Management',
-                'description': 'View and manage school district inventory',
-                'url': '/inventory',
+                'name': 'Management & Inventory',
+                'description': 'Manage buildings, rooms, and inventory',
+                'url': '/manage',
                 'icon': '📦'
             })
         
@@ -1303,9 +1306,23 @@ async def maintenance_service_integration(request: Request):
     # Redirect to tickets API maintenance section
     return RedirectResponse(url=f"{TICKETS_API_URL}/maintenance", status_code=302)
 
+@app.get("/manage")
+async def manage_service_integration(request: Request):
+    """Integrate with ocs-manage-api service for management and inventory functions"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('manage_access', 'none') == 'none' and permissions.get('inventory_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No management or inventory permission")
+    
+    # Redirect to manage API
+    return RedirectResponse(url=f"{MANAGE_API_URL}/", status_code=302)
+
 @app.get("/inventory")
 async def inventory_service_integration(request: Request):
-    """Integrate with ocs-inventory-api service"""
+    """Integrate with inventory functionality (now part of ocs-manage-api)"""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/auth/login")
@@ -1314,8 +1331,8 @@ async def inventory_service_integration(request: Request):
     if permissions.get('inventory_access', 'none') == 'none':
         raise HTTPException(status_code=403, detail="Access denied: No inventory permission")
     
-    # Redirect to inventory API
-    return RedirectResponse(url=f"{INVENTORY_API_URL}/", status_code=302)
+    # Redirect to manage API for inventory functionality
+    return RedirectResponse(url=f"{MANAGE_API_URL}/inventory", status_code=302)
 
 @app.get("/purchasing")
 async def purchasing_service_integration(request: Request):
@@ -1367,13 +1384,10 @@ async def admin_system(request: Request):
         return RedirectResponse(url="/auth/login")
     
     if user.get('access_level') not in ['admin', 'super_admin']:
-        raise HTTPException(status_code=403, detail="Access denied: Admin access required")
-    
-    # Check health of all microservices
+        raise HTTPException(status_code=403, detail="Access denied: Admin access required")    # Check health of all microservices
     services_health = {}
     service_urls = {
         "Tickets API": TICKETS_API_URL,
-        "Inventory API": INVENTORY_API_URL,
         "Purchasing API": PURCHASING_API_URL,
         "Manage API": MANAGE_API_URL,
         "Forms API": FORMS_API_URL
@@ -1395,12 +1409,15 @@ async def admin_system(request: Request):
                 "url": url
             }
     
+    # Get menu context
+    menu_context = await get_menu_context(request)
+    
     return templates.TemplateResponse("admin_system.html", {
         "request": request,
         "user": user,
-        "services": services_health
+        "services": services_health,
+        **menu_context
     })
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8003)

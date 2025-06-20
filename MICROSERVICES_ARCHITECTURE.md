@@ -96,9 +96,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://user:pass@db:5432/ocs_tickets
       
-  ocs-inventory-api:
+  ocs-manage-api:
     environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/ocs_inventory
+      - DATABASE_URL=postgresql://user:pass@db:5432/ocs_manage
 ```
 
 ## Shared Models Package

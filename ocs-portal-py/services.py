@@ -9,7 +9,6 @@ from fastapi import Request
 
 # Service URLs - use environment variables in production
 TICKETS_API_URL = os.getenv("TICKETS_API_URL", "http://ocs-tickets-api:8000")
-INVENTORY_API_URL = os.getenv("INVENTORY_API_URL", "http://ocs-inventory-api:8000")
 PURCHASING_API_URL = os.getenv("PURCHASING_API_URL", "http://ocs-purchasing-api:8000")
 FORMS_API_URL = os.getenv("FORMS_API_URL", "http://ocs-forms-api:8000")
 MANAGE_API_URL = os.getenv("MANAGE_API_URL", "http://ocs-manage-api:8000")
@@ -448,10 +447,10 @@ class TicketsService:
             return {"success": False, "message": f"Import failed: {str(e)}"}
 
 class InventoryService:
-    """Service for interacting with the Inventory API"""
+    """Service for interacting with the Inventory functionality via Manage API"""
     
     def __init__(self, auth_token: str = None):
-        self.base_url = INVENTORY_API_URL
+        self.base_url = MANAGE_API_URL
         self.timeout = 30.0
         self.auth_token = auth_token
         
@@ -514,6 +513,105 @@ class ManagementService:
         return headers
 
     # TODO: Add management service methods when needed
+
+    # Inventory management methods (delegated to manage API)
+    async def get_inventory_items(self, school: str = None, sort: str = "newest"):
+        """Get inventory items from manage API"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                params = {}
+                if school:
+                    params["school"] = school
+                if sort:
+                    params["sort"] = sort
+                    
+                response = await client.get(f"{self.base_url}/api/inventory", 
+                                          params=params, headers=self._get_headers())
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error fetching inventory items: {e}")
+            return []
+
+    async def get_inventory_item(self, item_id: int):
+        """Get specific inventory item"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/inventory/{item_id}", 
+                                          headers=self._get_headers())
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error fetching inventory item {item_id}: {e}")
+            return None
+
+    async def create_inventory_item(self, item_data: dict):
+        """Create new inventory item"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(f"{self.base_url}/api/inventory", 
+                                           json=item_data, headers=self._get_headers())
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error creating inventory item: {e}")
+            return {"success": False, "message": f"Failed: {str(e)}"}
+
+    async def update_inventory_item(self, item_id: int, item_data: dict):
+        """Update inventory item"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.put(f"{self.base_url}/api/inventory/{item_id}", 
+                                          json=item_data, headers=self._get_headers())
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error updating inventory item {item_id}: {e}")
+            return {"success": False, "message": f"Failed: {str(e)}"}
+
+    async def delete_inventory_item(self, item_id: int):
+        """Delete inventory item"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.delete(f"{self.base_url}/api/inventory/{item_id}", 
+                                             headers=self._get_headers())
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error deleting inventory item {item_id}: {e}")
+            return {"success": False, "message": f"Failed: {str(e)}"}
+
+    async def search_inventory(self, tag: str = None, serial: str = None, po_number: str = None):
+        """Search inventory items"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                params = {}
+                if tag:
+                    params["tag"] = tag
+                if serial:
+                    params["serial"] = serial
+                if po_number:
+                    params["po_number"] = po_number
+                    
+                response = await client.get(f"{self.base_url}/api/inventory/search", 
+                                          params=params, headers=self._get_headers())
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error searching inventory: {e}")
+            return []
+
+    async def get_inventory_stats(self):
+        """Get inventory statistics"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{self.base_url}/api/inventory/stats", 
+                                          headers=self._get_headers())
+                response.raise_for_status()
+                return response.json()
+        except Exception as e:
+            print(f"Error fetching inventory stats: {e}")
+            return {}
 
 # Create default service instances (without authentication)
 # These will be used for routes that don't require authentication
