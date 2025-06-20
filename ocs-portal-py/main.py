@@ -64,7 +64,6 @@ app.add_middleware(SessionMiddleware, secret_key=AuthConfig.JWT_SECRET)
 app.add_middleware(
     AuthenticationMiddleware,
     exclude_paths=[
-        "/",
         "/auth/login", 
         "/auth/microsoft", 
         "/auth/callback",
@@ -141,14 +140,20 @@ except Exception as e:
 # Homepage route
 @app.get("/")
 async def home(request: Request, db: Session = Depends(get_db)):
-    """Home page with editable system message and dashboard"""
+    """Home page with editable system message and dashboard - requires authentication"""
+    # Check if user is authenticated
+    user = get_current_user(request)
+    
+    if not user:
+        # User not authenticated, redirect to login
+        return RedirectResponse(url="/auth/login", status_code=302)
+    
     try:
         # Get the homepage message from database
         homepage_message = db.query(SystemMessage).filter(
             SystemMessage.message_type == 'homepage'
         ).first()
-        
-        # If no message exists, create a default one
+          # If no message exists, create a default one
         if not homepage_message:
             default_message = "You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to \"Tickets->Open Tickets\" to check these."
             homepage_message = SystemMessage(
@@ -162,26 +167,24 @@ async def home(request: Request, db: Session = Depends(get_db)):
     
     except Exception as e:
         print(f"Database error loading homepage message: {e}")
-        # Fallback message if database fails
-        homepage_message = type('obj', (object,), {
-            'content': 'You can view your open tickets that are currently in the system. You can update these tickets and even close these tickets out if you end up resolving the issue yourself. Just go to "Tickets->Open Tickets" to check these.',
-            'updated_at': None
-        })()
-      # Gather dashboard data
+        # If there's an authentication or database error, redirect to login
+        return RedirectResponse(url="/auth/login", status_code=302)
+        
+    # Gather dashboard data
     try:
         dashboard_data = await get_dashboard_data(db, request)
     except Exception as e:
         print(f"Error getting dashboard data: {e}")
-        # Provide fallback dashboard data
-        dashboard_data = {
-            "tickets": {"tech_open": 0, "tech_closed": 0, "maintenance_open": 0, "maintenance_closed": 0, "total_open": 0, "total_closed": 0},
-            "buildings": {"total_buildings": 0, "total_rooms": 0, "buildings_with_rooms": 0},
-            "users": {"total_users": 0, "admin_users": 0, "regular_users": 0},
-            "recent_activity": [],
-            "service_health": {}
-        }
-      # Get menu visibility context
-    menu_context = await get_menu_context(request)    
+        # If dashboard fails but user is authenticated, redirect to login to be safe
+        return RedirectResponse(url="/auth/login", status_code=302)
+        
+    # Get menu visibility context
+    try:
+        menu_context = await get_menu_context(request)
+    except Exception as e:
+        print(f"Error getting menu context: {e}")
+        return RedirectResponse(url="/auth/login", status_code=302)
+    
     return templates.TemplateResponse("index.html", {
         "request": request,
         "homepage_message": homepage_message,

@@ -46,8 +46,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 break        
         if should_exclude:
             print(f"DEBUG: Path {request.url.path} is excluded from auth")
-            
-            # For excluded paths, still try to set user context if token exists
+              # For excluded paths, still try to set user context if token exists
             # This allows home page to show proper menu for logged-in users
             session_token = request.cookies.get("session_token")
             if session_token:
@@ -72,9 +71,16 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         # Get session token from cookie
         session_token = request.cookies.get("session_token")
         if not session_token:
-            # No token, redirect to login
+            # No token, redirect to login with original URL preserved
             print(f"DEBUG: No session token found for {request.url.path}")
-            return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
+            # Use path and query string only, not full URL with domain
+            original_path = request.url.path
+            if request.url.query:
+                original_path += f"?{request.url.query}"
+            from urllib.parse import quote
+            login_url = f"/auth/login?next={quote(original_path)}"
+            print(f"DEBUG: Redirecting to login with next parameter: {login_url}")
+            return RedirectResponse(url=login_url, status_code=status.HTTP_302_FOUND)
         
         # Validate token
         db = next(get_db())

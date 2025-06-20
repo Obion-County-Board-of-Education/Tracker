@@ -117,8 +117,7 @@
             
             <h1 class="login-title">OCS Tracker</h1>
             <p class="login-subtitle">Obion County Schools Management Portal</p>
-            
-            <a href="/auth/microsoft" class="microsoft-login-btn">
+              <a href="/auth/microsoft{% if next %}?next={{ next | urlencode }}{% endif %}" class="microsoft-login-btn">
                 Sign in with Microsoft
             </a>
             

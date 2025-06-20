@@ -24,12 +24,15 @@ auth_router = APIRouter(prefix="/auth", tags=["authentication"])
 templates = Jinja2Templates(directory="templates")
 
 @auth_router.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request):
+async def login_page(request: Request, next: str = None):
     """Display login page"""
-    return templates.TemplateResponse("login.html", {"request": request})
+    context = {"request": request}
+    if next:
+        context["next"] = next
+    return templates.TemplateResponse("login.html", context)
 
 @auth_router.get("/microsoft")
-async def microsoft_login(request: Request, db: Session = Depends(get_db)):
+async def microsoft_login(request: Request, next: str = None, db: Session = Depends(get_db)):
     """Initiate Microsoft OAuth flow"""
     try:
         # Validate configuration
@@ -41,8 +44,11 @@ async def microsoft_login(request: Request, db: Session = Depends(get_db)):
         # Generate state parameter for security
         state = str(uuid.uuid4())
         
-        # Store state in session (you might want to use a more secure method)
+        # Store state and next URL in session for callback
         request.session["oauth_state"] = state
+        if next:
+            request.session["next_url"] = next
+            logger.info(f"Storing next URL in session: {next}")
         
         # Get authorization URL
         auth_url = auth_service.get_auth_url(state=state)
@@ -121,12 +127,21 @@ async def auth_callback(
         
         # Get client IP
         client_ip = request.client.host
-        
-        # Create user session
+          # Create user session
         session_token = auth_service.create_user_session(user_data, permissions, client_ip)
         
-        logger.info(f"User {user_data.get('userPrincipalName')} logged in successfully")        # Set session cookie and redirect to portal
-        response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+        logger.info(f"User {user_data.get('userPrincipalName')} logged in successfully")
+        
+        # Get the next URL from session (where user originally wanted to go)
+        next_url = request.session.get("next_url", "/")
+        logger.info(f"Redirecting user to: {next_url}")
+        
+        # Clear the next URL from session
+        if "next_url" in request.session:
+            del request.session["next_url"]
+        
+        # Set session cookie and redirect to original destination
+        response = RedirectResponse(url=next_url, status_code=status.HTTP_302_FOUND)
         response.set_cookie(
             key="session_token",
             value=session_token,
