@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ocs-purchasing-api/ ./
 
 # Copy healthcheck script
-COPY healthcheck.sh ./
+COPY ocs-purchasing-api/healthcheck.sh ./
 RUN chmod +x healthcheck.sh
 
 EXPOSE 8000

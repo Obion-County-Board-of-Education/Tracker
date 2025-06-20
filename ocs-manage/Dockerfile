@@ -9,7 +9,7 @@ COPY ocs-manage/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY ocs-manage/ .
 # Copy healthcheck script
-COPY healthcheck.sh ./
+COPY ocs-manage/healthcheck.sh ./
 RUN chmod +x healthcheck.sh
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
