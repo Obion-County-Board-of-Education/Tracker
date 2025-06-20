@@ -70,15 +70,32 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=ocs_user
+      # Azure AD Configuration
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_REDIRECT_URI=${AZURE_REDIRECT_URI}
+      # Security Configuration
       - JWT_SECRET=${JWT_SECRET}
+      - SESSION_TIMEOUT_MINUTES=${SESSION_TIMEOUT_MINUTES}
+      - MAX_CONCURRENT_SESSIONS=${MAX_CONCURRENT_SESSIONS}
+      # Application Settings
+      - DEBUG=${DEBUG}
+      - HOST=${HOST}
+      - PORT=${PORT}
+      # Microservice URLs for integration
+      - TICKETS_API_URL=http://ocs-tickets-api:8000
+      - INVENTORY_API_URL=http://ocs-inventory-api:8000
+      - PURCHASING_API_URL=http://ocs-purchasing-api:8000
+      - MANAGE_API_URL=http://ocs-manage-api:8000
+      - FORMS_API_URL=http://ocs-forms-api:8000
     depends_on:
       db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "./portal-healthcheck.sh"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      ocs-tickets-api:
+        condition: service_healthy
+      ocs-purchasing-api:
+        condition: service_healthy
 
   ocs-manage-api:
     build:
