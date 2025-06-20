@@ -23,6 +23,32 @@ from ocs_shared_models.notifications import notify_requisition_created_sync, not
 from database import get_db, init_database
 from auth_middleware import AuthMiddleware, get_current_user, has_permission
 
+def wait_for_database():
+    """Wait for database to be ready"""
+    import time
+    import psycopg2
+    
+    database_url = os.getenv('DATABASE_URL')
+    if not database_url:
+        raise Exception("DATABASE_URL environment variable not set")
+    
+    max_retries = 30
+    for i in range(max_retries):
+        try:
+            conn = psycopg2.connect(database_url)
+            conn.close()
+            print("✓ Database connection successful")
+            return
+        except psycopg2.OperationalError as e:
+            if i < max_retries - 1:
+                print(f"⏳ Waiting for database... ({i+1}/{max_retries}) - {str(e)}")
+                time.sleep(2)
+            else:
+                raise Exception(f"Database not ready after {max_retries * 2} seconds: {str(e)}")
+
+# Wait for database before initializing
+wait_for_database()
+
 # Initialize database on startup
 init_database()
 

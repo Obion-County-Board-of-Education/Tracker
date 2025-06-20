@@ -6,4 +6,5 @@ httpx
 pydantic
 PyJWT
 apscheduler
+psycopg2-binary==2.9.9
 -e ./ocs_shared_models
