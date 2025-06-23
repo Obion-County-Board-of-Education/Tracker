@@ -35,8 +35,8 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
     # Redirect routes for base paths
     @app.get("/users")
     async def users_redirect(request: Request):
-        """Redirect /users to /users/list"""
-        return RedirectResponse(url="/users/list", status_code=302)
+        """Redirect /users to new admin user management interface"""
+        return RedirectResponse(url="/admin/users", status_code=302)
     
     @app.get("/buildings")
     async def buildings_redirect(request: Request):
@@ -44,56 +44,9 @@ def setup_user_building_routes(app, menu_context_func, render_template_func):
         return RedirectResponse(url="/buildings/list", status_code=302)
     
     @app.get("/users/list")
-    async def users_list(request: Request, db: Session = Depends(get_db)):
-        """List all users from database with enhanced information"""
-        try:
-            users = db.query(User).all()
-            users_data = []
-            for user in users:
-                # Get user's building assignments if any
-                building_count = len(user.buildings) if user.buildings else 0
-                
-                user_info = {
-                    "id": user.id,
-                    "name": user.display_name or user.username,
-                    "email": user.email or f"{user.username}@obionschools.com",
-                    "role": (user.roles or 'basic').title(),
-                    "username": user.username,
-                    "building_count": building_count
-                }
-                users_data.append(user_info)
-                
-        except Exception as e:
-            print(f"Database error: {e}")
-            # Enhanced fallback data for demonstration
-            users_data = [
-                {
-                    "id": 1, 
-                    "name": "System Administrator", 
-                    "email": "admin@obionschools.com", 
-                    "role": "Admin",
-                    "username": "admin",
-                    "building_count": 5
-                },
-                {
-                    "id": 2, 
-                    "name": "John Smith", 
-                    "email": "jsmith@obionschools.com", 
-                    "role": "Technician",
-                    "username": "jsmith",
-                    "building_count": 2
-                },
-                {
-                    "id": 3, 
-                    "name": "Mary Wilson", 
-                    "email": "mwilson@obionschools.com", 
-                    "role": "User",
-                    "username": "mwilson",
-                    "building_count": 1
-                },
-            ]
-        
-        return await render_template("users.html", {"request": request, "users": users_data})
+    async def users_list(request: Request):
+        """Redirect to new admin user management interface"""
+        return RedirectResponse(url="/admin/users", status_code=302)
 
     @app.get("/buildings/list")
     async def buildings_list(request: Request, db: Session = Depends(get_db)):

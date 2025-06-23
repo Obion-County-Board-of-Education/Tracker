@@ -55,12 +55,52 @@ class Room(Base):
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, nullable=False)
+    
+    # Legacy fields (maintain backwards compatibility)
+    username = Column(String, unique=True, nullable=True)  # Made nullable for Azure AD users
     display_name = Column(String)
     email = Column(String)
     roles = Column(String, default='basic')  # Comma-separated roles
+    
+    # Azure AD integration fields
+    azure_user_id = Column(String(255), unique=True, nullable=True)
+    user_principal_name = Column(String(255), unique=True, nullable=True)
+    given_name = Column(String(100))
+    surname = Column(String(100))
+    job_title = Column(String(255))
+    department = Column(String(255))
+    office_location = Column(String(255))
+    employee_id = Column(String(50))
+    employee_type = Column(String(50))  # Staff, Student, Faculty
+    manager_id = Column(String(255))  # References another user's azure_user_id
+    building_assignment = Column(String(255))
+    grade_level = Column(String(10))  # For students
+    user_type = Column(String(20), default='staff')  # staff, student, admin
+    is_active = Column(Boolean, default=True)
+    last_login = Column(DateTime)
+    imported_at = Column(DateTime, default=central_now)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=central_now)
+    updated_at = Column(DateTime, default=central_now, onupdate=central_now)
+    
+    # Relationships
     buildings = relationship("Building", secondary=user_buildings, back_populates="users")
     rooms = relationship("Room", secondary=user_rooms, back_populates="users")
+    departments = relationship("UserDepartment", back_populates="user")
+
+class UserDepartment(Base):
+    __tablename__ = 'user_departments'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    department_name = Column(String(255), nullable=False)
+    building_name = Column(String(255))
+    is_primary = Column(Boolean, default=True)
+    role_in_department = Column(String(100))
+    created_at = Column(DateTime, default=central_now)
+    
+    # Relationships
+    user = relationship("User", back_populates="departments")
 
 class TechTicket(Base):
     __tablename__ = 'tech_tickets'

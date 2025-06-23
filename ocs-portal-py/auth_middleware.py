@@ -25,7 +25,9 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             "/auth/logout",
             "/static",
             "/health",
-            "/auth/status"
+            "/auth/status",
+            "/users/list",  # Allow redirect to new admin interface
+            "/users"        # Allow redirect to new admin interface
         ]
     
     async def dispatch(self, request: Request, call_next):
@@ -281,7 +283,7 @@ async def get_menu_context(request: Request) -> dict:
                 'icon': 'fa-user-gear',
                 'access_level': 'admin',
                 'dropdown': [
-                    {'name': 'Users', 'url': '/users/list'},
+                    {'name': 'Users', 'url': '/admin/users'},
                     {'name': 'Buildings', 'url': '/buildings/list'},
                     {'name': 'Reports', 'url': '/admin/reports'}
                 ]

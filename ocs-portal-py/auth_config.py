@@ -16,7 +16,7 @@ class AuthConfig:
     AZURE_AUTHORITY = f"https://login.microsoftonline.com/{AZURE_TENANT_ID}"
     
     # Scopes for Microsoft Graph API
-    SCOPE = ["User.Read", "GroupMember.Read.All"]
+    SCOPE = ["User.Read", "User.Read.All", "Group.Read.All", "GroupMember.Read.All"]
     
     # JWT Configuration
     JWT_SECRET = os.getenv("JWT_SECRET", "your_jwt_secret_key_change_this_in_production")

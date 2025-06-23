@@ -71,6 +71,19 @@ class AuthenticationService:
         except Exception as e:
             raise Exception(f"Authentication failed: {str(e)}")
     
+    def get_application_token(self) -> Dict[str, Any]:
+        """Get application token for Microsoft Graph API using client credentials"""
+        try:
+            result = self.msal_app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"])
+            
+            if "access_token" in result:
+                return result
+            else:
+                raise Exception(f"Failed to acquire application token: {result.get('error_description', 'Unknown error')}")
+                
+        except Exception as e:
+            raise Exception(f"Application authentication failed: {str(e)}")
+    
     def get_user_info(self, access_token: str) -> Dict[str, Any]:
         """Get user information from Microsoft Graph"""
         headers = {'Authorization': f'Bearer {access_token}'}
@@ -191,7 +204,8 @@ class AuthenticationService:
             return {
                 'access_level': 'none',
                 'tickets_access': 'none',
-                'inventory_access': 'none',                'purchasing_access': 'none',
+                'inventory_access': 'none',
+                'purchasing_access': 'none',
                 'forms_access': 'none',
                 'matched_groups': [],
                 'allowed_departments': [],

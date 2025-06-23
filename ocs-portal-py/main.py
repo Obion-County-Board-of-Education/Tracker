@@ -71,7 +71,9 @@ app.add_middleware(
         "/static",
         "/health",
         "/docs",
-        "/openapi.json"
+        "/openapi.json",
+        "/users/list",  # Allow redirect to new admin interface
+        "/users"        # Allow redirect to new admin interface
     ]
 )
 
@@ -86,6 +88,16 @@ app.include_router(auth_router)
 
 # Include health router
 app.include_router(health_router)
+
+# Include user import routes
+try:
+    from user_import_routes import router as user_import_router
+    app.include_router(user_import_router)
+    print("✅ User import routes loaded successfully")
+except ImportError as e:
+    print(f"⚠️ User import routes not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading user import routes: {e}")
 
 async def get_menu_context(request: Request = None):
     """Get menu visibility context for templates - using role-based filtering"""
@@ -1368,9 +1380,8 @@ async def forms_service_integration(request: Request):
 # Admin routes for Super Admin users
 @app.get("/admin/users")
 async def admin_users(request: Request):
-    """Admin user management - redirect to portal's user management"""
+    """Admin user management page"""
     print(f"DEBUG: Admin users route accessed")
-    print(f"DEBUG: Request cookies: {list(request.cookies.keys())}")
     
     user = get_current_user(request)
     print(f"DEBUG: Current user in admin route: {user}")
@@ -1383,9 +1394,17 @@ async def admin_users(request: Request):
         print(f"DEBUG: User access level {user.get('access_level')} insufficient for admin")
         raise HTTPException(status_code=403, detail="Access denied: Admin access required")
     
-    print(f"DEBUG: Admin access confirmed, redirecting to /users/list")
-    # Use the existing user management functionality in portal
-    return RedirectResponse(url="/users/list", status_code=302)
+    print(f"DEBUG: Admin access confirmed, serving user management page")
+    
+    # Get menu context for the template
+    menu_context = await get_menu_context(request)
+    
+    return templates.TemplateResponse("user_management.html", {
+        "request": request,
+        "user": user,
+        "page_title": "User Management",
+        **menu_context
+    })
 
 @app.get("/admin/system")
 async def admin_system(request: Request):

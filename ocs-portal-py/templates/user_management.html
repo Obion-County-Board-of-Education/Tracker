@@ -1,0 +1,854 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="content-header">
+    <h1><i class="fa-solid fa-users"></i> User Management</h1>
+    <div class="header-actions">
+        <a href="/admin" class="btn btn-outline">
+            <i class="fa fa-arrow-left"></i> Back to Admin
+        </a>
+    </div>
+</div>
+
+<div class="user-management-container">    <!-- Import Section -->
+    <div class="import-section">
+        <h3><i class="fas fa-download"></i> Azure AD Import</h3>
+        <p>Import users from Azure AD groups and sync profile data</p>
+        
+        <div class="import-buttons">
+            <button id="importStaffBtn" class="btn btn-primary">
+                <i class="fas fa-user-tie"></i> Import Staff
+            </button>
+            <button id="importStudentsBtn" class="btn btn-primary">
+                <i class="fas fa-user-graduate"></i> Import Students
+            </button>
+            <button id="importAllBtn" class="btn btn-outline">
+                <i class="fas fa-users"></i> Import All
+            </button>
+            <button id="syncProfilesBtn" class="btn btn-secondary">
+                <i class="fas fa-sync"></i> Sync Profiles
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-section">        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="totalUsers">-</h3>
+                <p>Total Users</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="staffCount">-</h3>
+                <p>Staff Members</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="studentCount">-</h3>
+                <p>Students</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="recentImports">-</h3>
+                <p>Recent Imports (24h)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="search-controls">        <div class="search-box">
+            <i class="fa fa-search"></i>
+            <input type="text" id="searchUsers" placeholder="Search users by name, email, or location...">
+        </div>
+        <div class="filter-controls">
+            <select id="filterUserType">
+                <option value="">All User Types</option>
+                <option value="staff">Staff</option>
+                <option value="student">Student</option>
+                <option value="admin">Admin</option>
+            </select>
+            <select id="filterDepartment">
+                <option value="">All Departments</option>
+            </select>
+            <select id="entriesPerPage">
+                <option value="10">10 per page</option>
+                <option value="25" selected>25 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="table-container">        <div class="table-header">
+            <h3><i class="fas fa-list"></i> Users</h3>
+            <button id="refreshUsers" class="btn btn-outline">
+                <i class="fas fa-refresh"></i> Refresh
+            </button>
+        </div>
+        
+        <div class="users-table-container">
+            <div id="usersTable">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading users...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="usersPagination" class="pagination-controls"></div>
+    </div>
+
+    <!-- Import Progress Modal -->
+    <div id="importModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-download"></i> Importing Users</h3>
+            </div>
+            <div class="modal-body">
+                <div class="progress-container">
+                    <div id="importProgress" class="progress-bar"></div>
+                </div>
+                <div id="importStatus">Starting import...</div>
+            </div>
+        </div>
+    </div>
+
+                <div class="modal-header">
+                    <h5 class="modal-title">User Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="userDetailsContent">
+                    <!-- User details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
+
+</script>    <script>
+        let currentPage = 1;
+        let currentFilters = {};
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserStats();
+            loadDepartments();
+            loadUsers();
+            
+            // Event listeners
+            document.getElementById('importStaffBtn').addEventListener('click', () => importUsers('staff'));
+            document.getElementById('importStudentsBtn').addEventListener('click', () => importUsers('students'));
+            document.getElementById('importAllBtn').addEventListener('click', () => importUsers('all'));
+            document.getElementById('syncProfilesBtn').addEventListener('click', syncProfiles);
+            document.getElementById('refreshUsers').addEventListener('click', loadUsers);
+            
+            // Filter event listeners
+            document.getElementById('searchUsers').addEventListener('input', debounce(handleFilterChange, 500));
+            document.getElementById('filterUserType').addEventListener('change', handleFilterChange);
+            document.getElementById('filterDepartment').addEventListener('change', handleFilterChange);
+            document.getElementById('entriesPerPage').addEventListener('change', handleFilterChange);
+        });
+
+        // Load user statistics
+        async function loadUserStats() {
+            try {
+                console.log('Loading user stats...');
+                const response = await fetch('/api/admin/users/stats');
+                console.log('Stats response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Stats data:', data);
+                
+                if (data.success) {
+                    document.getElementById('totalUsers').textContent = data.data.total_users || 0;
+                    document.getElementById('staffCount').textContent = data.data.staff_count || 0;
+                    document.getElementById('studentCount').textContent = data.data.student_count || 0;
+                    document.getElementById('recentImports').textContent = data.data.recent_imports_24h || 0;
+                } else {
+                    console.error('Stats API returned error:', data);
+                    setStatsError();
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+                setStatsError();
+            }
+        }
+
+        function setStatsError() {
+            document.getElementById('totalUsers').textContent = 'Error';
+            document.getElementById('staffCount').textContent = 'Error';
+            document.getElementById('studentCount').textContent = 'Error';
+            document.getElementById('recentImports').textContent = 'Error';
+        }
+
+        // Load departments for filter
+        async function loadDepartments() {
+            try {
+                const response = await fetch('/api/admin/users/departments/list');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('filterDepartment');
+                    select.innerHTML = '<option value="">All Departments</option>';
+                    
+                    data.data.departments.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept;
+                        option.textContent = dept;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading departments:', error);
+            }
+        }
+
+        // Load users with pagination and filters
+        async function loadUsers() {
+            try {
+                const perPage = document.getElementById('entriesPerPage').value || 25;
+                const params = new URLSearchParams({
+                    page: currentPage,
+                    per_page: perPage,
+                    ...currentFilters
+                });
+
+                console.log('Loading users with params:', params.toString());
+                const response = await fetch(`/api/admin/users/list?${params}`);
+                console.log('Users response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Users data:', data);
+                
+                if (data.success) {
+                    renderUsersTable(data.data.users);
+                    renderPagination(data.data.pagination);
+                } else {
+                    throw new Error(data.message || 'API returned error');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('usersTable').innerHTML = 
+                    `<div class="loading-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Error loading users: ${error.message}</p>
+                    </div>`;
+            }
+        }        // Render users table
+        function renderUsersTable(users) {
+            if (users.length === 0) {
+                document.getElementById('usersTable').innerHTML = `
+                    <div class="loading-state">
+                        <i class="fas fa-users"></i>
+                        <p>No users found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const tableHtml = `
+                <div class="table-responsive">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Type</th>
+                                <th>Office Location</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>                            ${users.map(user => `
+                                <tr>
+                                    <td>
+                                        <strong>${user.display_name || 'N/A'}</strong>
+                                    </td>
+                                    <td>${user.email || 'N/A'}</td>
+                                    <td>
+                                        <span class="badge badge-${getUserTypeBadgeColor(user.user_type)}">
+                                            ${user.user_type || 'Unknown'}
+                                        </span>
+                                    </td>                                    <td>
+                                        ${user.office_location ? 
+                                            `<span style="color: #374151;"><i class="fas fa-map-marker-alt" style="color: #64748b; margin-right: 0.5rem;"></i>${user.office_location}</span>` : 
+                                            '<span style="color: #94a3b8;">No location assigned</span>'
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-${user.is_active ? 'success' : 'secondary'}">
+                                            ${user.is_active ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td>${user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline" onclick="viewUserDetails('${user.id}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        ${user.is_active ? 
+                                            `<button class="btn btn-sm btn-danger" onclick="toggleUserStatus('${user.id}', false)">
+                                                <i class="fas fa-ban"></i>
+                                            </button>` :
+                                            `<button class="btn btn-sm btn-primary" onclick="toggleUserStatus('${user.id}', true)">
+                                                <i class="fas fa-check"></i>
+                                            </button>`
+                                        }
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('usersTable').innerHTML = tableHtml;
+        }
+
+        // Get badge color for user type
+        function getUserTypeBadgeColor(userType) {
+            switch(userType) {
+                case 'staff': return 'primary';
+                case 'student': return 'info';
+                case 'admin': return 'warning';
+                default: return 'secondary';
+            }
+        }
+
+        // Render pagination
+        function renderPagination(pagination) {
+            const { page, per_page, total, pages } = pagination;
+            
+            let paginationHtml = `<span>Showing ${total} users</span>`;
+            
+            if (pages > 1) {
+                paginationHtml += '<div class="pagination-buttons">';
+                
+                if (page > 1) {
+                    paginationHtml += `<button class="btn btn-sm btn-outline" onclick="changePage(${page - 1})">Previous</button>`;
+                }
+                
+                for (let i = Math.max(1, page - 2); i <= Math.min(pages, page + 2); i++) {
+                    paginationHtml += `<button class="btn btn-sm ${i === page ? 'btn-primary' : 'btn-outline'}" onclick="changePage(${i})">${i}</button>`;
+                }
+                
+                if (page < pages) {
+                    paginationHtml += `<button class="btn btn-sm btn-outline" onclick="changePage(${page + 1})">Next</button>`;
+                }
+                
+                paginationHtml += '</div>';
+            }
+            
+            document.getElementById('usersPagination').innerHTML = paginationHtml;
+        }
+
+        // Change page
+        function changePage(page) {
+            currentPage = page;
+            loadUsers();
+        }
+
+        // Handle filter changes
+        function handleFilterChange() {
+            currentFilters = {
+                search: document.getElementById('searchUsers').value || undefined,
+                user_type: document.getElementById('filterUserType').value || undefined,
+                department: document.getElementById('filterDepartment').value || undefined
+            };
+            
+            // Remove undefined values
+            Object.keys(currentFilters).forEach(key => 
+                currentFilters[key] === undefined && delete currentFilters[key]
+            );
+            
+            currentPage = 1; // Reset to first page
+            loadUsers();
+        }
+
+        // Import users
+        async function importUsers(type) {
+            const endpoints = {
+                staff: '/api/admin/users/import/staff',
+                students: '/api/admin/users/import/students',
+                all: '/api/admin/users/import/all'
+            };
+
+            const modal = document.getElementById('importModal');
+            const status = document.getElementById('importStatus');
+            
+            modal.style.display = 'block';
+            status.textContent = `Starting ${type} import...`;
+
+            try {
+                const response = await fetch(endpoints[type], { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    status.textContent = 'Import started successfully!';
+                    
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                        loadUserStats();
+                        loadUsers();
+                    }, 2000);
+                } else {
+                    status.textContent = 'Import failed: ' + (data.message || data.detail || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                status.textContent = 'Import failed: ' + error.message;
+            }
+        }
+
+        // Sync profiles
+        async function syncProfiles() {
+            alert('Profile sync functionality coming soon!');
+        }
+
+        // View user details
+        async function viewUserDetails(userId) {
+            alert(`View user ${userId} - functionality coming soon!`);
+        }
+
+        // Toggle user status
+        async function toggleUserStatus(userId, activate) {
+            try {
+                const action = activate ? 'activate' : 'deactivate';
+                const response = await fetch(`/api/admin/users/${userId}/${action}`, {
+                    method: 'PATCH'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadUsers(); // Reload the table
+                    showToast('Success', result.message, 'success');
+                } else {
+                    showToast('Error', result.message || 'Failed to update user status', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating user status:', error);
+                showToast('Error', 'Network error occurred', 'error');
+            }
+        }
+
+        // Show toast notification
+        function showToast(title, message, type = 'info') {
+            // Simple alert for now - can be enhanced with proper toast notifications
+            alert(`${title}: ${message}`);
+        }
+
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+<style>
+/* User Management Specific Styles */
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.content-header h1 {
+    margin: 0;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.import-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 0.7em;
+    margin-bottom: 2rem;
+}
+
+.import-section h3 {
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.import-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.stats-section {
+    margin-bottom: 2rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.7em;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.08);
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+
+.stat-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    color: #2563eb;
+}
+
+.stat-card p {
+    margin: 0;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.search-controls {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.7em;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.08);
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+}
+
+.search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #64748b;
+}
+
+.search-box input {
+    padding-left: 3rem;
+    width: 100%;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.filter-controls select {
+    min-width: 150px;
+}
+
+.table-container {
+    background: white;
+    border-radius: 0.7em;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.08);
+    overflow: hidden;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.table-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.users-table-container {
+    padding: 1.5rem;
+    min-height: 400px;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #64748b;
+}
+
+.loading-state i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #3b82f6;
+}
+
+.pagination-controls {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 0.7em;
+    padding: 2rem;
+    min-width: 400px;
+    max-width: 90vw;
+}
+
+.modal-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.progress-container {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7em 1.5em;
+    border: none;
+    border-radius: 0.4em;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1em;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.08);
+}
+
+.btn-primary {
+    background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
+    box-shadow: 0 4px 16px rgba(30,41,59,0.12);
+}
+
+.btn-secondary {
+    background: linear-gradient(90deg, #64748b 0%, #94a3b8 100%);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(90deg, #475569 0%, #64748b 100%);
+}
+
+.btn-outline {
+    background: transparent;
+    color: #2563eb;
+    border: 2px solid #2563eb;
+    box-shadow: none;
+}
+
+.btn-outline:hover {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(90deg, #b91c1c 0%, #dc2626 100%);
+}
+
+.btn-sm {
+    padding: 0.5em 1em;
+    font-size: 0.9em;
+}
+
+/* Table Styles */
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.users-table th,
+.users-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.users-table th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.users-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Badge Styles */
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 0.75em;
+    font-weight: 600;
+    border-radius: 0.375rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.badge-primary {
+    background-color: #2563eb;
+    color: white;
+}
+
+.badge-info {
+    background-color: #0ea5e9;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #eab308;
+    color: black;
+}
+
+.badge-secondary {
+    background-color: #6b7280;
+    color: white;
+}
+
+.badge-success {
+    background-color: #10b981;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+/* Pagination Styles */
+.pagination-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.pagination-buttons .btn {
+    min-width: 40px;
+    justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .content-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .import-buttons {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .filter-controls {
+        flex-direction: column;
+    }
+    
+    .table-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+{% endblock %}
