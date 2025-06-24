@@ -5,17 +5,10 @@
         <h1><i class="fa-solid fa-tools"></i> {{ page_title }}</h1>
         <p class="header-subtitle">Manage and track maintenance and facilities requests</p>
     </div>    <div class="header-actions">
-        {% if user and user.permissions.tickets_write %}
+        {% if user and user.permissions.tickets_access in ['write', 'admin'] %}
         <a href="/tickets/maintenance/new" class="btn btn-primary">
-            <i class="fa fa-plus"></i> New Maintenance Request
+            <i class="fa fa-plus"></i> New Maintenance Ticket
         </a>
-        {% endif %}
-        {% if user and user.permissions.tickets_admin %}
-        <div class="admin-actions">
-            <button class="btn btn-outline btn-sm" onclick="showBulkActions()">
-                <i class="fa fa-cog"></i> Admin Tools
-            </button>
-        </div>
         {% endif %}
     </div>
 </div>
@@ -32,7 +25,7 @@
                     <i class="fa fa-archive"></i> Archives
                 </a>
             </div>            <div class="action-buttons">
-                {% if user and user.permissions.tickets_admin %}
+                {% if user and user.permissions.tickets_access == 'admin' %}
                 <button class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('maintenance')" title="Import tickets from CSV file">
                     <i class="fa fa-upload"></i> Import CSV
                 </button>
@@ -42,13 +35,12 @@
                 <button class="btn btn-warning btn-sm roll-database-btn" onclick="showRollDatabaseModal('maintenance')" title="Archive current tickets and start fresh">
                     <i class="fa fa-refresh"></i> Roll Database
                 </button>
+                {% endif %}
+                
+                {% if user and user.access_level == 'super_admin' %}
                 <button class="btn btn-danger btn-sm clear-all-btn" onclick="clearAllTickets('maintenance')" title="Clear all tickets from database">
                     <i class="fa fa-trash"></i> Clear All Tickets
                 </button>
-                {% elif user and user.permissions.tickets_write %}
-                <a href="/tickets/maintenance/export" class="btn btn-secondary btn-sm export-csv-btn" title="Export tickets to CSV">
-                    <i class="fa fa-download"></i> Export CSV
-                </a>
                 {% endif %}
             </div>
         </div>

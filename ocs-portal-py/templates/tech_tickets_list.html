@@ -5,19 +5,10 @@
         <h1><i class="fa-solid fa-laptop-code"></i> {{ page_title }}</h1>
         <p class="header-subtitle">Manage and track technology support requests</p>
     </div>    <div class="header-actions">
-        <!-- Role-based action buttons -->
-        {% if user and user.permissions.tickets_access in ['write', 'admin'] %}
+        <!-- Role-based action buttons -->        {% if user and user.permissions.tickets_access in ['write', 'admin'] %}
         <a href="/tickets/tech/new" class="btn btn-primary">
             <i class="fa fa-plus"></i> New Tech Ticket
         </a>
-        {% endif %}
-        
-        {% if user and user.access_level in ['admin', 'super_admin'] %}
-        <div class="admin-actions">
-            <button class="btn btn-outline admin-toggle" onclick="toggleAdminPanel()">
-                <i class="fa fa-cog"></i> Admin Tools
-            </button>
-        </div>
         {% endif %}
     </div>
 </div>
@@ -36,7 +27,7 @@
                     <i class="fa fa-archive"></i> Archives
                 </a>
             </div>            <!-- Admin Action Buttons - Role-based access -->
-            <div class="action-buttons" id="adminPanel" style="display: {% if user and user.access_level in ['admin', 'super_admin'] %}block{% else %}none{% endif %};">
+            <div class="action-buttons">
                 {% if user and user.permissions.tickets_access == 'admin' %}
                 <button id="UNIQUE_IMPORT_BUTTON_TEST" class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('tech')" title="Import tickets from CSV file">
                     <i class="fa fa-upload"></i> Import CSV
