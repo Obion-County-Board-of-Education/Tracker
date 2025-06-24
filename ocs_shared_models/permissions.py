@@ -44,63 +44,125 @@ def require_permission(
         allow_admin_override: Whether admin/super_admin can override permission check
     """
     def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # Extract request from args/kwargs
-            request = None
-            for arg in args:
-                if isinstance(arg, Request):
-                    request = arg
-                    break
-            
-            if not request:
-                # Try to get from kwargs
-                request = kwargs.get('request')
-            
-            if not request:
-                raise HTTPException(status_code=500, detail="Request object not found")
-            
-            try:
-                user = get_current_user_from_token(request)
-                user_access_level = user.get('access_level', 'student')
-                permissions = user.get('permissions', {})
-                
-                # Check admin override
-                if allow_admin_override and user_access_level in ['admin', 'super_admin']:
-                    return await func(*args, **kwargs)
-                
-                # Check service-specific permission
-                service_permission = permissions.get(f'{service}_access', 'none')
-                
-                # Convert access_level to list if it's a string
-                required_levels = access_level if isinstance(access_level, list) else [access_level]
-                
-                # Check if user has required permission level
-                permission_hierarchy = ['none', 'read', 'write', 'admin']
-                user_level_index = permission_hierarchy.index(service_permission) if service_permission in permission_hierarchy else 0
-                
-                has_permission = False
-                for required_level in required_levels:
-                    if required_level in permission_hierarchy:
-                        required_index = permission_hierarchy.index(required_level)
-                        if user_level_index >= required_index:
-                            has_permission = True
-                            break
-                
-                if not has_permission:
-                    raise HTTPException(
-                        status_code=403, 
-                        detail=f"Insufficient permissions. Required: {service} service with {access_level} access"
-                    )
-                
-                return await func(*args, **kwargs)
-                
-            except HTTPException:
-                raise
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Permission check failed: {str(e)}")
+        import asyncio
         
-        return wrapper
+        # Check if the original function is async or sync and create appropriate wrapper
+        if asyncio.iscoroutinefunction(func):
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                # Extract request from args/kwargs
+                request = None
+                for arg in args:
+                    if isinstance(arg, Request):
+                        request = arg
+                        break
+                
+                if not request:
+                    # Try to get from kwargs
+                    request = kwargs.get('request')
+                
+                if not request:
+                    raise HTTPException(status_code=500, detail="Request object not found")
+                
+                try:
+                    user = get_current_user_from_token(request)
+                    user_access_level = user.get('access_level', 'student')
+                    permissions = user.get('permissions', {})
+                    
+                    # Check admin override
+                    if allow_admin_override and user_access_level in ['admin', 'super_admin']:
+                        return await func(*args, **kwargs)
+                    
+                    # Check service-specific permission
+                    service_permission = permissions.get(f'{service}_access', 'none')
+                    
+                    # Convert access_level to list if it's a string
+                    required_levels = access_level if isinstance(access_level, list) else [access_level]
+                    
+                    # Check if user has required permission level
+                    permission_hierarchy = ['none', 'read', 'write', 'admin']
+                    user_level_index = permission_hierarchy.index(service_permission) if service_permission in permission_hierarchy else 0
+                    
+                    has_permission = False
+                    for required_level in required_levels:
+                        if required_level in permission_hierarchy:
+                            required_index = permission_hierarchy.index(required_level)
+                            if user_level_index >= required_index:
+                                has_permission = True
+                                break
+                    
+                    if not has_permission:
+                        raise HTTPException(
+                            status_code=403, 
+                            detail=f"Insufficient permissions. Required: {service} service with {access_level} access"
+                        )
+                    
+                    return await func(*args, **kwargs)
+                    
+                except HTTPException:
+                    raise
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=f"Permission check failed: {str(e)}")
+            
+            return async_wrapper
+        else:
+            @wraps(func)
+            def sync_wrapper(*args, **kwargs):
+                # Extract request from args/kwargs
+                request = None
+                for arg in args:
+                    if isinstance(arg, Request):
+                        request = arg
+                        break
+                
+                if not request:
+                    # Try to get from kwargs
+                    request = kwargs.get('request')
+                
+                if not request:
+                    raise HTTPException(status_code=500, detail="Request object not found")
+                
+                try:
+                    user = get_current_user_from_token(request)
+                    user_access_level = user.get('access_level', 'student')
+                    permissions = user.get('permissions', {})
+                    
+                    # Check admin override
+                    if allow_admin_override and user_access_level in ['admin', 'super_admin']:
+                        return func(*args, **kwargs)
+                    
+                    # Check service-specific permission
+                    service_permission = permissions.get(f'{service}_access', 'none')
+                    
+                    # Convert access_level to list if it's a string
+                    required_levels = access_level if isinstance(access_level, list) else [access_level]
+                    
+                    # Check if user has required permission level
+                    permission_hierarchy = ['none', 'read', 'write', 'admin']
+                    user_level_index = permission_hierarchy.index(service_permission) if service_permission in permission_hierarchy else 0
+                    
+                    has_permission = False
+                    for required_level in required_levels:
+                        if required_level in permission_hierarchy:
+                            required_index = permission_hierarchy.index(required_level)
+                            if user_level_index >= required_index:
+                                has_permission = True
+                                break
+                    
+                    if not has_permission:
+                        raise HTTPException(
+                            status_code=403, 
+                            detail=f"Insufficient permissions. Required: {service} service with {access_level} access"
+                        )
+                    
+                    return func(*args, **kwargs)
+                    
+                except HTTPException:
+                    raise
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=f"Permission check failed: {str(e)}")
+            
+            return sync_wrapper
     return decorator
 
 def require_access_level(required_level: Union[str, List[str]]):
