@@ -15,6 +15,7 @@ from fastapi import HTTPException
 from database import get_db
 from auth_service import AuthenticationService
 from ocs_shared_models.models import User, UserDepartment
+from ocs_shared_models.timezone_utils import central_now
 
 logger = logging.getLogger(__name__)
 
@@ -127,11 +128,11 @@ class UserImportService:
             'job_title': azure_user.get('jobTitle'),
             'department': azure_user.get('department'),
             'office_location': azure_user.get('officeLocation'),
-            'employee_id': azure_user.get('employeeId'),
+            'employee_id': azure_user.get('employeeId'),            
             'employee_type': azure_user.get('employeeType'),
             'user_type': user_type,
             'is_active': True,
-            'imported_at': datetime.utcnow()
+            'imported_at': central_now()
         }
     
     def create_or_update_user(self, user_data: Dict[str, Any]) -> User:
@@ -147,7 +148,7 @@ class UserImportService:
                 for key, value in user_data.items():
                     if key not in ['id', 'created_at']:  # Don't update these fields
                         setattr(existing_user, key, value)
-                existing_user.updated_at = datetime.utcnow()
+                existing_user.updated_at = central_now()
                 
                 logger.debug(f"Updated user: {existing_user.display_name}")
                 return existing_user
@@ -334,7 +335,6 @@ class UserImportService:
         
         logger.info(f"User profile sync completed: {sync_results}")
         return sync_results
-    
     def get_import_statistics(self) -> Dict[str, Any]:
         """Get statistics about imported users"""
         try:
@@ -344,7 +344,7 @@ class UserImportService:
             active_users = self.db.query(User).filter(User.is_active == True).count()
             
             # Recent imports (last 24 hours)
-            yesterday = datetime.utcnow() - timedelta(days=1)
+            yesterday = central_now() - timedelta(days=1)
             recent_imports = self.db.query(User).filter(User.imported_at >= yesterday).count()
             
             return {
@@ -353,44 +353,44 @@ class UserImportService:
                 'student_count': student_count,
                 'active_users': active_users,
                 'recent_imports_24h': recent_imports,
-                'last_updated': datetime.utcnow().isoformat()
+                'last_updated': central_now().isoformat()
             }
             
         except Exception as e:
             logger.error(f"Error getting import statistics: {e}")
             return {
                 'error': str(e),
-                'last_updated': datetime.utcnow().isoformat()
+                'last_updated': central_now().isoformat()
             }
-        
+
     async def run_scheduled_import(self) -> Dict[str, Any]:
         """Run a complete scheduled import of all users (staff and students)"""
         try:
             logger.info("🔄 Starting scheduled user import...")
-            start_time = datetime.utcnow()
+            start_time = central_now()
             
             results = {
                 'success': True,
                 'started_at': start_time.isoformat(),
                 'staff_import': None,
                 'student_import': None,
-                'profile_sync': None,
                 'total_imported': 0,
                 'total_updated': 0,
                 'errors': []
             }
-            
             # Import staff users
             try:
                 logger.info("📋 Importing staff users...")
                 staff_result = await self.import_all_staff()
                 results['staff_import'] = staff_result
                 
-                if staff_result.get('success'):
-                    results['total_imported'] += staff_result.get('imported_count', 0)
-                    results['total_updated'] += staff_result.get('updated_count', 0)
-                else:
-                    results['errors'].append(f"Staff import failed: {staff_result.get('message', 'Unknown error')}")
+                # Extract the correct field names from the import result
+                results['total_imported'] += staff_result.get('imported', 0)
+                results['total_updated'] += staff_result.get('updated', 0)
+                
+                # Add any errors from this import
+                if staff_result.get('errors', 0) > 0:
+                    results['errors'].extend(staff_result.get('error_details', []))
                     
             except Exception as e:
                 error_msg = f"Staff import error: {str(e)}"
@@ -403,54 +403,50 @@ class UserImportService:
                 student_result = await self.import_all_students()
                 results['student_import'] = student_result
                 
-                if student_result.get('success'):
-                    results['total_imported'] += student_result.get('imported_count', 0)
-                    results['total_updated'] += student_result.get('updated_count', 0)
-                else:
-                    results['errors'].append(f"Student import failed: {student_result.get('message', 'Unknown error')}")
+                # Extract the correct field names from the import result
+                results['total_imported'] += student_result.get('imported', 0)
+                results['total_updated'] += student_result.get('updated', 0)
+                
+                # Add any errors from this import
+                if student_result.get('errors', 0) > 0:
+                    results['errors'].extend(student_result.get('error_details', []))
                     
             except Exception as e:
                 error_msg = f"Student import error: {str(e)}"
                 logger.error(error_msg)
                 results['errors'].append(error_msg)
-            
-            # Sync user profiles
-            try:
-                logger.info("🔄 Syncing user profiles...")
-                sync_result = await self.sync_user_profiles()
-                results['profile_sync'] = sync_result
-                
-                if not sync_result.get('success'):
-                    results['errors'].append(f"Profile sync failed: {sync_result.get('message', 'Unknown error')}")
-                    
-            except Exception as e:
-                error_msg = f"Profile sync error: {str(e)}"
-                logger.error(error_msg)
-                results['errors'].append(error_msg)
-            
             # Calculate completion time
-            end_time = datetime.utcnow()
+            end_time = central_now()
             duration = (end_time - start_time).total_seconds()
             results['completed_at'] = end_time.isoformat()
             results['duration_seconds'] = duration
-            
             # Determine overall success
-            if results['errors']:
+            # Consider it successful if any users were imported/updated, even with some errors
+            total_processed = results['total_imported'] + results['total_updated']
+            
+            if results['errors'] and total_processed == 0:
+                # Critical failure - no users processed and there are errors
                 results['success'] = False
-                results['message'] = f"Import completed with {len(results['errors'])} errors"
-                logger.warning(f"⚠️ Scheduled import completed with errors: {results['message']}")
+                results['message'] = f"Import failed with {len(results['errors'])} errors - no users processed"
+                logger.error(f"❌ Scheduled import failed: {results['message']}")
+            elif results['errors']:
+                # Partial success - users were processed but there were some errors
+                results['success'] = True  # Mark as successful with warnings
+                results['message'] = f"Import completed with {len(results['errors'])} errors. Processed {total_processed} users ({results['total_imported']} new, {results['total_updated']} updated)"
+                logger.warning(f"⚠️ Scheduled import completed with warnings: {results['message']}")
             else:
+                # Complete success - no errors
+                results['success'] = True
                 results['message'] = f"Successfully imported {results['total_imported']} users and updated {results['total_updated']} users"
                 logger.info(f"✅ Scheduled import completed successfully: {results['message']}")
             
             return results
-            
         except Exception as e:
             error_msg = f"Scheduled import failed: {str(e)}"
             logger.error(f"❌ {error_msg}")
             return {
                 'success': False,
                 'message': error_msg,
-                'started_at': datetime.utcnow().isoformat(),
+                'started_at': central_now().isoformat(),
                 'errors': [error_msg]
             }

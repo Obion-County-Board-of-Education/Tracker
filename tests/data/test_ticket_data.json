@@ -1,9 +1,0 @@
-{
-  "title": "Test Ticket for Export",
-  "description": "This is a test ticket with real data to verify export-import cycle",
-  "issue_type": "Hardware",
-  "building_name": "Elementary School",
-  "room_name": "Computer Lab",
-  "created_by": "TestUser",
-  "tag": "HW001"
-}

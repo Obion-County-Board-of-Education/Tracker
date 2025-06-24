@@ -1,2 +1,0 @@
-id,title,description,issue_type,school,room,tag,status,created_by,created_at,updated_at
-25,Final Verification Test Ticket,Testing the complete CSV export-import cycle after header fix,Software,Central Office,Main Office,VERIFY001,new,System Test,2025-06-08 11:53:34,2025-06-08 11:53:34
