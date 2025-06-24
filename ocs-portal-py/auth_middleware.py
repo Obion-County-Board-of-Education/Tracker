@@ -27,7 +27,8 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             "/health",
             "/auth/status",
             "/users/list",  # Allow redirect to new admin interface
-            "/users"        # Allow redirect to new admin interface
+            "/users",       # Allow redirect to new admin interface
+            "/ws"           # Exclude WebSocket connections
         ]
     
     async def dispatch(self, request: Request, call_next):

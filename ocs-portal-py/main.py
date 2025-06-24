@@ -117,6 +117,16 @@ except Exception as e:
     print(f"❌ Error loading scheduler routes: {e}")
     scheduler_service = None
 
+# Include notification routes
+try:
+    from notification_routes import setup_notification_routes
+    setup_notification_routes(app)
+    print("✅ Notification routes loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Notification routes not available: {e}")
+except Exception as e:
+    print(f"❌ Error loading notification routes: {e}")
+
 async def get_menu_context(request: Request = None):
     """Get menu visibility context for templates - using role-based filtering"""
     try:
