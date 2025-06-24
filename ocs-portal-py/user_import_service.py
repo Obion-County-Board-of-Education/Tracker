@@ -362,3 +362,95 @@ class UserImportService:
                 'error': str(e),
                 'last_updated': datetime.utcnow().isoformat()
             }
+        
+    async def run_scheduled_import(self) -> Dict[str, Any]:
+        """Run a complete scheduled import of all users (staff and students)"""
+        try:
+            logger.info("🔄 Starting scheduled user import...")
+            start_time = datetime.utcnow()
+            
+            results = {
+                'success': True,
+                'started_at': start_time.isoformat(),
+                'staff_import': None,
+                'student_import': None,
+                'profile_sync': None,
+                'total_imported': 0,
+                'total_updated': 0,
+                'errors': []
+            }
+            
+            # Import staff users
+            try:
+                logger.info("📋 Importing staff users...")
+                staff_result = await self.import_all_staff()
+                results['staff_import'] = staff_result
+                
+                if staff_result.get('success'):
+                    results['total_imported'] += staff_result.get('imported_count', 0)
+                    results['total_updated'] += staff_result.get('updated_count', 0)
+                else:
+                    results['errors'].append(f"Staff import failed: {staff_result.get('message', 'Unknown error')}")
+                    
+            except Exception as e:
+                error_msg = f"Staff import error: {str(e)}"
+                logger.error(error_msg)
+                results['errors'].append(error_msg)
+            
+            # Import student users
+            try:
+                logger.info("🎓 Importing student users...")
+                student_result = await self.import_all_students()
+                results['student_import'] = student_result
+                
+                if student_result.get('success'):
+                    results['total_imported'] += student_result.get('imported_count', 0)
+                    results['total_updated'] += student_result.get('updated_count', 0)
+                else:
+                    results['errors'].append(f"Student import failed: {student_result.get('message', 'Unknown error')}")
+                    
+            except Exception as e:
+                error_msg = f"Student import error: {str(e)}"
+                logger.error(error_msg)
+                results['errors'].append(error_msg)
+            
+            # Sync user profiles
+            try:
+                logger.info("🔄 Syncing user profiles...")
+                sync_result = await self.sync_user_profiles()
+                results['profile_sync'] = sync_result
+                
+                if not sync_result.get('success'):
+                    results['errors'].append(f"Profile sync failed: {sync_result.get('message', 'Unknown error')}")
+                    
+            except Exception as e:
+                error_msg = f"Profile sync error: {str(e)}"
+                logger.error(error_msg)
+                results['errors'].append(error_msg)
+            
+            # Calculate completion time
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
+            results['completed_at'] = end_time.isoformat()
+            results['duration_seconds'] = duration
+            
+            # Determine overall success
+            if results['errors']:
+                results['success'] = False
+                results['message'] = f"Import completed with {len(results['errors'])} errors"
+                logger.warning(f"⚠️ Scheduled import completed with errors: {results['message']}")
+            else:
+                results['message'] = f"Successfully imported {results['total_imported']} users and updated {results['total_updated']} users"
+                logger.info(f"✅ Scheduled import completed successfully: {results['message']}")
+            
+            return results
+            
+        except Exception as e:
+            error_msg = f"Scheduled import failed: {str(e)}"
+            logger.error(f"❌ {error_msg}")
+            return {
+                'success': False,
+                'message': error_msg,
+                'started_at': datetime.utcnow().isoformat(),
+                'errors': [error_msg]
+            }
