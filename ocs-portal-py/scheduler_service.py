@@ -165,7 +165,6 @@ class SchedulerService:
                 'success': True,
                 'message': 'User import started successfully'
             }
-            
         except Exception as e:
             logger.error(f"❌ Error running immediate user import: {e}")
             return {
@@ -177,24 +176,25 @@ class SchedulerService:
         """Get the current scheduler status"""
         try:
             job = self.scheduler.get_job('user_import_job') if self.scheduler else None
-            
+
             next_run = None
             if job and not job.next_run_time:
                 # Job is paused
                 next_run = None
             elif job:
                 next_run = job.next_run_time.isoformat() if job.next_run_time else None
-                
+
             return {
                 'success': True,
                 'data': {
                     'scheduler_running': self.is_running,
                     'user_import_enabled': self.user_import_enabled,
                     'next_run': next_run,
-                    'jobs_count': len(self.scheduler.get_jobs()) if self.scheduler else 0
+                    'jobs_count': len(self.scheduler.get_jobs()) if self.scheduler else 0,
+                    'recent_executions': []  # TODO: Implement execution history tracking
                 }
             }
-            
+
         except Exception as e:
             logger.error(f"❌ Error getting scheduler status: {e}")
             return {
