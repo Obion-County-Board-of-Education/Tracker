@@ -559,8 +559,8 @@ async def import_tech_tickets(request: Request, file: UploadFile = File(...), op
         # Read file content
         file_content = await file.read()
         
-        # Call the import service
-        result = await services["tickets"].import_tech_tickets_csv(file_content, operation)
+        # Call the import service with filename
+        result = await services["tickets"].import_tech_tickets_csv(file_content, file.filename, operation)
         
         print(f"✅ Tech tickets import successful: {result}")
         
@@ -588,9 +588,8 @@ async def import_maintenance_tickets(request: Request, file: UploadFile = File(.
         
         # Read file content
         file_content = await file.read()
-        
-        # Call the import service
-        result = await services["tickets"].import_maintenance_tickets_csv(file_content, operation)
+          # Call the import service with filename
+        result = await services["tickets"].import_maintenance_tickets_csv(file_content, file.filename, operation)
         
         print(f"✅ Maintenance tickets import successful: {result}")
         

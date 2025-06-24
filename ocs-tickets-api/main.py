@@ -746,11 +746,10 @@ async def import_tech_tickets_csv(request: Request, file: UploadFile = File(...)
                 continue
           # Commit all changes
         db.commit()
-        
-        # Log the import action
+          # Log the import action
         user = get_current_user(request)
         log_user_action(
-            user_id=user.id,
+            user_id=user.get("user_id") if user else 0,
             action="import_tech_tickets",
             details=f"Imported {imported_count} tech tickets via CSV ({operation} mode)",
             db=db
@@ -850,11 +849,10 @@ async def import_maintenance_tickets_csv(request: Request, file: UploadFile = Fi
                 continue
           # Commit all changes
         db.commit()
-        
-        # Log the import action
+          # Log the import action
         user = get_current_user(request)
         log_user_action(
-            user_id=user.id,
+            user_id=user.get("user_id") if user else 0,
             action="import_maintenance_tickets",
             details=f"Imported {imported_count} maintenance tickets via CSV ({operation} mode)",
             db=db
