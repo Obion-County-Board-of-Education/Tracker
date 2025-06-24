@@ -194,3 +194,74 @@ The dynamic menu system automatically shows/hides menu items based on the health
 
 ### Caching
 Service health checks are cached for 30 seconds to prevent overwhelming services with requests.
+
+## ✅ Recently Organized Test Files
+
+The following test files have been moved into organized subdirectories:
+
+### 🔗 Integration Tests (`integration/`)
+- **`test_auth_flow_complete.py`** - Complete authentication flow testing with next parameter
+- **`test_auth_flow.py`** - Basic authentication flow testing
+
+### 🧪 Unit Tests (`unit/`) - Additional
+- **`test_grouprole_initialization.py`** - Group role initialization testing
+- **`test_role_filtering.py`** - Role filtering functionality testing
+
+### 🔧 Utilities (`utilities/`)
+- **`debug_jlewis_permissions.py`** - Debug specific user permissions
+- **`debug_user_permissions.py`** - General user permission debugging  
+- **`verify_role_filtering.py`** - Role filtering verification script
+
+### 📜 PowerShell Scripts (`scripts/`)
+- **`verify_automated_import.ps1`** - Automated import verification
+- **`verify_requirements.ps1`** - System requirements verification
+- **`quick_check.ps1`** - Quick system health check
+
+## Running Organized Tests
+
+### Using the Test Runner
+```bash
+# List all available tests
+python run_tests.py list
+
+# Run tests by category
+python run_tests.py unit
+python run_tests.py integration
+python run_tests.py utilities
+
+# Run PowerShell verification scripts
+.\tests\scripts\verify_requirements.ps1
+.\tests\scripts\quick_check.ps1
+```
+
+### Manual Test Execution
+```bash
+# Run specific tests
+python tests\integration\test_auth_flow_complete.py
+python tests\unit\test_role_filtering.py
+python tests\utilities\verify_role_filtering.py
+```
+
+## Test Dependencies
+
+### For Authentication Tests
+- Services must be running: `docker-compose up -d`
+- Proper Azure AD configuration in `.env` file
+- Portal accessible at `http://localhost:8003`
+
+### For Unit Tests
+- Shared models package installed
+- Database connection available (for some tests)
+
+### For Utility Scripts
+- PowerShell execution policy enabled
+- Python 3.11+ for Python utilities
+- Docker services running for verification scripts
+
+## Organization Benefits
+
+1. **✅ Clear Separation**: Tests are organized by type and functionality
+2. **✅ Easy Discovery**: Developers can quickly find relevant tests
+3. **✅ Modular Structure**: Follows the microservices architecture
+4. **✅ CI/CD Ready**: Organized structure works well with automated testing
+5. **✅ Clean Root**: Main application code is clearly separated from tests

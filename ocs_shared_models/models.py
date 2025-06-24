@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table, Tex
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 import enum
+import uuid
 try:
     from .timezone_utils import central_now
 except ImportError:
@@ -287,8 +288,7 @@ class AuditLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(String, nullable=False)  # Azure AD User ID
     action_type = Column(String, nullable=False)  # create, read, update, delete, login, logout
-    resource_type = Column(String, nullable=False)  # ticket, inventory, user, etc.
-    resource_id = Column(String, nullable=True)  # ID of the affected resource
+    resource_type = Column(String, nullable=False)  # ticket, inventory, user, etc.    resource_id = Column(String, nullable=True)  # ID of the affected resource
     details = Column(JSON, nullable=True)  # JSON object with action details
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)

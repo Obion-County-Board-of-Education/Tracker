@@ -195,6 +195,8 @@ async def list_users(
     search: Optional[str] = None,
     user_type: Optional[str] = None,
     department: Optional[str] = None,
+    sort_by: Optional[str] = "display_name",
+    sort_order: Optional[str] = "asc",
     db: Session = Depends(get_db)
 ):
     """List users with pagination and filtering"""
@@ -219,10 +221,16 @@ async def list_users(
                 (User.given_name.ilike(search_filter)) |
                 (User.surname.ilike(search_filter))
             )
-        
-        # Apply department filter
+          # Apply department filter
         if department:
             query = query.join(UserDepartment).filter(UserDepartment.department_name == department)
+        
+        # Apply sorting
+        sort_column = getattr(User, sort_by, User.display_name)
+        if sort_order.lower() == "desc":
+            query = query.order_by(sort_column.desc())
+        else:
+            query = query.order_by(sort_column.asc())
         
         # Get total count
         total = query.count()

@@ -1,17 +1,34 @@
-fastapi
-uvicorn
-jinja2
-python-multipart
-httpx
-itsdangerous
+# Core FastAPI dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+jinja2==3.1.2
+python-multipart==0.0.6
+
+# Database dependencies
 sqlalchemy>=2.0.0
 psycopg2-binary>=2.9.0
--e ./ocs_shared_models
+alembic==1.13.0
 
 # Authentication dependencies
 msal>=1.24.0
 PyJWT>=2.8.0
-python-jose[cryptography]
-python-dotenv
-passlib[bcrypt]
-requests
+python-jose[cryptography]==3.3.0
+python-dotenv==1.0.0
+passlib[bcrypt]==1.7.4
+requests==2.31.0
+
+# HTTP client
+httpx==0.25.2
+
+# Security
+itsdangerous==2.1.2
+
+# Scheduler dependencies (Portal-specific)
+APScheduler==3.10.4
+
+# Excel processing (for user imports)
+pandas==2.1.4
+openpyxl==3.1.2
+
+# Local shared models
+-e ./ocs_shared_models

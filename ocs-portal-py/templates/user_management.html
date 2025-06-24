@@ -27,6 +27,39 @@
             <button id="syncProfilesBtn" class="btn btn-secondary">
                 <i class="fas fa-sync"></i> Sync Profiles
             </button>
+        </div>    </div>
+
+    <!-- Scheduler Section -->
+    <div class="scheduler-section">
+        <h3><i class="fas fa-clock"></i> Automated Import Schedule</h3>
+        <p>Configure automatic user import from Azure AD</p>
+        
+        <div class="scheduler-controls">
+            <div class="schedule-status">
+                <div class="status-indicator">
+                    <span id="scheduleStatus" class="status-badge status-unknown">Checking...</span>
+                    <span id="scheduleText">Automatic import every 2 hours</span>
+                </div>
+                <div class="schedule-actions">
+                    <button id="toggleScheduleBtn" class="btn btn-outline">
+                        <i class="fas fa-power-off"></i> Toggle Schedule
+                    </button>
+                    <button id="runNowBtn" class="btn btn-secondary">
+                        <i class="fas fa-play"></i> Run Now
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Recent Executions -->
+            <div class="recent-executions">
+                <h4>Recent Import History</h4>
+                <div id="executionHistory" class="execution-list">
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading execution history...</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -126,13 +159,12 @@
 
 </script>    <script>
         let currentPage = 1;
-        let currentFilters = {};
-
-        // Initialize page
+        let currentFilters = {};        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             loadUserStats();
             loadDepartments();
             loadUsers();
+            loadSchedulerStatus();
             
             // Event listeners
             document.getElementById('importStaffBtn').addEventListener('click', () => importUsers('staff'));
@@ -141,12 +173,143 @@
             document.getElementById('syncProfilesBtn').addEventListener('click', syncProfiles);
             document.getElementById('refreshUsers').addEventListener('click', loadUsers);
             
+            // Scheduler event listeners
+            document.getElementById('toggleScheduleBtn').addEventListener('click', toggleSchedule);
+            document.getElementById('runNowBtn').addEventListener('click', runImportNow);
+            
             // Filter event listeners
             document.getElementById('searchUsers').addEventListener('input', debounce(handleFilterChange, 500));
             document.getElementById('filterUserType').addEventListener('change', handleFilterChange);
             document.getElementById('filterDepartment').addEventListener('change', handleFilterChange);
             document.getElementById('entriesPerPage').addEventListener('change', handleFilterChange);
-        });
+            
+            // Refresh scheduler status every 30 seconds
+            setInterval(loadSchedulerStatus, 30000);        });
+
+        // Scheduler Management Functions
+        async function loadSchedulerStatus() {
+            try {
+                const response = await fetch('/api/admin/scheduler/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateSchedulerUI(data.data);
+                } else {
+                    throw new Error(data.message || 'Failed to load scheduler status');
+                }
+            } catch (error) {
+                console.error('Error loading scheduler status:', error);
+                document.getElementById('scheduleStatus').textContent = 'Error';
+                document.getElementById('scheduleStatus').className = 'status-badge status-error';
+            }
+        }
+
+        function updateSchedulerUI(schedulerData) {
+            const statusElement = document.getElementById('scheduleStatus');
+            const toggleBtn = document.getElementById('toggleScheduleBtn');
+            
+            // Update status
+            if (schedulerData.user_import_enabled) {
+                statusElement.textContent = 'Active';
+                statusElement.className = 'status-badge status-active';
+                toggleBtn.innerHTML = '<i class="fas fa-pause"></i> Disable Schedule';
+            } else {
+                statusElement.textContent = 'Inactive';
+                statusElement.className = 'status-badge status-inactive';
+                toggleBtn.innerHTML = '<i class="fas fa-play"></i> Enable Schedule';
+            }
+            
+            // Update execution history
+            renderExecutionHistory(schedulerData.recent_executions);
+        }
+
+        function renderExecutionHistory(executions) {
+            const historyContainer = document.getElementById('executionHistory');
+            
+            if (executions.length === 0) {
+                historyContainer.innerHTML = `
+                    <div class="no-data">
+                        <i class="fas fa-history"></i>
+                        <p>No recent executions</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const historyHtml = executions.map(exec => `
+                <div class="execution-item status-${exec.status}">
+                    <div class="execution-info">
+                        <span class="execution-name">${exec.task_name}</span>
+                        <span class="execution-time">${formatDateTime(exec.started_at)}</span>
+                    </div>
+                    <div class="execution-status">
+                        <span class="status-badge status-${exec.status}">${exec.status}</span>
+                        ${exec.duration ? `<span class="duration">${exec.duration}s</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            historyContainer.innerHTML = historyHtml;
+        }
+
+        async function toggleSchedule() {
+            try {
+                const response = await fetch('/api/admin/scheduler/tasks/user-import/toggle', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Success', data.message, 'success');
+                    loadSchedulerStatus(); // Refresh status
+                } else {
+                    throw new Error(data.message || 'Failed to toggle schedule');
+                }
+            } catch (error) {
+                console.error('Error toggling schedule:', error);
+                showToast('Error', 'Failed to update schedule', 'error');
+            }
+        }
+
+        async function runImportNow() {
+            try {
+                const runBtn = document.getElementById('runNowBtn');
+                runBtn.disabled = true;
+                runBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+                
+                const response = await fetch('/api/admin/scheduler/tasks/user-import/run-now', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Success', 'Import started successfully', 'success');
+                    setTimeout(() => {
+                        loadSchedulerStatus(); // Refresh after a delay
+                        loadUserStats(); // Refresh user stats
+                    }, 2000);
+                } else {
+                    throw new Error(data.message || 'Failed to start import');
+                }
+            } catch (error) {
+                console.error('Error running import:', error);
+                showToast('Error', 'Failed to start import', 'error');
+            } finally {
+                const runBtn = document.getElementById('runNowBtn');
+                runBtn.disabled = false;
+                runBtn.innerHTML = '<i class="fas fa-play"></i> Run Now';
+            }
+        }
+
+        function formatDateTime(dateStr) {
+            if (!dateStr) return 'Unknown';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleString();
+            } catch (e) {
+                return dateStr;
+            }
+        }
 
         // Load user statistics
         async function loadUserStats() {
@@ -507,6 +670,128 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
     margin-top: 1.5rem;
+}
+
+.scheduler-section {
+    background: white;
+    border-radius: 0.7em;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(30,41,59,0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.scheduler-section h3 {
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #1e293b;
+}
+
+.scheduler-controls {
+    margin-top: 16px;
+}
+
+.schedule-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-active { background: #d4edda; color: #155724; }
+.status-inactive { background: #f8d7da; color: #721c24; }
+.status-unknown { background: #e2e3e5; color: #495057; }
+.status-error { background: #f8d7da; color: #721c24; }
+.status-running { background: #cce7ff; color: #004085; }
+.status-completed { background: #d4edda; color: #155724; }
+.status-failed { background: #f8d7da; color: #721c24; }
+
+.schedule-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.recent-executions {
+    margin-top: 20px;
+}
+
+.recent-executions h4 {
+    margin-bottom: 12px;
+    color: #1e293b;
+}
+
+.execution-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.execution-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: white;
+}
+
+.execution-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.execution-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #1e293b;
+}
+
+.execution-time {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.execution-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.duration {
+    font-size: 11px;
+    color: #6c757d;
+}
+
+.no-data {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.no-data i {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #adb5bd;
 }
 
 .stats-section {

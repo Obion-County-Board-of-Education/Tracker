@@ -99,6 +99,24 @@ except ImportError as e:
 except Exception as e:
     print(f"❌ Error loading user import routes: {e}")
 
+# Include scheduler routes
+try:
+    from scheduler_routes import router as scheduler_router, set_scheduler_service
+    from scheduler_service import SchedulerService
+    
+    # Create global scheduler instance
+    scheduler_service = SchedulerService()
+    set_scheduler_service(scheduler_service)
+    
+    app.include_router(scheduler_router)
+    print("✅ Scheduler routes loaded successfully")
+except ImportError as e:
+    print(f"⚠️ Scheduler routes not available: {e}")
+    scheduler_service = None
+except Exception as e:
+    print(f"❌ Error loading scheduler routes: {e}")
+    scheduler_service = None
+
 async def get_menu_context(request: Request = None):
     """Get menu visibility context for templates - using role-based filtering"""
     try:
@@ -1448,6 +1466,26 @@ async def admin_system(request: Request):
         "services": services_health,
         **menu_context
     })
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background services"""
+    if scheduler_service:
+        try:
+            await scheduler_service.start()
+            print("✅ Scheduler service started")
+        except Exception as e:
+            print(f"❌ Failed to start scheduler service: {e}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop background services"""
+    if scheduler_service:
+        try:
+            await scheduler_service.stop()
+            print("✅ Scheduler service stopped")
+        except Exception as e:
+            print(f"❌ Failed to stop scheduler service: {e}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8003)
