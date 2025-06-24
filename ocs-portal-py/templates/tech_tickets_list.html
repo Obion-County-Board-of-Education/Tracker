@@ -1440,36 +1440,65 @@ function initializeImportModal(type) {
       </div>
     `;
     form.appendChild(statusDiv);
-    
-    // Submit the actual form
+      // Submit the actual form
     const formData = new FormData(form);
+    
+    // Add debugging to help troubleshoot authentication issues
+    console.log('🚀 Starting CSV import...', {
+      action: form.action,
+      method: 'POST',
+      hasFile: !!fileInput.files[0],
+      fileName: fileInput.files[0]?.name,
+      operation: formData.get('operation')
+    });
+    
     fetch(form.action, {
       method: 'POST',
-      body: formData
+      body: formData,
+      credentials: 'include'  // Include cookies for authentication
     })
     .then(response => {
+      console.log('📡 Import response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        redirected: response.redirected,
+        url: response.url
+      });
+      
       if (response.redirected) {
         // Success - redirect to the page
+        console.log('✅ Import successful, redirecting to:', response.url);
         window.location.href = response.url;
+      } else if (response.status === 401) {
+        // Authentication failed
+        console.error('🔒 Authentication failed - user may not be logged in');
+        throw new Error('Authentication failed. Please log in and try again.');
+      } else if (response.status === 403) {
+        // Permission denied
+        console.error('🚫 Permission denied - user may not have admin access');
+        throw new Error('Permission denied. Admin access required for CSV import.');
       } else {
+        console.error('❌ Import failed with status:', response.status);
         throw new Error('Import failed');
       }
     })
     .catch(error => {
+      console.error('💥 Import error:', error);
+      
       // Remove loading state
       importBtn.classList.remove('loading');
       importBtn.disabled = false;
       
-      // Show error message
+      // Show specific error message
       statusDiv.innerHTML = `
         <div style="padding: 1rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 6px; margin-top: 1rem;">
-          <i class="fa fa-exclamation-triangle"></i> Import failed. Please check your CSV format and try again.
+          <i class="fa fa-exclamation-triangle"></i> ${error.message || 'Import failed. Please check your CSV format and try again.'}
         </div>
       `;
       
       setTimeout(() => {
         statusDiv.remove();
-      }, 5000);
+      }, 8000);
     });
   });
   
