@@ -374,6 +374,9 @@ class TicketsService:
             print(f"Error rolling maintenance database: {e}")
             return {"success": False, "message": str(e)}
 
+    # Note: Clear operations are handled directly by portal proxy routes
+    # Portal acts as thin proxy and delegates to tickets module for business logic
+
     async def get_tickets_count(self, ticket_type: str, status: str = "open") -> int:
         """Get count of tickets by type and status"""
         try:

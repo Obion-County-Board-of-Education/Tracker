@@ -1324,9 +1324,14 @@ function updateStatus(ticketId, newStatus) {
 
 // Clear all tickets function
 function clearAllTickets(ticketType) {
+    console.log('clearAllTickets called with ticketType:', ticketType);
+    
     if (!confirm(`Are you sure you want to clear ALL ${ticketType} tickets? This action cannot be undone and will permanently delete all open and closed tickets from the database.`)) {
+        console.log('User cancelled the operation');
         return;
     }
+    
+    console.log('User confirmed, proceeding with clear operation');
     
     // Show loading state
     const button = event.target.closest('.clear-all-btn');
@@ -1334,12 +1339,17 @@ function clearAllTickets(ticketType) {
     button.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Clearing...';
     button.disabled = true;
     
+    console.log('Button state updated, submitting form');
+    
     // Submit the clear request
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = `/tickets/${ticketType}/clear`;
     
+    console.log('Form created with action:', form.action);
+    
     document.body.appendChild(form);
+    console.log('Form appended to body, submitting...');
     form.submit();
 }
 

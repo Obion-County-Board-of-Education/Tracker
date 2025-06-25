@@ -457,11 +457,14 @@ def export_maintenance_tickets_csv(request: Request, import_ready: str = "false"
 
 # Clear All Tickets API - Must come before parameterized routes
 @app.post("/api/tickets/tech/clear")
-@require_admin  # Only admins can clear all tickets
 def clear_all_tech_tickets(request: Request, db: Session = Depends(get_db)):
     """Clear all technology tickets from the database"""
     try:
         user = get_current_user(request)
+        
+        # Check if user is admin or super_admin
+        if not user or user.get('access_level') not in ['admin', 'super_admin']:
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
         
         # Get count before deletion
         count = db.query(TechTicket).count()
@@ -475,7 +478,9 @@ def clear_all_tech_tickets(request: Request, db: Session = Depends(get_db)):
             ON CONFLICT (name) DO UPDATE SET value = 0;
         """))
         
-        db.commit()        # Log this critical action
+        db.commit()
+        
+        # Log this critical action
         log_user_action(
             db=db,
             user_id=user.get('user_id', 'unknown'),
@@ -495,23 +500,30 @@ def clear_all_tech_tickets(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error clearing tech tickets: {str(e)}")
 
 @app.post("/api/tickets/maintenance/clear")
-@require_admin  # Only admins can clear all tickets
 def clear_all_maintenance_tickets(request: Request, db: Session = Depends(get_db)):
     """Clear all maintenance tickets from the database"""
     try:
         user = get_current_user(request)
         
+        # Check if user is admin or super_admin
+        if not user or user.get('access_level') not in ['admin', 'super_admin']:
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
+        
         # Get count before deletion
         count = db.query(MaintenanceTicket).count()
-          # Delete all maintenance tickets
+        
+        # Delete all maintenance tickets
         db.query(MaintenanceTicket).delete()
         
         # Reset the closed ticket counter
         db.execute(text("""
             INSERT INTO counter (name, value) VALUES ('closed_maintenance_tickets', 0)
             ON CONFLICT (name) DO UPDATE SET value = 0;
-        """))        
-        db.commit()        # Log this critical action
+        """))
+        
+        db.commit()
+        
+        # Log this critical action
         log_user_action(
             db=db,
             user_id=user.get('user_id', 'unknown'),
