@@ -78,35 +78,38 @@ class RoomResponse(BaseModel):
 # Pydantic models for inventory
 class InventoryItemResponse(BaseModel):
     id: int
-    tag: str
-    type: str
+    tag_number: str
+    item_type: str
     brand: str
     model: str
-    serial: str
-    po_number: str
-    price: float
+    serial_number: str
+    purchase_order: str
+    price: str
     purchase_date: datetime
     funds: str
     vendor: str
-    school: str
-    room: str
+    description: str
+    condition: str
+    status: str
     created_at: datetime
     
     class Config:
         from_attributes = True
 
 class InventoryItemCreate(BaseModel):
-    tag: str
-    type: str
+    tag_number: str
+    item_type: str
     brand: str
     model: str
-    serial: str
-    po_number: str
-    price: float
+    serial_number: str
+    purchase_order: str
+    price: str
     purchase_date: datetime
     funds: str
     vendor: str
-    school: str
+    description: str
+    condition: str = "excellent"
+    status: str = "available"
     room: str
 
 class InventoryCheckoutResponse(BaseModel):

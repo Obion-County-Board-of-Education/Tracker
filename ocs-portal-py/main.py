@@ -64,6 +64,7 @@ app.add_middleware(SessionMiddleware, secret_key=AuthConfig.JWT_SECRET)
 app.add_middleware(
     AuthenticationMiddleware,
     exclude_paths=[
+        "/",  # Allow home page to handle its own authentication
         "/auth/login", 
         "/auth/microsoft", 
         "/auth/callback",
@@ -188,6 +189,27 @@ async def home(request: Request, db: Session = Depends(get_db)):
         # User not authenticated, redirect to login
         return RedirectResponse(url="/auth/login", status_code=302)
     
+    # Initialize default values
+    homepage_message = None
+    dashboard_data = {
+        "tickets": {
+            "tech_open": 0,
+            "tech_closed": 0,
+            "maintenance_open": 0,
+            "maintenance_closed": 0,
+            "total_open": 0,
+            "total_closed": 0
+        }
+    }
+    menu_context = {
+        'user': user,
+        'access_level': user.get('access_level', 'guest'),
+        'permissions': user.get('permissions', {}),
+        'menu_visibility': {},
+        'menu_items': [],
+        'is_authenticated': True
+    }
+    
     try:
         # Get the homepage message from database
         homepage_message = db.query(SystemMessage).filter(
@@ -207,23 +229,25 @@ async def home(request: Request, db: Session = Depends(get_db)):
     
     except Exception as e:
         print(f"Database error loading homepage message: {e}")
-        # If there's an authentication or database error, redirect to login
-        return RedirectResponse(url="/auth/login", status_code=302)
+        # Create a default message instead of redirecting
+        homepage_message = type('SystemMessage', (), {
+            'content': "Welcome to OCS Tracker Portal. Please check with your administrator if you continue to see this message.",
+            'message_type': 'homepage'
+        })()
         
     # Gather dashboard data
     try:
         dashboard_data = await get_dashboard_data(db, request)
     except Exception as e:
         print(f"Error getting dashboard data: {e}")
-        # If dashboard fails but user is authenticated, redirect to login to be safe
-        return RedirectResponse(url="/auth/login", status_code=302)
+        # Use default dashboard data instead of redirecting
         
     # Get menu visibility context
     try:
         menu_context = await get_menu_context(request)
     except Exception as e:
         print(f"Error getting menu context: {e}")
-        return RedirectResponse(url="/auth/login", status_code=302)
+        # Use default menu context instead of redirecting
     
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -1373,128 +1397,182 @@ async def inventory_service_integration(request: Request):
     if permissions.get('inventory_access', 'none') == 'none':
         raise HTTPException(status_code=403, detail="Access denied: No inventory permission")
     
-    # Redirect to manage API for inventory functionality
-    return RedirectResponse(url=f"{MANAGE_API_URL}/inventory", status_code=302)
-
-@app.get("/purchasing")
-async def purchasing_service_integration(request: Request):
-    """Integrate with ocs-purchasing-api service"""
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse(url="/auth/login")
+    # Get inventory items from manage API
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{MANAGE_API_URL}/api/inventory")
+            if response.status_code == 200:
+                inventory_items = response.json()
+            else:
+                inventory_items = []
+    except Exception as e:
+        print(f"Error fetching inventory: {e}")
+        inventory_items = []
     
-    permissions = user.get('permissions', {})
-    if permissions.get('purchasing_access', 'none') == 'none':
-        raise HTTPException(status_code=403, detail="Access denied: No purchasing permission")
-    
-    # Redirect to purchasing API
-    return RedirectResponse(url=f"{PURCHASING_API_URL}/", status_code=302)
-
-@app.get("/forms")
-async def forms_service_integration(request: Request):
-    """Integrate with ocs-forms-api service"""
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse(url="/auth/login")
-    
-    permissions = user.get('permissions', {})
-    if permissions.get('forms_access', 'none') == 'none':
-        raise HTTPException(status_code=403, detail="Access denied: No forms permission")
-    
-    # Redirect to forms API
-    return RedirectResponse(url=f"{FORMS_API_URL}/", status_code=302)
-
-# Admin routes for Super Admin users
-@app.get("/admin/users")
-async def admin_users(request: Request):
-    """Admin user management page"""
-    print(f"DEBUG: Admin users route accessed")
-    
-    user = get_current_user(request)
-    print(f"DEBUG: Current user in admin route: {user}")
-    
-    if not user:
-        print(f"DEBUG: No user found, redirecting to login")
-        return RedirectResponse(url="/auth/login", status_code=302)
-    
-    if user.get('access_level') not in ['admin', 'super_admin']:
-        print(f"DEBUG: User access level {user.get('access_level')} insufficient for admin")
-        raise HTTPException(status_code=403, detail="Access denied: Admin access required")
-    
-    print(f"DEBUG: Admin access confirmed, serving user management page")
-    
-    # Get menu context for the template
-    menu_context = await get_menu_context(request)
-    
-    return templates.TemplateResponse("user_management.html", {
+    menu_context = auth_get_menu_context(user)
+    return templates.TemplateResponse("view_inventory.html", {
         "request": request,
         "user": user,
-        "page_title": "User Management",
+        "inventory_items": inventory_items,
         **menu_context
     })
 
-@app.get("/admin/system")
-async def admin_system(request: Request):
-    """System administration dashboard"""
+@app.get("/inventory/add")
+async def add_inventory_form(request: Request):
+    """Show add inventory form"""
     user = get_current_user(request)
     if not user:
         return RedirectResponse(url="/auth/login")
     
-    if user.get('access_level') not in ['admin', 'super_admin']:
-        raise HTTPException(status_code=403, detail="Access denied: Admin access required")    # Check health of all microservices
-    services_health = {}
-    service_urls = {
-        "Tickets API": TICKETS_API_URL,
-        "Purchasing API": PURCHASING_API_URL,
-        "Manage API": MANAGE_API_URL,
-        "Forms API": FORMS_API_URL
+    permissions = user.get('permissions', {})
+    if permissions.get('inventory_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No inventory permission")
+    
+    menu_context = auth_get_menu_context(user)
+    return templates.TemplateResponse("add_inventory.html", {
+        "request": request,
+        "user": user,
+        **menu_context
+    })
+
+@app.post("/inventory/add")
+async def add_inventory_submit(
+    request: Request,
+    tag: str = Form(...),
+    type: str = Form(...),
+    brand: str = Form(...),
+    model: str = Form(...),
+    serial: str = Form(...),
+    po_number: str = Form(...),
+    price: float = Form(...),
+    purchase_date: str = Form(...),
+    funds: str = Form(...),
+    vendor: str = Form(...),
+    school: str = Form(...),    room: str = Form(...)
+):
+    """Submit new inventory item to manage API"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('inventory_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No inventory permission")
+    
+    # Prepare data for manage API
+    inventory_data = {
+        "tag_number": tag,
+        "item_type": type,
+        "brand": brand,
+        "model": model,
+        "serial_number": serial,
+        "purchase_order": po_number,
+        "price": str(price),
+        "purchase_date": purchase_date,
+        "funds": funds,
+        "vendor": vendor,
+        "description": f"School: {school}, Room: {room}",
+        "condition": "excellent",
+        "status": "available"
     }
     
-    for service_name, url in service_urls.items():
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(f"{url}/health", timeout=5.0)
-                services_health[service_name] = {
-                    "status": "healthy" if response.status_code == 200 else "unhealthy",
-                    "response_time": response.elapsed.total_seconds() if hasattr(response, 'elapsed') else 0,
-                    "url": url
-                }
-        except Exception as e:
-            services_health[service_name] = {
-                "status": "error", 
-                "error": str(e),
-                "url": url
-            }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(f"{MANAGE_API_URL}/api/inventory", json=inventory_data)
+            if response.status_code == 200:
+                menu_context = auth_get_menu_context(user)
+                return templates.TemplateResponse("inventory_success.html", {
+                    "request": request,
+                    "user": user,
+                    "message": "Inventory item added successfully!",
+                    **menu_context
+                })
+            else:
+                raise HTTPException(status_code=400, detail="Failed to add inventory item")
+    except Exception as e:
+        print(f"Error adding inventory: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/inventory/edit/{item_id}")
+async def edit_inventory_form(request: Request, item_id: int):
+    """Show edit inventory form"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login")
     
-    # Get menu context
-    menu_context = await get_menu_context(request)
+    permissions = user.get('permissions', {})
+    if permissions.get('inventory_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No inventory permission")
     
-    return templates.TemplateResponse("admin_system.html", {
+    # Get inventory item from manage API
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{MANAGE_API_URL}/api/inventory/{item_id}")
+            if response.status_code == 200:
+                inventory_item = response.json()
+            else:
+                raise HTTPException(status_code=404, detail="Inventory item not found")
+    except Exception as e:
+        print(f"Error fetching inventory item: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+    menu_context = auth_get_menu_context(user)
+    return templates.TemplateResponse("edit_inventory.html", {
         "request": request,
         "user": user,
-        "services": services_health,
+        "inventory_item": inventory_item,
         **menu_context
     })
 
-@app.on_event("startup")
-async def startup_event():
-    """Start background services"""
-    if scheduler_service:
-        try:
-            await scheduler_service.start()
-            print("✅ Scheduler service started")
-        except Exception as e:
-            print(f"❌ Failed to start scheduler service: {e}")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Stop background services"""
-    if scheduler_service:
-        try:
-            await scheduler_service.stop()
-            print("✅ Scheduler service stopped")
-        except Exception as e:
-            print(f"❌ Failed to stop scheduler service: {e}")
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8003)
+@app.post("/inventory/edit/{item_id}")
+async def edit_inventory_submit(
+    request: Request,
+    item_id: int,
+    tag: str = Form(...),
+    type: str = Form(...),
+    brand: str = Form(...),
+    model: str = Form(...),
+    serial: str = Form(...),
+    po_number: str = Form(...),
+    price: float = Form(...),
+    purchase_date: str = Form(...),
+    funds: str = Form(...),
+    vendor: str = Form(...),
+    school: str = Form(...),
+    room: str = Form(...)
+):
+    """Submit inventory item updates to manage API"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    
+    permissions = user.get('permissions', {})
+    if permissions.get('inventory_access', 'none') == 'none':
+        raise HTTPException(status_code=403, detail="Access denied: No inventory permission")
+      # Prepare data for manage API
+    inventory_data = {
+        "tag_number": tag,
+        "item_type": type,
+        "brand": brand,
+        "model": model,
+        "serial_number": serial,
+        "purchase_order": po_number,
+        "price": str(price),
+        "purchase_date": purchase_date,
+        "funds": funds,
+        "vendor": vendor,
+        "description": f"School: {school}, Room: {room}",
+        "condition": "excellent",
+        "status": "available"
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.put(f"{MANAGE_API_URL}/api/inventory/{item_id}", json=inventory_data)
+            if response.status_code == 200:
+                return RedirectResponse(url="/inventory", status_code=302)
+            else:
+                raise HTTPException(status_code=400, detail="Failed to update inventory item")
+    except Exception as e:
+        print(f"Error updating inventory: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

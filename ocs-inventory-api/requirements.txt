@@ -1,0 +1,4 @@
+fastapi
+uvicorn
+PyJWT
+-e ./ocs_shared_models
