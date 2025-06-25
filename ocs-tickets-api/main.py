@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, Form, HTTPException, UploadFile, File
+from fastapi import FastAPI, Request, Depends, Form, HTTPException, UploadFile, File, Query
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
@@ -457,11 +457,14 @@ def export_maintenance_tickets_csv(request: Request, import_ready: str = "false"
 
 # Clear All Tickets API - Must come before parameterized routes
 @app.post("/api/tickets/tech/clear")
-@require_admin  # Only admins can clear all tickets
 def clear_all_tech_tickets(request: Request, db: Session = Depends(get_db)):
     """Clear all technology tickets from the database"""
     try:
         user = get_current_user(request)
+        
+        # Check if user is admin or super_admin
+        if not user or user.get('access_level') not in ['admin', 'super_admin']:
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
         
         # Get count before deletion
         count = db.query(TechTicket).count()
@@ -479,10 +482,11 @@ def clear_all_tech_tickets(request: Request, db: Session = Depends(get_db)):
         
         # Log this critical action
         log_user_action(
-            user_id=user.id,
-            action="clear_all_tech_tickets",
-            details=f"Cleared {count} technology tickets from database",
-            db=db
+            db=db,
+            user_id=user.get('user_id', 'unknown'),
+            action_type="clear_all",
+            resource_type="tech_tickets",
+            details={"cleared_count": count}
         )
         
         return {
@@ -496,30 +500,36 @@ def clear_all_tech_tickets(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error clearing tech tickets: {str(e)}")
 
 @app.post("/api/tickets/maintenance/clear")
-@require_admin  # Only admins can clear all tickets
 def clear_all_maintenance_tickets(request: Request, db: Session = Depends(get_db)):
     """Clear all maintenance tickets from the database"""
     try:
         user = get_current_user(request)
         
+        # Check if user is admin or super_admin
+        if not user or user.get('access_level') not in ['admin', 'super_admin']:
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
+        
         # Get count before deletion
         count = db.query(MaintenanceTicket).count()
-          # Delete all maintenance tickets
+        
+        # Delete all maintenance tickets
         db.query(MaintenanceTicket).delete()
         
         # Reset the closed ticket counter
         db.execute(text("""
             INSERT INTO counter (name, value) VALUES ('closed_maintenance_tickets', 0)
             ON CONFLICT (name) DO UPDATE SET value = 0;
-        """))        
+        """))
+        
         db.commit()
         
         # Log this critical action
         log_user_action(
-            user_id=user.id,
-            action="clear_all_maintenance_tickets",
-            details=f"Cleared {count} maintenance tickets from database",
-            db=db
+            db=db,
+            user_id=user.get('user_id', 'unknown'),
+            action_type="clear_all",
+            resource_type="maintenance_tickets",
+            details={"cleared_count": count}
         )
         
         return {
@@ -533,11 +543,14 @@ def clear_all_maintenance_tickets(request: Request, db: Session = Depends(get_db
 
 # Roll Database API - Must come before parameterized routes
 @app.post("/api/tickets/tech/roll-database")
-@require_admin  # Only admins can roll database
-def roll_tech_database(request: Request, archive_name: str, db: Session = Depends(get_db)):
+def roll_tech_database(request: Request, archive_name: str = Query(...), db: Session = Depends(get_db)):
     """Archive current tech tickets and create a new table"""
     try:
         user = get_current_user(request)
+        
+        # Check if user is admin or super_admin
+        if not user or user.get('access_level') not in ['admin', 'super_admin']:
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
         
         # Validate archive name (only allow alphanumeric and underscore)
         if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
@@ -566,21 +579,20 @@ def roll_tech_database(request: Request, archive_name: str, db: Session = Depend
         
         # Truncate the current tech_tickets table
         db.execute(text("TRUNCATE TABLE tech_tickets RESTART IDENTITY CASCADE;"))
-        
-        # Reset the closed ticket counter
+          # Reset the closed ticket counter
         db.execute(text("""
             INSERT INTO counter (name, value) VALUES ('closed_tech_tickets', 0)
             ON CONFLICT (name) DO UPDATE SET value = 0;
         """))
-          # Commit the transaction
-        db.commit()
         
-        # Log this critical action
+        # Commit the transaction
+        db.commit()        # Log this critical action
         log_user_action(
-            user_id=user.id,
-            action="roll_tech_database",
-            details=f"Archived {archive_count} tech tickets to '{archive_table}'",
-            db=db
+            db=db,
+            user_id=user.get('user_id', 'unknown'),
+            action_type="roll_database",
+            resource_type="tech_tickets",
+            details={"archive_count": archive_count, "archive_table": archive_table}
         )
         
         return {
@@ -596,14 +608,21 @@ def roll_tech_database(request: Request, archive_name: str, db: Session = Depend
         raise
     except Exception as e:
         db.rollback()
+        print(f"Detailed error in roll_tech_database: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error rolling tech database: {str(e)}")
 
 @app.post("/api/tickets/maintenance/roll-database")
-@require_admin  # Only admins can roll database
-def roll_maintenance_database(request: Request, archive_name: str, db: Session = Depends(get_db)):
+def roll_maintenance_database(request: Request, archive_name: str = Query(...), db: Session = Depends(get_db)):
     """Archive current maintenance tickets and create a new table"""
     try:
         user = get_current_user(request)
+        
+        # Check if user is admin or super_admin
+        if not user or user.get('access_level') not in ['admin', 'super_admin']:
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Admin access required.")
         
         # Validate archive name (only allow alphanumeric and underscore)
         if not archive_name.isalnum() and not all(c.isalnum() or c == '_' for c in archive_name):
@@ -632,21 +651,19 @@ def roll_maintenance_database(request: Request, archive_name: str, db: Session =
         
         # Truncate the current maintenance_tickets table
         db.execute(text("TRUNCATE TABLE maintenance_tickets RESTART IDENTITY CASCADE;"))
-        
-        # Reset the closed ticket counter
+          # Reset the closed ticket counter
         db.execute(text("""
             INSERT INTO counter (name, value) VALUES ('closed_maintenance_tickets', 0)
             ON CONFLICT (name) DO UPDATE SET value = 0;
-        """))
-          # Commit the transaction
-        db.commit()
-        
-        # Log this critical action
+        """))        
+        # Commit the transaction
+        db.commit()        # Log this critical action
         log_user_action(
-            user_id=user.id,
-            action="roll_maintenance_database",
-            details=f"Archived {archive_count} maintenance tickets to '{archive_table}'",
-            db=db
+            db=db,
+            user_id=user.get('user_id', 'unknown'),
+            action_type="roll_database",
+            resource_type="maintenance_tickets",
+            details={"archive_count": archive_count, "archive_table": archive_table}
         )
         
         return {
@@ -662,6 +679,10 @@ def roll_maintenance_database(request: Request, archive_name: str, db: Session =
         raise
     except Exception as e:
         db.rollback()
+        print(f"Detailed error in roll_maintenance_database: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error rolling maintenance database: {str(e)}")
 
 # CSV Import API
@@ -745,14 +766,14 @@ async def import_tech_tickets_csv(request: Request, file: UploadFile = File(...)
                 errors.append(f"Row {row_num}: {str(e)}")
                 continue
           # Commit all changes
-        db.commit()
-          # Log the import action
+        db.commit()          # Log the import action
         user = get_current_user(request)
         log_user_action(
-            user_id=user.get("user_id") if user else 0,
-            action="import_tech_tickets",
-            details=f"Imported {imported_count} tech tickets via CSV ({operation} mode)",
-            db=db
+            db=db,
+            user_id=user.get("user_id") if user else "unknown",
+            action_type="import_csv",
+            resource_type="tech_tickets",
+            details={"imported_count": imported_count, "operation": operation}
         )
         
         return {
@@ -848,14 +869,14 @@ async def import_maintenance_tickets_csv(request: Request, file: UploadFile = Fi
                 errors.append(f"Row {row_num}: {str(e)}")
                 continue
           # Commit all changes
-        db.commit()
-          # Log the import action
+        db.commit()          # Log the import action
         user = get_current_user(request)
         log_user_action(
-            user_id=user.get("user_id") if user else 0,
-            action="import_maintenance_tickets",
-            details=f"Imported {imported_count} maintenance tickets via CSV ({operation} mode)",
-            db=db
+            db=db,
+            user_id=user.get("user_id") if user else "unknown",
+            action_type="import_csv",
+            resource_type="maintenance_tickets",
+            details={"imported_count": imported_count, "operation": operation}
         )
         
         return {
