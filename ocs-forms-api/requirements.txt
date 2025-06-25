@@ -6,4 +6,6 @@ httpx
 pydantic
 apscheduler
 PyJWT
+psycopg2-binary
+sqlalchemy
 -e ./ocs_shared_models
