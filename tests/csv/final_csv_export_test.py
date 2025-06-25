@@ -39,7 +39,7 @@ def test_endpoint(url, description):
                         'code': response.status_code,
                         'content_type': response.headers.get('content-type'),
                         'has_export_button': True,
-                        'has_clear_button': 'Clear All Tickets' in response.text
+                        'has_clear_button': False  # Clear All Tickets functionality has been removed
                     }
                 else:
                     return {

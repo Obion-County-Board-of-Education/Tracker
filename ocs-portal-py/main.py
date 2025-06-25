@@ -758,66 +758,7 @@ async def maintenance_tickets_archives(
         **menu_context
     })
 
-# Clear All Tickets Routes - Must come before parameterized routes
-# Portal acts as a thin proxy - delegates to tickets module for business logic
-@app.post("/tickets/tech/clear")
-async def clear_tech_tickets_proxy(request: Request, user: dict = Depends(get_current_user)):
-    """Proxy clear tech tickets request to tickets module"""
-    try:
-        # Forward request directly to tickets API with auth
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # Create auth headers for the tickets API
-            headers = {
-                "Authorization": f"Bearer {user.get('token', '')}", 
-                "Content-Type": "application/json"
-            }
-            
-            response = await client.post(
-                f"{TICKETS_API_URL}/api/tickets/tech/clear",
-                headers=headers
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                print(f"✅ Tech tickets cleared via proxy: {result}")
-                return RedirectResponse("/tickets/tech/open?message=Tech tickets cleared successfully", status_code=303)
-            else:
-                print(f"❌ Tickets API error: {response.status_code} - {response.text}")
-                return RedirectResponse("/tickets/tech/open?error=Failed to clear tickets", status_code=303)
-        
-    except Exception as e:
-        print(f"❌ Error proxying clear tech tickets request: {e}")
-        return RedirectResponse("/tickets/tech/open?error=Failed to clear tickets", status_code=303)
-
-@app.post("/tickets/maintenance/clear")
-async def clear_maintenance_tickets_proxy(request: Request, user: dict = Depends(get_current_user)):
-    """Proxy clear maintenance tickets request to tickets module"""
-    try:
-        # Forward request directly to tickets API with auth
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # Create auth headers for the tickets API
-            headers = {
-                "Authorization": f"Bearer {user.get('token', '')}", 
-                "Content-Type": "application/json"
-            }
-            
-            response = await client.post(
-                f"{TICKETS_API_URL}/api/tickets/maintenance/clear",
-                headers=headers
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                print(f"✅ Maintenance tickets cleared via proxy: {result}")
-                return RedirectResponse("/tickets/maintenance/open?message=Maintenance tickets cleared successfully", status_code=303)
-            else:
-                print(f"❌ Tickets API error: {response.status_code} - {response.text}")
-                return RedirectResponse("/tickets/maintenance/open?error=Failed to clear tickets", status_code=303)
-        
-    except Exception as e:
-        print(f"❌ Error proxying clear maintenance tickets request: {e}")
-        return RedirectResponse("/tickets/maintenance/open?error=Failed to clear tickets", status_code=303)
-
+# --- End of tickets routes ---
 # Parameterized routes - Must come after specific routes
 @app.get("/tickets/tech/{ticket_id}")
 async def view_tech_ticket(request: Request, ticket_id: int):

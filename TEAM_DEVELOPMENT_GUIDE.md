@@ -171,8 +171,7 @@ python setup_dev_data.py
 
 ### CSV Import/Export:
 - Export tickets to CSV
-- Clear all tickets
-- Import the same CSV
+- Import tickets from CSV
 - Verify data integrity
 
 ## 📞 Getting Help
