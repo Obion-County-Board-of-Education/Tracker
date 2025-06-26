@@ -943,9 +943,10 @@
     padding: 1rem;
     border: 2px solid #e9ecef;
     border-radius: 8px;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    background: #ffffff;
 }
 
 .radio-option:hover {
@@ -955,7 +956,10 @@
 
 .radio-option input[type="radio"] {
     margin: 0;
-    margin-top: 0.25rem;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
 }
 
 .radio-option input[type="radio"]:checked + .radio-content {
@@ -969,16 +973,20 @@
 
 .radio-content {
     flex: 1;
+    line-height: 1.3;
 }
 
 .radio-content strong {
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.2rem;
+    font-size: 0.95rem;
+    font-weight: 600;
 }
 
 .radio-content small {
     color: #6c757d;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
 }
 
 .format-info {
