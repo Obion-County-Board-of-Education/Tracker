@@ -26,6 +26,13 @@
                 </a>
             </div>            <div class="action-buttons">
                 {% if user and user.permissions.tickets_access == 'admin' %}
+                {% if status_filter == 'archived' and selected_archive %}
+                <button class="btn btn-danger btn-sm delete-archive-btn" 
+                        onclick="deleteArchive('{{ selected_archive }}', 'maintenance')" 
+                        title="Delete this archive permanently">
+                    <i class="fa fa-trash"></i> Delete Archive
+                </button>
+                {% endif %}
                 <button class="btn btn-secondary btn-sm import-csv-btn" onclick="showImportModal('maintenance')" title="Import tickets from CSV file">
                     <i class="fa fa-upload"></i> Import CSV
                 </button>
@@ -71,15 +78,7 @@
                         {% endfor %}
                     {% endif %}
                 </select>
-                
-                {% if status_filter == 'archived' and selected_archive %}
-                    <!-- Delete Archive Button -->
-                    <button class="btn btn-danger btn-sm delete-archive-btn" 
-                            onclick="deleteArchive('{{ selected_archive }}', 'maintenance')" 
-                            title="Delete this archive permanently">
-                        <i class="fa fa-trash"></i> Delete Archive
-                    </button>
-                {% endif %}
+                <!-- Delete Archive button removed from here -->
             </div>
         </div>
         
