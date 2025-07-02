@@ -1,10 +1,11 @@
 """
 OCS Tracker Portal with Azure AD Authentication
 """
-import sys
 import os
+import sys
 import re
 import uvicorn
+import httpx
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, UploadFile, File
@@ -378,11 +379,23 @@ async def new_tech_ticket_submit(
     building: int = Form(...),
     room: int = Form(...),
     tag: str = Form(...),
-    description: str = Form(...),
-    current_user: User = Depends(get_current_user)
+    description: str = Form(...)
 ):
     """Process technology ticket submission via Tickets API"""
+    print(f"DEBUG: Tech ticket form submitted with title: {title}")
+    print(f"DEBUG: Form data - issue_type: {issue_type}, building: {building}, room: {room}")
     try:
+        # Get current user from request directly
+        current_user = get_current_user(request)
+        if not current_user:
+            print("ERROR: No current user found")
+            return RedirectResponse("/auth/login", status_code=303)
+        
+        print(f"DEBUG: Current user: {current_user}")
+        
+        # Extract user info from the dict returned by get_current_user
+        user_display_name = current_user.get('display_name', 'Unknown User')
+        
         # Get services with authentication token
         services = get_service_for_request(request)
         
@@ -400,7 +413,7 @@ async def new_tech_ticket_submit(
             "building_name": building_obj["name"] if building_obj else "Unknown",
             "room_name": room_obj["name"] if room_obj else "Unknown",
             "tag": tag,
-            "created_by": f"{current_user.first_name} {current_user.last_name}"
+            "created_by": user_display_name
         }
         
         result = await services["tickets"].create_tech_ticket(ticket_data)
@@ -412,7 +425,29 @@ async def new_tech_ticket_submit(
     except Exception as e:
         print(f"Error creating tech ticket: {e}")
     
+    print("DEBUG: Redirecting to /tickets/success")
     return RedirectResponse("/tickets/success", status_code=303)
+
+@app.get("/tickets/success")
+async def ticket_success(request: Request):
+    """Display ticket submission success page"""
+    print("DEBUG: /tickets/success route accessed")
+    try:
+        # Get menu context with session token
+        menu_context = await get_menu_context(request)
+        print("DEBUG: Menu context retrieved successfully")
+        
+        return templates.TemplateResponse("ticket_success.html", {
+            "request": request,
+            **menu_context
+        })
+    except Exception as e:
+        print(f"ERROR in /tickets/success: {e}")
+        return templates.TemplateResponse("ticket_success.html", {
+            "request": request,
+            "current_user": None,
+            "menu_items": []
+        })
 
 @app.get("/tickets/tech/open")
 async def tech_tickets_open(request: Request):
@@ -546,7 +581,8 @@ async def export_maintenance_tickets(request: Request):
         )
     except Exception as e:
         print(f"❌ Error exporting maintenance tickets: {e}")
-        # Return to the tickets page with error        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+        # Return to the tickets page with error
+        return RedirectResponse("/tickets/maintenance/open", status_code=303)
 
 # CSV Import Routes
 @app.post("/tickets/tech/import")
@@ -1242,20 +1278,6 @@ async def tickets_service_integration(request: Request):
     # Redirect to tickets API
     return RedirectResponse(url=f"{TICKETS_API_URL}/", status_code=302)
 
-@app.get("/tickets/tech/new")
-async def new_tech_ticket_integration(request: Request):
-    """Integrate with ocs-tickets-api for new tech tickets"""
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse(url="/auth/login")
-    
-    permissions = user.get('permissions', {})
-    if permissions.get('tickets_access', 'none') == 'none':
-        raise HTTPException(status_code=403, detail="Access denied: No tickets permission")
-    
-    # Redirect to tickets API new ticket form
-    return RedirectResponse(url=f"{TICKETS_API_URL}/new-ticket", status_code=302)
-
 @app.get("/tickets/maintenance/new") 
 async def new_maintenance_ticket_integration(request: Request):
     """Integrate with ocs-tickets-api for new maintenance tickets"""
@@ -1377,7 +1399,9 @@ async def admin_system(request: Request):
         return RedirectResponse(url="/auth/login")
     
     if user.get('access_level') not in ['admin', 'super_admin']:
-        raise HTTPException(status_code=403, detail="Access denied: Admin access required")    # Check health of all microservices
+        raise HTTPException(status_code=403, detail="Access denied: Admin access required")
+    
+    # Check health of all microservices
     services_health = {}
     service_urls = {
         "Tickets API": TICKETS_API_URL,
