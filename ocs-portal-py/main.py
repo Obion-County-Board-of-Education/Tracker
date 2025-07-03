@@ -58,7 +58,13 @@ except ImportError:
 app = FastAPI(title="OCS Tracker Portal", description="Obion County Schools Management Portal")
 
 # Add session middleware for OAuth state management
-app.add_middleware(SessionMiddleware, secret_key=AuthConfig.JWT_SECRET)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=AuthConfig.JWT_SECRET,
+    max_age=3600,  # 1 hour session lifetime
+    same_site="lax",  # Important for OAuth flows
+    https_only=False  # Set to False for localhost development
+)
 
 # Add authentication middleware (but exclude auth routes)
 app.add_middleware(
@@ -1599,3 +1605,58 @@ async def edit_inventory_submit(
     except Exception as e:
         print(f"Error updating inventory: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+# Admin Routes
+@app.get("/admin")
+async def admin_dashboard(request: Request):
+    """Admin dashboard page"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    
+    # Check admin permissions
+    if user.get('access_level') not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    menu_context = auth_get_menu_context(user)
+    return templates.TemplateResponse("admin_dashboard.html", {
+        "request": request,
+        "user": user,
+        **menu_context
+    })
+
+@app.get("/admin/users")
+async def admin_users_page(request: Request):
+    """User management page"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    
+    # Check admin permissions
+    if user.get('access_level') not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    menu_context = await auth_get_menu_context(request)
+    return templates.TemplateResponse("user_management.html", {
+        "request": request,
+        "user": user,
+        **menu_context
+    })
+
+@app.get("/admin/system")
+async def admin_system_page(request: Request):
+    """System administration page"""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse(url="/auth/login")
+    
+    # Check admin permissions
+    if user.get('access_level') not in ['admin', 'super_admin']:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    menu_context = await auth_get_menu_context(request)
+    return templates.TemplateResponse("admin_system.html", {
+        "request": request,
+        "user": user,
+        **menu_context
+    })

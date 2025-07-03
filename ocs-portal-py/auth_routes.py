@@ -17,6 +17,17 @@ from auth_middleware import get_current_user
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def log_session_details(request: Request, context: str):
+    """Helper function to log session details for debugging"""
+    session_id = request.session.get("_session_id", "NO_SESSION_ID")
+    session_contents = dict(request.session)
+    logger.info(f"[{context}] Session ID: {session_id}")
+    logger.info(f"[{context}] Session contents: {session_contents}")
+    
+    # Log cookies for debugging
+    cookies = dict(request.cookies)
+    logger.info(f"[{context}] Request cookies: {cookies}")
+
 # Router for authentication routes
 auth_router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -35,23 +46,43 @@ async def login_page(request: Request, next: str = None):
 async def microsoft_login(request: Request, next: str = None, db: Session = Depends(get_db)):
     """Initiate Microsoft OAuth flow"""
     try:
+        logger.info(f"Microsoft login initiated with next parameter: {next}")
+        logger.info(f"Request URL: {request.url}")
+        logger.info(f"Request query params: {request.query_params}")
+        
+        # Log initial session state
+        log_session_details(request, "MICROSOFT_AUTH_START")
+        
         # Validate configuration
         AuthConfig.validate_config()
         
         # Create authentication service
         auth_service = AuthenticationService(db)
         
-        # Generate state parameter for security
-        state = str(uuid.uuid4())
+        # Generate state parameter for security and store next URL
+        state_data = {
+            "nonce": str(uuid.uuid4()),
+            "next_url": next or "/"
+        }
         
-        # Store state and next URL in session for callback
-        request.session["oauth_state"] = state
+        # Encode state data as base64 JSON for security
+        import base64
+        import json
+        encoded_state = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
+        
+        # Store state in session for verification
+        request.session["oauth_state"] = state_data["nonce"]
         if next:
             request.session["next_url"] = next
             logger.info(f"Storing next URL in session: {next}")
+        else:
+            logger.info(f"No next parameter provided, will default to /")
         
-        # Get authorization URL
-        auth_url = auth_service.get_auth_url(state=state)
+        # Log session state after storing values
+        log_session_details(request, "MICROSOFT_AUTH_AFTER_STORING")
+        
+        # Get authorization URL with encoded state
+        auth_url = auth_service.get_auth_url(state=encoded_state)
         
         logger.info(f"Redirecting to Microsoft login: {auth_url}")
         
@@ -75,6 +106,9 @@ async def auth_callback(
 ):
     """Handle OAuth callback from Microsoft"""
     try:
+        # Log session state at start of callback
+        log_session_details(request, "CALLBACK_START")
+        
         # Check for OAuth errors
         if error:
             logger.error(f"OAuth error: {error} - {error_description}")
@@ -89,13 +123,34 @@ async def auth_callback(
                 detail="Authorization code not received"
             )
         
-        # Verify state parameter (if using sessions)
-        # stored_state = request.session.get("oauth_state")
-        # if state != stored_state:
-        #     raise HTTPException(
-        #         status_code=status.HTTP_400_BAD_REQUEST,
-        #         detail="Invalid state parameter"
-        #     )
+        # Verify state parameter for security
+        if state:
+            try:
+                import base64
+                import json
+                decoded_state = json.loads(base64.urlsafe_b64decode(state.encode()).decode())
+                state_nonce = decoded_state.get("nonce")
+                stored_state = request.session.get("oauth_state")
+                
+                if state_nonce != stored_state:
+                    logger.warning(f"State mismatch: received {state_nonce}, expected {stored_state}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Invalid state parameter"
+                    )
+                logger.info(f"State parameter verified successfully")
+            except json.JSONDecodeError:
+                logger.warning(f"Failed to decode state parameter: {state}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid state parameter format"
+                )
+        else:
+            logger.warning("No state parameter received")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing state parameter"
+            )
           # Create authentication service
         auth_service = AuthenticationService(db)
         
@@ -135,10 +190,28 @@ async def auth_callback(
         # Debug: Log session contents
         logger.info(f"Session contents: {dict(request.session)}")
         
-        # Get the next URL from session (where user originally wanted to go)
-        next_url = request.session.get("next_url", "/")
-        logger.info(f"Retrieved next_url from session: {next_url}")
-        logger.info(f"Redirecting user to: {next_url}")
+        # Get the next URL from state parameter first, then session as fallback
+        next_url = "/"
+        
+        # Try to decode state parameter to get next_url
+        if state:
+            try:
+                import base64
+                import json
+                decoded_state = json.loads(base64.urlsafe_b64decode(state.encode()).decode())
+                next_url = decoded_state.get("next_url", "/")
+                logger.info(f"Retrieved next_url from state parameter: {next_url}")
+            except Exception as e:
+                logger.warning(f"Failed to decode state parameter: {e}")
+                # Fall back to session
+                next_url = request.session.get("next_url", "/")
+                logger.info(f"Retrieved next_url from session (fallback): {next_url}")
+        else:
+            # Fall back to session
+            next_url = request.session.get("next_url", "/")
+            logger.info(f"Retrieved next_url from session (no state): {next_url}")
+            
+        logger.info(f"Final redirect destination: {next_url}")
         
         # Clear the next URL from session
         if "next_url" in request.session:
