@@ -846,6 +846,7 @@ async def view_tech_ticket(request: Request, ticket_id: int):
         **menu_context
     })
 
+
 @app.post("/tickets/tech/{ticket_id}/update")
 async def update_tech_ticket_status(
     request: Request,
@@ -875,6 +876,34 @@ async def update_tech_ticket_status(
     except Exception as e:
         print(f"Error updating tech ticket: {e}")
     return RedirectResponse(f"/tickets/tech/{ticket_id}", status_code=303)
+
+@app.post("/tickets/maintenance/{ticket_id}/update")
+async def update_maintenance_ticket_status(
+    request: Request,
+    ticket_id: int,
+    status: str = Form(...),
+    update_message: str = Form(default=""),
+    current_user: User = Depends(get_current_user)
+):
+    """Update maintenance ticket status and add update message via Tickets API"""
+    try:
+        services = get_service_for_request(request)
+        if update_message.strip():
+            update_data = {
+                "status": status,
+                "update_message": update_message.strip(),
+                "updated_by": f"{current_user.first_name} {current_user.last_name}"
+            }
+            success = await services["tickets"].update_maintenance_ticket_comprehensive(ticket_id, update_data)
+        else:
+            success = await services["tickets"].update_maintenance_ticket_status(ticket_id, status)
+        if success:
+            print(f"Maintenance ticket {ticket_id} updated - Status: {status}")
+        else:
+            print(f"Failed to update maintenance ticket {ticket_id}")
+    except Exception as e:
+        print(f"Error updating maintenance ticket: {e}")
+    return RedirectResponse(f"/tickets/maintenance/{ticket_id}", status_code=303)
 
 # Maintenance Ticket Routes - now use service layer
 @app.get("/tickets/maintenance/new")
@@ -1064,6 +1093,52 @@ async def maintenance_tickets_closed(request: Request):
         "page_title": "Closed Maintenance Requests",
         "status_filter": "closed",
         "current_datetime": datetime.now(),
+        **menu_context
+    })
+
+# Maintenance ticket detail route (placed after static routes to avoid capturing 'new')
+@app.get("/tickets/maintenance/{ticket_id}")
+async def view_maintenance_ticket(request: Request, ticket_id: int):
+    """View individual maintenance ticket details"""
+    try:
+        services = get_service_for_request(request)
+        tickets_svc = services["tickets"]
+
+        ticket = await tickets_svc.get_maintenance_ticket(ticket_id)
+        if not ticket:
+            return RedirectResponse("/tickets/maintenance/open", status_code=303)
+
+        updates = await tickets_svc.get_ticket_updates("maintenance", ticket_id)
+
+        # Format dates for template display
+        if ticket.get("created_at"):
+            try:
+                created_at = datetime.fromisoformat(ticket["created_at"].replace('Z', '+00:00'))
+                ticket["created_at"] = created_at.strftime("%B %d, %Y at %I:%M %p")
+            except:
+                pass
+        if ticket.get("updated_at"):
+            try:
+                updated_at = datetime.fromisoformat(ticket["updated_at"].replace('Z', '+00:00'))
+                ticket["updated_at"] = updated_at.strftime("%B %d, %Y at %I:%M %p")
+            except:
+                pass
+
+        for update in updates:
+            try:
+                created_at = datetime.fromisoformat(update["created_at"].replace('Z', '+00:00'))
+                update["created_at"] = created_at.strftime("%B %d, %Y at %I:%M %p")
+            except:
+                pass
+    except Exception as e:
+        print(f"Error fetching maintenance ticket: {e}")
+        return RedirectResponse("/tickets/maintenance/open", status_code=303)
+
+    menu_context = await get_menu_context(request)
+    return templates.TemplateResponse("maintenance_ticket_detail.html", {
+        "request": request,
+        "ticket": ticket,
+        "updates": updates,
         **menu_context
     })
 
@@ -1278,19 +1353,7 @@ async def tickets_service_integration(request: Request):
     # Redirect to tickets API
     return RedirectResponse(url=f"{TICKETS_API_URL}/", status_code=302)
 
-@app.get("/tickets/maintenance/new") 
-async def new_maintenance_ticket_integration(request: Request):
-    """Integrate with ocs-tickets-api for new maintenance tickets"""
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse(url="/auth/login")
-    
-    permissions = user.get('permissions', {})
-    if permissions.get('tickets_access', 'none') == 'none':
-        raise HTTPException(status_code=403, detail="Access denied: No tickets permission")
-    
-    # Redirect to tickets API maintenance form
-    return RedirectResponse(url=f"{TICKETS_API_URL}/new-maintenance-ticket", status_code=302)
+## Removed duplicate /tickets/maintenance/new integration route (local form now served earlier)
 
 @app.get("/maintenance")
 async def maintenance_service_integration(request: Request):

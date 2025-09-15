@@ -158,9 +158,9 @@
                     </div>
                 </div>
                   <div class="ticket-actions">
-                    <button class="btn btn-primary btn-sm" onclick="viewTicket({{ ticket.id }})">
+                    <a class="btn btn-primary btn-sm" href="/tickets/maintenance/{{ ticket.id }}" onclick="event.stopPropagation();">
                         <i class="fa fa-eye"></i> View
-                    </button>
+                    </a>
                 </div>
             </div>
             {% endfor %}

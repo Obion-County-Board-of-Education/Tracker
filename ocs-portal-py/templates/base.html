@@ -96,10 +96,24 @@
                 </div>
                 {% endif %}
                 
-                <!-- Logout Button -->
+                <!-- User Badge + Logout -->
+                {% if user %}
+                <div class="user-auth-block">
+                    <div class="user-badge" title="Logged in as {{ user.display_name or user.email or user.user_id }}">
+                        <i class="fa-solid fa-user"></i>
+                        <span class="user-badge-name">
+                            {{ (user.display_name or user.name or user.email or 'User') | truncate(24, True, '…') }}
+                        </span>
+                    </div>
+                    <a href="/auth/logout" class="nav-link logout-btn" onclick="return confirm('Are you sure you want to log out?')">
+                        <i class="fa-solid fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+                {% else %}
                 <a href="/auth/logout" class="nav-link logout-btn" onclick="return confirm('Are you sure you want to log out?')">
                     <i class="fa-solid fa-sign-out-alt"></i> Logout
                 </a>
+                {% endif %}
             </nav>
         </div>
     </header>

@@ -297,6 +297,111 @@ def create_tech_ticket(
         print(f"Error creating tech ticket: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error creating tech ticket: {str(e)}")
 
+@app.get("/api/tickets/tech/{ticket_id}", response_model=TechTicketResponse)
+@require_tickets_read
+def get_tech_ticket(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db)
+):
+    """Retrieve a single technology ticket"""
+    try:
+        ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Tech ticket not found")
+        return ticket
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving tech ticket: {str(e)}")
+
+@app.get("/api/tickets/tech/{ticket_id}/updates")
+@require_tickets_read
+def get_tech_ticket_updates(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get update history for a tech ticket"""
+    try:
+        updates = db.query(TicketUpdate).filter(
+            TicketUpdate.ticket_type == 'tech',
+            TicketUpdate.ticket_id == ticket_id
+        ).order_by(desc(TicketUpdate.created_at)).all()
+        return updates
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving tech ticket updates: {str(e)}")
+
+@app.put("/api/tickets/tech/{ticket_id}/status")
+@require_tickets_write
+def update_tech_ticket_status_only(
+    request: Request,
+    ticket_id: int,
+    status: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Update only the status of a tech ticket"""
+    try:
+        ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Tech ticket not found")
+        old_status = ticket.status
+        ticket.status = status
+        ticket.updated_at = central_now()
+        db.add(TicketUpdate(
+            ticket_type='tech',
+            ticket_id=ticket_id,
+            status_from=old_status,
+            status_to=status,
+            update_message=None,
+            updated_by=get_current_user(request).get('email', 'Unknown') if get_current_user(request) else 'Unknown'
+        ))
+        db.commit()
+        db.refresh(ticket)
+        notify_ticket_updated(db, ticket, 'tech')
+        return {"success": True, "ticket_id": ticket_id, "status": status}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating tech ticket status: {str(e)}")
+
+@app.put("/api/tickets/tech/{ticket_id}")
+@require_tickets_write
+def update_tech_ticket_comprehensive(
+    request: Request,
+    ticket_id: int,
+    status: str = Form(...),
+    update_message: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Update status and add an update message for a tech ticket"""
+    try:
+        ticket = db.query(TechTicket).filter(TechTicket.id == ticket_id).first()
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Tech ticket not found")
+        old_status = ticket.status
+        ticket.status = status
+        ticket.updated_at = central_now()
+        message_val = update_message.strip() if update_message and update_message.strip() else None
+        db.add(TicketUpdate(
+            ticket_type='tech',
+            ticket_id=ticket_id,
+            status_from=old_status,
+            status_to=status,
+            update_message=message_val,
+            updated_by=get_current_user(request).get('email', 'Unknown') if get_current_user(request) else 'Unknown'
+        ))
+        db.commit()
+        db.refresh(ticket)
+        notify_ticket_updated(db, ticket, 'tech')
+        return {"success": True, "ticket_id": ticket_id, "status": status}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error comprehensively updating tech ticket: {str(e)}")
+
 @app.post("/api/tickets/maintenance", response_model=MaintenanceTicketResponse)
 @require_tickets_write
 def create_maintenance_ticket(
@@ -342,6 +447,111 @@ def create_maintenance_ticket(
         db.rollback()
         print(f"Error creating maintenance ticket: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error creating maintenance ticket: {str(e)}")
+
+@app.get("/api/tickets/maintenance/{ticket_id}", response_model=MaintenanceTicketResponse)
+@require_tickets_read
+def get_maintenance_ticket(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db)
+):
+    """Retrieve a single maintenance ticket"""
+    try:
+        ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Maintenance ticket not found")
+        return ticket
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving maintenance ticket: {str(e)}")
+
+@app.get("/api/tickets/maintenance/{ticket_id}/updates")
+@require_tickets_read
+def get_maintenance_ticket_updates(
+    request: Request,
+    ticket_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get update history for a maintenance ticket"""
+    try:
+        updates = db.query(TicketUpdate).filter(
+            TicketUpdate.ticket_type == 'maintenance',
+            TicketUpdate.ticket_id == ticket_id
+        ).order_by(desc(TicketUpdate.created_at)).all()
+        return updates
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving maintenance ticket updates: {str(e)}")
+
+@app.put("/api/tickets/maintenance/{ticket_id}/status")
+@require_tickets_write
+def update_maintenance_ticket_status_only(
+    request: Request,
+    ticket_id: int,
+    status: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Update only the status of a maintenance ticket"""
+    try:
+        ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Maintenance ticket not found")
+        old_status = ticket.status
+        ticket.status = status
+        ticket.updated_at = central_now()
+        db.add(TicketUpdate(
+            ticket_type='maintenance',
+            ticket_id=ticket_id,
+            status_from=old_status,
+            status_to=status,
+            update_message=None,
+            updated_by=get_current_user(request).get('email', 'Unknown') if get_current_user(request) else 'Unknown'
+        ))
+        db.commit()
+        db.refresh(ticket)
+        notify_ticket_updated(db, ticket, 'maintenance')
+        return {"success": True, "ticket_id": ticket_id, "status": status}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error updating maintenance ticket status: {str(e)}")
+
+@app.put("/api/tickets/maintenance/{ticket_id}")
+@require_tickets_write
+def update_maintenance_ticket_comprehensive(
+    request: Request,
+    ticket_id: int,
+    status: str = Form(...),
+    update_message: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    """Update status and add an update message for a maintenance ticket"""
+    try:
+        ticket = db.query(MaintenanceTicket).filter(MaintenanceTicket.id == ticket_id).first()
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Maintenance ticket not found")
+        old_status = ticket.status
+        ticket.status = status
+        ticket.updated_at = central_now()
+        message_val = update_message.strip() if update_message and update_message.strip() else None
+        db.add(TicketUpdate(
+            ticket_type='maintenance',
+            ticket_id=ticket_id,
+            status_from=old_status,
+            status_to=status,
+            update_message=message_val,
+            updated_by=get_current_user(request).get('email', 'Unknown') if get_current_user(request) else 'Unknown'
+        ))
+        db.commit()
+        db.refresh(ticket)
+        notify_ticket_updated(db, ticket, 'maintenance')
+        return {"success": True, "ticket_id": ticket_id, "status": status}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error comprehensively updating maintenance ticket: {str(e)}")
 
 # Technology Tickets API
 @app.get("/api/tickets/tech", response_model=List[TechTicketResponse])

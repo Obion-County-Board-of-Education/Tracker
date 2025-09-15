@@ -2,6 +2,198 @@
 {% block content %}
 <div class="content-header">
     <div class="header-content">
+        <h1><i class="fa-solid fa-screwdriver-wrench"></i> Maintenance Request #{{ ticket.id }}</h1>
+        <p class="header-subtitle">View and manage maintenance request details</p>
+    </div>
+    <div class="header-actions">
+        <a href="/tickets/maintenance/open" class="btn btn-outline">
+            <i class="fa fa-arrow-left"></i> Back to Requests
+        </a>
+    </div>
+</div>
+
+<div class="ticket-detail-container">
+    <div class="ticket-detail-card">
+        <div class="ticket-header">
+            <div class="ticket-info">
+                <h2 class="ticket-title">{{ ticket.title }}</h2>
+                <div class="ticket-meta">
+                    <span class="status-badge status-{{ ticket.status }}">
+                        {% if ticket.status == 'open' %}📂 Open
+                        {% elif ticket.status == 'new' %}🆕 New
+                        {% elif ticket.status == 'assigned' %}👤 Assigned
+                        {% elif ticket.status == 'in_progress' %}🔧 In Progress
+                        {% elif ticket.status == 'closed' %}🔒 Closed
+                        {% else %}📝 {{ ticket.status.title() }}{% endif %}
+                    </span>
+                    <span class="ticket-type">
+                        {% if ticket.issue_type == 'plumbing' %}🚰 Plumbing
+                        {% elif ticket.issue_type == 'electrical' %}💡 Electrical
+                        {% elif ticket.issue_type == 'hvac' %}❄️ HVAC
+                        {% elif ticket.issue_type == 'structural' %}🏗️ Structural
+                        {% elif ticket.issue_type == 'grounds' %}🌿 Grounds
+                        {% else %}❓ Other{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="ticket-content">
+            <div class="detail-section">
+                <h3><i class="fa fa-info-circle"></i> Request Information</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Request ID:</label>
+                        <span>#{{ ticket.id }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Status:</label>
+                        <span class="status-badge status-{{ ticket.status }}">
+                            {% if ticket.status == 'open' %}📂 Open
+                            {% elif ticket.status == 'new' %}🆕 New
+                            {% elif ticket.status == 'assigned' %}👤 Assigned
+                            {% elif ticket.status == 'in_progress' %}🔧 In Progress
+                            {% elif ticket.status == 'closed' %}🔒 Closed
+                            {% else %}📝 {{ ticket.status.title() }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Issue Type:</label>
+                        <span>
+                            {% if ticket.issue_type == 'plumbing' %}🚰 Plumbing
+                            {% elif ticket.issue_type == 'electrical' %}💡 Electrical
+                            {% elif ticket.issue_type == 'hvac' %}❄️ HVAC
+                            {% elif ticket.issue_type == 'structural' %}🏗️ Structural
+                            {% elif ticket.issue_type == 'grounds' %}🌿 Grounds
+                            {% else %}❓ Other{% endif %}
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Created By:</label>
+                        <span>{{ ticket.created_by }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Created:</label>
+                        <span>{{ ticket.created_at }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Last Updated:</label>
+                        <span>{{ ticket.updated_at }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h3><i class="fa fa-map-marker-alt"></i> Location Information</h3>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Building:</label>
+                        <span>{{ ticket.school }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Room:</label>
+                        <span>{{ ticket.room }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h3><i class="fa fa-clipboard-list"></i> Issue Description</h3>
+                <div class="description-content">
+                    <p>{{ ticket.description }}</p>
+                </div>
+            </div>
+
+            {% if updates %}
+            <div class="detail-section">
+                <h3><i class="fa fa-history"></i> Update History</h3>
+                <div class="updates-container">
+                    {% for update in updates %}
+                    <div class="update-item">
+                        <div class="update-header">
+                            <div class="update-meta">
+                                <span class="update-timestamp">{{ update.created_at }}</span>
+                                <span class="update-by">by {{ update.updated_by }}</span>
+                            </div>
+                            {% if update.status_from and update.status_to %}
+                            <div class="status-change">
+                                <span class="status-badge status-{{ update.status_from }}">
+                                    {% if update.status_from == 'open' %}📂 Open
+                                    {% elif update.status_from == 'new' %}🆕 New
+                                    {% elif update.status_from == 'assigned' %}👤 Assigned
+                                    {% elif update.status_from == 'in_progress' %}🔧 In Progress
+                                    {% elif update.status_from == 'closed' %}🔒 Closed
+                                    {% else %}📝 {{ update.status_from.title() }}{% endif %}
+                                </span>
+                                <i class="fa fa-arrow-right status-arrow"></i>
+                                <span class="status-badge status-{{ update.status_to }}">
+                                    {% if update.status_to == 'open' %}📂 Open
+                                    {% elif update.status_to == 'new' %}🆕 New
+                                    {% elif update.status_to == 'assigned' %}👤 Assigned
+                                    {% elif update.status_to == 'in_progress' %}🔧 In Progress
+                                    {% elif update.status_to == 'closed' %}🔒 Closed
+                                    {% else %}📝 {{ update.status_to.title() }}{% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if update.update_message %}
+                        <div class="update-message">
+                            <p>{{ update.update_message }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="detail-section">
+                <h3><i class="fa fa-cogs"></i> Actions</h3>
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="toggleUpdateForm()">
+                        <i class="fa fa-edit"></i> Update Request
+                    </button>
+                </div>
+                <!-- Update Form (initially hidden) -->
+                <div id="updateForm" class="update-form" style="display: none;">
+                    <h4><i class="fa fa-edit"></i> Update Request</h4>
+                    <form method="POST" action="/tickets/maintenance/{{ ticket.id }}/update">
+                        <div class="form-group">
+                            <label for="status">Status</label>
+                            <select name="status" id="status" required>
+                                <option value="new" {% if ticket.status == 'new' %}selected{% endif %}>New</option>
+                                <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>Open</option>
+                                <option value="assigned" {% if ticket.status == 'assigned' %}selected{% endif %}>Assigned</option>
+                                <option value="in_progress" {% if ticket.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="update_message">Update Message (optional)</label>
+                            <textarea name="update_message" id="update_message" rows="3" placeholder="Describe the update or action taken..."></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save Update</button>
+                            <button type="button" class="btn btn-outline" onclick="toggleUpdateForm()"><i class="fa fa-times"></i> Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleUpdateForm() {
+    const form = document.getElementById('updateForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}{% extends 'base.html' %}
+{% block content %}
+<div class="content-header">
+    <div class="header-content">
         <h1><i class="fa-solid fa-tools"></i> Maintenance Request #{{ ticket.id }}</h1>
         <p class="header-subtitle">View and manage maintenance request details</p>
     </div>    <div class="header-actions">

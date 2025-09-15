@@ -160,9 +160,9 @@
                     </div>
                 </div>
                   <div class="ticket-actions">
-                    <button class="btn btn-primary btn-sm" onclick="viewTicket({{ ticket.id }})">
-                        <i class="fa fa-eye"></i> View
-                    </button>
+          <a class="btn btn-primary btn-sm" href="/tickets/tech/{{ ticket.id }}" onclick="event.stopPropagation();">
+            <i class="fa fa-eye"></i> View
+          </a>
                 </div>
             </div>
             {% endfor %}
